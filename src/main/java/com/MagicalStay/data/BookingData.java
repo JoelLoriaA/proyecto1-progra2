@@ -1,148 +1,64 @@
 package com.MagicalStay.data;
 
-
 import com.MagicalStay.domain.Room;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class BookingData {
     private RandomAccessFile raf;
-    private final int TAMANO_REGISTRO = 64;
-    private final int TAMANO_ID_EMPLEADO = 4;
-    private final int TAMANO_NOMBRE = 30;
-    private final int TAMANO_APELLIDOS = 30;
+    private final int DATE_SIZE = 8;
+    private final int RESERVED_ROOMS_SIZE = 78;
+    private final int TAMANO_REGISTRO = DATE_SIZE + DATE_SIZE + RESERVED_ROOMS_SIZE;
 
-    /* Empleado = {{idEmpleado, int, 4},
-     * 			   {nombre, String, 30},
-     * 			   {apellidos, String, 30}
-     */
-
-    public BookingData(String archivo) throws FileNotFoundException {
-        raf = new RandomAccessFile(archivo, "rw");
+    public BookingData(String filePath) throws IOException {
+        raf = new RandomAccessFile(filePath, "rw");
     }
 
-    public List<Room> findAvailable(LocalDate initialDate, LocalDate findDate){
-        //TODO
-        return null;
+    public void create(LocalDate startDate, LocalDate endDate, List<Room> reservedRooms) throws IOException {
+        raf.seek(raf.length()); // Escribimos al final del archivo
+        raf.writeBytes(startDate.toString());
+        raf.writeBytes(endDate.toString());
+        StringBuilder roomsString = new StringBuilder();
+        for (Room room : reservedRooms) {
+            roomsString.append(room.getRoomNumber()).append(",");
+        }
+        writeString(roomsString.toString(), RESERVED_ROOMS_SIZE);
     }
 
- /*
-     * Lee un String en el archivo
-     * @param tamanoString
-     * @param posicion
-     */
-   private String readString(int tamanoString, long posicion) throws IOException{
-        raf.seek(posicion);
-        byte[] datos = new byte[tamanoString];
+    public List<String> readAll() throws IOException {
+        List<String> bookings = new ArrayList<>();
+        long totalRegistros = raf.length() / TAMANO_REGISTRO;
+        for (int i = 0; i < totalRegistros; i++) {
+            raf.seek(i * TAMANO_REGISTRO);
+            String startDate = readString(DATE_SIZE, raf.getFilePointer());
+            String endDate = readString(DATE_SIZE, raf.getFilePointer());
+            String reservedRooms = readString(RESERVED_ROOMS_SIZE, raf.getFilePointer());
+            bookings.add(startDate + " - " + endDate + ": " + reservedRooms);
+        }
+        return bookings;
+    }
+
+    private String readString(int size, long position) throws IOException {
+        raf.seek(position);
+        byte[] datos = new byte[size];
         raf.readFully(datos);
-        String dato = new String(datos).trim();
-        return dato;
+        return new String(datos).trim();
+    }
 
-    }//readString
-   
-    private byte[] toBytes(String dato, int tamanoString){
-        byte[] datos = new byte[tamanoString];
-            byte[] temp = dato.getBytes();
-            for (int i = 0; i < tamanoString; i++) {
-                if (i<temp.length)
-                datos[i] =temp[i];
+    private void writeString(String data, int size) throws IOException {
+        byte[] bytes = new byte[size];
+        byte[] dataBytes = data.getBytes();
+        for (int i = 0; i < size; i++) {
+            if (i < dataBytes.length) {
+                bytes[i] = dataBytes[i];
+            } else {
+                bytes[i] = ' ';
             }
-        return datos;
-    }
-
-    public ArrayList<Empleado> findAll() throws IOException {
-        int totalRegistros = (int)(raf.length()/TAMANO_REGISTRO);
-        ArrayList<Empleado> empleados = new ArrayList<Empleado>();
-        for(int i=0; i<totalRegistros; i++){
-            raf.seek(i*TAMANO_REGISTRO);
-            int idEmp = raf.readInt();
-            String nombre = this.readString(TAMANO_NOMBRE,
-                    raf.getFilePointer());
-            String apellidos = this.readString(TAMANO_APELLIDOS,
-                    raf.getFilePointer());
-            empleados.add(new Empleado(idEmp,nombre, apellidos));
-        }//for
-        return empleados;
-    }
-
-    /* inserta el final del archivo */
-    public void insert(Empleado empleado) throws IOException {
-        //aumentar el tamaño del archivo en 64 bytes (TAMAÑO_REGISTRO)
-        raf.setLength(raf.length() + TAMANO_REGISTRO);
-        raf.seek(raf.length() - TAMANO_REGISTRO);
-        raf.writeInt(empleado.getIdEmpleado());
-        // Se debe transformar el string en un arreglo de bytes para
-        // poder escribirlo en el archivo
-        byte nombre[] = toBytes(empleado.getNombre(),TAMANO_NOMBRE);
-        raf.write(nombre);
-        byte apellidos[]= toBytes(empleado.getApellidos(),TAMANO_APELLIDOS);
-        raf.write(apellidos);
-    }
-    public void insertInOrder(Empleado empleado) throws IOException{
-        // crear un ciclo while que me permita recorrer el archivo, registro por registro
-        // + bandera para salirme del ciclo cuando se haya insertado el empleado
-        int i = 0;
-        int totalRegistros = (int)raf.length()/TAMANO_REGISTRO;
-        boolean insertado = false;
-        while(i<totalRegistros && insertado == false){
-            raf.seek(i*TAMANO_REGISTRO);
-            raf.skipBytes(TAMANO_ID_EMPLEADO);
-            String nombreActual = this.readString(TAMANO_NOMBRE, raf.getFilePointer());
-            if (empleado.getNombre().compareToIgnoreCase(nombreActual)<0){
-                //TODO insertar antes de i
-                raf.setLength(raf.length()+TAMANO_REGISTRO);
-                for (int j = totalRegistros-1; j >= i; j--) {
-                    raf.seek(j*TAMANO_REGISTRO);
-                    byte[] registroActual = new byte[TAMANO_REGISTRO];
-                    raf.readFully(registroActual);
-                    raf.write(registroActual);
-                }
-                raf.seek(i*TAMANO_REGISTRO);
-                raf.writeInt(empleado.getIdEmpleado());
-                byte[] nombre = toBytes(empleado.getNombre(), TAMANO_NOMBRE);
-                raf.write(nombre);
-                byte[] apellidos = toBytes(empleado.getApellidos(), TAMANO_APELLIDOS);
-                raf.write(apellidos);
-                insertado = true;
-            }//if
-            else i++;
-        }//while
-        if (!insertado){
-            raf.setLength(raf.length()+TAMANO_REGISTRO);
-            //raf.seek(raf.length()-TAMANO_REGISTRO);
-            raf.seek(i*TAMANO_REGISTRO);
-            raf.writeInt(empleado.getIdEmpleado());
-            byte[] nombre = toBytes(empleado.getNombre(), TAMANO_NOMBRE);
-            raf.write(nombre);
-            byte[] apellidos = toBytes(empleado.getApellidos(), TAMANO_APELLIDOS);
-            raf.write(apellidos);
         }
+        raf.write(bytes);
     }
-    
-    
-    
-  /*  public boolean buscar(int idEmpleadoBuscado)
-            throws IOException{
-        boolean encontrado = false;
-        super.length();
-        int totalRegistros = (int)(this.length()/TAMANO_REGISTRO);
-        int numReg=0;
-        while(numReg<totalRegistros && !encontrado){
-            this.seek(numReg * TAMANO_REGISTRO);
-            int idEmpleadoActual = this.readInt();
-            if(idEmpleadoBuscado == idEmpleadoActual)
-                encontrado = !encontrado;
-            else numReg++;
-
-        }
-        return encontrado;
-    }//buscar*/
-   
 }

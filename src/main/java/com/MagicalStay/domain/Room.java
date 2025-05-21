@@ -38,7 +38,6 @@ public class Room {
         this.roomCondition = roomCondition;
     }
 
-    // Método toString (opcional, útil para imprimir la habitación)
     @Override
     public String toString() {
         return "Room{" +

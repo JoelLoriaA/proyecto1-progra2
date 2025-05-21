@@ -1,16 +1,18 @@
 package com.MagicalStay.domain;
 
+import java.util.List;
+
 public class Hotel {
     private int hotelId;
     private String name;
     private String address;
-    private Room room;
+    private List<Room> rooms;  // Lista de habitaciones
 
-    public Hotel(int hotelId, String name, String address, Room room) {
+    public Hotel(int hotelId, String name, String address, List<Room> rooms) {
         this.hotelId = hotelId;
         this.name = name;
         this.address = address;
-        this.room = room;
+        this.rooms = rooms;
     }
 
     public int getHotelId() {
@@ -37,11 +39,21 @@ public class Hotel {
         this.address = address;
     }
 
-    public Room getRoom() {
-        return room;
+    public List<Room> getRooms() {
+        return rooms;
     }
 
-    public void setRoom(Room room) {
-        this.room = room;
+    public void setRooms(List<Room> rooms) {
+        this.rooms = rooms;
+    }
+
+    @Override
+    public String toString() {
+        return "Hotel{" +
+                "hotelId=" + hotelId +
+                ", name='" + name + '\'' +
+                ", address='" + address + '\'' +
+                ", room=" + rooms +
+                '}';
     }
 }
