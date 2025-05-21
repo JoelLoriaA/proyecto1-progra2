@@ -2,11 +2,9 @@ package com.MagicalStay.ui;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.control.MenuItem;
-import javafx.scene.layout.GridPane;
 
-public class MainMenuController
+public class MainMenu2Controller
 {
     @javafx.fxml.FXML
     private MenuItem menuExit;

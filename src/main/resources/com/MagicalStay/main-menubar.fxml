@@ -1,40 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<MenuBar   xmlns:fx="http://javafx.com/fxml"
-            fx:controller="cr.ac.ucr.paraiso.progra2.javafxapp.controller.MainMenuController" >
+<MenuBar xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.ui.controllers.MainMenuController">
     <menus>
-        <Menu
-            mnemonicParsing="false"
-            text="Cálculos">
+        <Menu mnemonicParsing="false" text="Sistema">
             <items>
-                <MenuItem
-                        fx:id="menuMcd"
-                        mnemonicParsing="false"
-                        onAction="#loadMcdPane"
-                        text="Calcular el MCD" />
-                <MenuItem
-                        fx:id="menuExit"
-                        mnemonicParsing="false"
-                        onAction="#exit"
-                        text="Salir" />
+                <MenuItem fx:id="connectMenuItem" mnemonicParsing="false" onAction="#handleConnect" text="Conectar al servidor" />
+                <MenuItem fx:id="disconnectMenuItem" mnemonicParsing="false" onAction="#handleDisconnect" text="Desconectar" disable="true" />
+                <SeparatorMenuItem mnemonicParsing="false" />
+                <MenuItem fx:id="exitMenuItem" mnemonicParsing="false" onAction="#handleExit" text="Salir" />
             </items>
         </Menu>
-        <Menu
-            mnemonicParsing="false"
-            text="Teoría">
+        <Menu mnemonicParsing="false" text="Administración">
             <items>
-                <MenuItem
-                    fx:id="menuTeoría"
-                    mnemonicParsing="false"
-                    onAction="#loadTeoría"
-                    text="Mostrar Teoría">
-                </MenuItem>
+                <MenuItem fx:id="hotelManagementMenuItem" mnemonicParsing="false" onAction="#handleHotelManagement" text="Gestión de Hoteles" />
+                <MenuItem fx:id="roomManagementMenuItem" mnemonicParsing="false" onAction="#handleRoomManagement" text="Gestión de Habitaciones" />
+                <SeparatorMenuItem mnemonicParsing="false" />
+                <MenuItem fx:id="guestMenuItem" mnemonicParsing="false" onAction="#handleGuestManagement" text="Registro de Huéspedes" />
+                <MenuItem fx:id="receptionistMenuItem" mnemonicParsing="false" onAction="#handleReceptionistManagement" text="Gestión de Recepcionistas" />
+            </items>
+        </Menu>
+        <Menu mnemonicParsing="false" text="Reservaciones">
+            <items>
+                <MenuItem fx:id="newBookingMenuItem" mnemonicParsing="false" onAction="#handleNewBooking" text="Nueva Reservación" />
+                <MenuItem fx:id="searchAvailabilityMenuItem" mnemonicParsing="false" onAction="#handleSearchAvailability" text="Buscar Disponibilidad" />
+                <SeparatorMenuItem mnemonicParsing="false" />
+                <MenuItem fx:id="bookingHistoryMenuItem" mnemonicParsing="false" onAction="#handleBookingHistory" text="Historial de Reservaciones" />
+            </items>
+        </Menu>
+        <Menu mnemonicParsing="false" text="Ayuda">
+            <items>
+                <MenuItem fx:id="aboutMenuItem" mnemonicParsing="false" onAction="#handleAbout" text="Acerca de" />
             </items>
         </Menu>
     </menus>
