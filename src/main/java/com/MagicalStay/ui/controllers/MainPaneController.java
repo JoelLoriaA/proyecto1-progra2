@@ -58,34 +58,38 @@ public class MainPaneController {
 
     @FXML
     private void handleConnect(ActionEvent event) {
+        // Show a loading indicator or disable buttons while connecting
+        connectButton.setDisable(true);
+        statusLabel.setText("Estado: Conectando...");
+
         Task<Void> connectionTask = new Task<Void>() {
             @Override
             protected Void call() throws Exception {
                 try {
                     socket = MainApp.createSocket();
-                    
-                    // Verificar la conexión con la base de datos
+
+                    // Verify database connection
                     RequestDTO testRequest = new RequestDTO("TEST_CONNECTION", null, null);
                     databaseClient.executeRequest(testRequest, ConnectionStatus.class)
-                        .thenAcceptAsync(status -> {
-                            Platform.runLater(() -> {
-                                if (status.isConnected()) {
-                                    updateConnectionStatus(true);
-                                    showMainContainer();
-                                } else {
+                            .thenAcceptAsync(status -> {
+                                Platform.runLater(() -> {
+                                    if (status.isConnected()) {
+                                        updateConnectionStatus(true);
+                                        showMainContainer();
+                                    } else {
+                                        updateConnectionStatus(false);
+                                        showError("La base de datos no está disponible");
+                                    }
+                                });
+                            })
+                            .exceptionally(throwable -> {
+                                Platform.runLater(() -> {
                                     updateConnectionStatus(false);
-                                    showError("La base de datos no está disponible");
-                                }
+                                    showError("Error de conexión: " + throwable.getMessage());
+                                });
+                                return null;
                             });
-                        })
-                        .exceptionally(throwable -> {
-                            Platform.runLater(() -> {
-                                updateConnectionStatus(false);
-                                showError("Error de conexión: " + throwable.getMessage());
-                            });
-                            return null;
-                        });
-                    
+
                 } catch (IOException e) {
                     Platform.runLater(() -> {
                         updateConnectionStatus(false);
@@ -96,7 +100,6 @@ public class MainPaneController {
             }
         };
 
-        connectButton.setDisable(true);
         new Thread(connectionTask).start();
     }
 

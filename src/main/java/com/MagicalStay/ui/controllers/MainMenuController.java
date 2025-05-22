@@ -183,4 +183,8 @@ public class MainMenuController {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
+    @FXML
+    public void systemOnAction(ActionEvent actionEvent) {
+    }
 }

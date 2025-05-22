@@ -60,6 +60,7 @@ public class VisualAndMultipleThreadServer extends Application {
         };
         new Thread(backgroundTask).start();
     }//severStart
+
     public static void main(String[] args) {
         launch(args);
 

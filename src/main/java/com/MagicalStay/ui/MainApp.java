@@ -3,6 +3,7 @@ package com.MagicalStay.ui;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.control.MenuBar;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
@@ -10,6 +11,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.net.URL; // Import URL
 
 public class MainApp extends Application {
 
@@ -19,19 +21,21 @@ public class MainApp extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            // Usar getResourceAsStream para verificar si los recursos existen
-            MenuBar menuBar = FXMLLoader.load(
-                MainApp.class.getResource("/main-menubar.fxml"));
-            
-            AnchorPane anchorPane = FXMLLoader.load(
-                MainApp.class.getResource("/main-pane.fxml"));
 
-            if (menuBar == null || anchorPane == null) {
-                throw new IOException("No se pudieron cargar los archivos FXML");
+            // Usar getResource para obtener la URL correcta
+            URL menuBarUrl = MainApp.class.getResource("/com/MagicalStay/main-menubar.fxml");
+            URL anchorPaneUrl = MainApp.class.getResource("/com/MagicalStay/main-pane.fxml");
+
+            if (menuBarUrl == null || anchorPaneUrl == null) {
+                throw new IOException("No se pudieron encontrar los archivos FXML. Verifique las rutas.");
             }
+
+            MenuBar menuBar = FXMLLoader.load(menuBarUrl);
+            AnchorPane anchorPane = FXMLLoader.load(anchorPaneUrl);
 
             root.setTop(menuBar);
             root.setCenter(anchorPane);
+
             Scene scene = new Scene(root);
 
             primaryStage.setTitle("Múltiples formularios");

@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.SeparatorMenuItem?>
 
-<MenuBar xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.ui.controllers.MainMenuController">
+<MenuBar xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.ui.controllers.MainMenuController">
     <menus>
-        <Menu mnemonicParsing="false" text="Sistema">
+        <Menu mnemonicParsing="false" onAction="#systemOnAction" text="Sistema">
             <items>
                 <MenuItem fx:id="connectMenuItem" mnemonicParsing="false" onAction="#handleConnect" text="Conectar al servidor" />
-                <MenuItem fx:id="disconnectMenuItem" mnemonicParsing="false" onAction="#handleDisconnect" text="Desconectar" disable="true" />
+                <MenuItem fx:id="disconnectMenuItem" disable="true" mnemonicParsing="false" onAction="#handleDisconnect" text="Desconectar" />
                 <SeparatorMenuItem mnemonicParsing="false" />
                 <MenuItem fx:id="exitMenuItem" mnemonicParsing="false" onAction="#handleExit" text="Salir" />
             </items>
