@@ -1,6 +1,6 @@
-package com.MagicalStay.data;
+package com.MagicalStay.shared.data;
 
-import com.MagicalStay.config.DataConfig;
+import com.MagicalStay.shared.config.DataConfig;
 import java.io.IOException;
 
 /**

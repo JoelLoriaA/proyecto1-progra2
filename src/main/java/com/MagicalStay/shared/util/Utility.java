@@ -1,4 +1,4 @@
-package com.MagicalStay.util;
+package com.MagicalStay.shared.util;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;

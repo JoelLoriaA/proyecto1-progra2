@@ -1,4 +1,4 @@
-package com.MagicalStay.util;
+package com.MagicalStay.shared.util;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Alert;

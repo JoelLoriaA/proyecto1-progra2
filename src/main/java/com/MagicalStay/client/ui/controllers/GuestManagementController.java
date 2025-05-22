@@ -1,8 +1,8 @@
 package com.MagicalStay.client.ui.controllers;
 
-import com.MagicalStay.data.DataFactory;
-import com.MagicalStay.data.GuestData;
-import com.MagicalStay.domain.Guest;
+import com.MagicalStay.shared.data.DataFactory;
+import com.MagicalStay.shared.data.GuestData;
+import com.MagicalStay.shared.domain.Guest;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.collections.FXCollections;

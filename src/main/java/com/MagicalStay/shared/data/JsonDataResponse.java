@@ -1,4 +1,4 @@
-package com.MagicalStay.data;
+package com.MagicalStay.shared.data;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;

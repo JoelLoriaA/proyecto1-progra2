@@ -1,11 +1,12 @@
 package com.MagicalStay.client.ui.controllers;
 
-import com.MagicalStay.data.DataFactory;
-import com.MagicalStay.data.RoomData;
-import com.MagicalStay.domain.Room;
-import com.MagicalStay.domain.RoomType;
-import com.MagicalStay.domain.RoomCondition;
-import com.MagicalStay.domain.Hotel;
+import com.MagicalStay.shared.data.DataFactory;
+import com.MagicalStay.shared.data.RoomData;
+import com.MagicalStay.shared.domain.Room;
+import com.MagicalStay.shared.domain.RoomType;
+import com.MagicalStay.shared.domain.RoomCondition;
+import com.MagicalStay.shared.domain.Hotel;
+import com.MagicalStay.shared.util.FXUtility;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.collections.FXCollections;
@@ -16,8 +17,6 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.FlowPane;
-import javafx.stage.FileChooser;
-import javafx.stage.Stage;
 
 import java.io.File;
 import java.util.List;
@@ -103,7 +102,7 @@ public class RoomManagementController implements Closeable {
             cancelButton.setDisable(true);
 
         } catch (Exception e) {
-            com.MagicalStay.util.FXUtility.alertError("Error de Inicialización",
+            FXUtility.alertError("Error de Inicialización",
                     "No se pudieron cargar los datos: " + e.getMessage());
         }
 
@@ -204,7 +203,7 @@ public class RoomManagementController implements Closeable {
 
     private void loadRoomsFromFile() {
         if (selectedHotel == null) {
-            com.MagicalStay.util.FXUtility.alertInformation("Advertencia",
+            FXUtility.alertInformation("Advertencia",
                     "No hay hotel seleccionado");
             return;
         }
@@ -312,7 +311,7 @@ public class RoomManagementController implements Closeable {
     @FXML
     private void handleDeleteRoom() {
         if (selectedRoom != null) {
-            Alert alert = com.MagicalStay.util.FXUtility.alertInformation(
+            Alert alert = FXUtility.alertInformation(
                     "Confirmar Eliminación",
                     "¿Está seguro que desea eliminar la habitación \"" + selectedRoom.getRoomNumber() + "\"?"
             );
@@ -328,13 +327,13 @@ public class RoomManagementController implements Closeable {
                         clearFields();
                         statusLabel.setText("Habitación eliminada con éxito");
                     } else {
-                        com.MagicalStay.util.FXUtility.alertError(
+                        FXUtility.alertError(
                                 "Error",
                                 "No se pudo eliminar la habitación: " + response.getMessage()
                         ).show();
                     }
                 } catch (Exception e) {
-                    com.MagicalStay.util.FXUtility.alertError(
+                    FXUtility.alertError(
                             "Error",
                             "Error al eliminar la habitación: " + e.getMessage()
                     ).show();
@@ -346,7 +345,7 @@ public class RoomManagementController implements Closeable {
     @FXML
     private void handleSave() {
         if (!validateFields() || selectedHotel == null) {
-            com.MagicalStay.util.FXUtility.alertError(
+            FXUtility.alertError(
                     "Error",
                     "Por favor seleccione un hotel y complete todos los campos"
             ).show();
@@ -371,13 +370,13 @@ public class RoomManagementController implements Closeable {
                 cancelButton.setDisable(true);
                 statusLabel.setText("Habitación guardada con éxito");
             } else {
-                com.MagicalStay.util.FXUtility.alertError(
+                FXUtility.alertError(
                         "Error",
                         "No se pudo guardar la habitación: " + response.getMessage()
                 ).show();
             }
         } catch (Exception e) {
-            com.MagicalStay.util.FXUtility.alertError(
+            FXUtility.alertError(
                     "Error",
                     "Error al guardar la habitación: " + e.getMessage()
             ).show();
@@ -398,7 +397,7 @@ public class RoomManagementController implements Closeable {
         }
 
         if (errorMessage.length() > 0) {
-            com.MagicalStay.util.FXUtility.alertError(
+            FXUtility.alertError(
                     "Error de Validación",
                     errorMessage.toString()
             ).show();

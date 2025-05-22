@@ -1,4 +1,4 @@
-package com.MagicalStay.config;
+package com.MagicalStay.shared.config;
 
 import java.io.File;
 import java.io.IOException;

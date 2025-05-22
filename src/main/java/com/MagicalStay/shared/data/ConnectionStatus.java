@@ -1,4 +1,4 @@
-package com.MagicalStay.data;
+package com.MagicalStay.shared.data;
 
 public class ConnectionStatus {
     private boolean connected;

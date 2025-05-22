@@ -1,7 +1,7 @@
 package com.MagicalStay.client.ui.controllers;
 
-import com.MagicalStay.data.FrontDeskData;
-import com.MagicalStay.domain.FrontDeskClerk;
+import com.MagicalStay.shared.data.FrontDeskData;
+import com.MagicalStay.shared.domain.FrontDeskClerk;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import java.io.IOException;

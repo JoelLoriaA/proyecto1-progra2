@@ -1,9 +1,9 @@
-package com.MagicalStay.data;
+package com.MagicalStay.shared.data;
 
-import com.MagicalStay.domain.Room;
-import com.MagicalStay.domain.RoomType;
-import com.MagicalStay.domain.RoomCondition;
-import com.MagicalStay.domain.Hotel;
+import com.MagicalStay.shared.domain.Room;
+import com.MagicalStay.shared.domain.RoomType;
+import com.MagicalStay.shared.domain.RoomCondition;
+import com.MagicalStay.shared.domain.Hotel;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;

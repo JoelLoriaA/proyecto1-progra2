@@ -1,4 +1,4 @@
-package com.MagicalStay.domain;
+package com.MagicalStay.shared.domain;
 
 import java.time.LocalDate;
 import java.util.List;

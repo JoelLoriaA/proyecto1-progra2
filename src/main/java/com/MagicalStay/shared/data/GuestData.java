@@ -1,6 +1,6 @@
-package com.MagicalStay.data;
+package com.MagicalStay.shared.data;
 
-import com.MagicalStay.domain.Guest;
+import com.MagicalStay.shared.domain.Guest;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;

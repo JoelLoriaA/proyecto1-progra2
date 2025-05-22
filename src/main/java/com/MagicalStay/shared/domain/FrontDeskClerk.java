@@ -1,4 +1,4 @@
-package com.MagicalStay.domain;
+package com.MagicalStay.shared.domain;
 
 public class FrontDeskClerk {
     private String name;
