@@ -6,8 +6,10 @@ module com.MagicalStay.progra2 {
     requires com.fasterxml.jackson.datatype.jsr310;
     requires java.logging;
 
-    exports com.MagicalStay.ui to javafx.graphics;
-    exports com.MagicalStay.ui.controllers to javafx.fxml;
+    exports com.MagicalStay.client to javafx.graphics;
 
-    opens com.MagicalStay.ui.controllers to javafx.fxml;
+    opens com.MagicalStay.client.ui.controllers to javafx.fxml;
+    exports com.MagicalStay.client.ui.controllers to javafx.fxml, javafx.graphics;
+    exports com.MagicalStay.client.ui to javafx.fxml, javafx.graphics;
+    opens com.MagicalStay.client.ui to javafx.fxml;
 }

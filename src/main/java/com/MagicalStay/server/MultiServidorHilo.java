@@ -1,4 +1,4 @@
-package com.MagicalStay.sockets.sevidormultihilo;
+package com.MagicalStay.server;
 
 import java.net.Socket;
 

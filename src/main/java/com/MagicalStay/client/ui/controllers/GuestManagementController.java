@@ -1,4 +1,4 @@
-package com.MagicalStay.ui.controllers;
+package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.data.DataFactory;
 import com.MagicalStay.data.GuestData;

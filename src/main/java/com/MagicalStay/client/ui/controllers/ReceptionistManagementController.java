@@ -1,4 +1,4 @@
-package com.MagicalStay.ui.controllers;
+package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.data.FrontDeskData;
 import com.MagicalStay.domain.FrontDeskClerk;

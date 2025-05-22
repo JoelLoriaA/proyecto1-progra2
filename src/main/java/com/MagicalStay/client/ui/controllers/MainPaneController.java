@@ -1,9 +1,9 @@
-package com.MagicalStay.ui.controllers;
+package com.MagicalStay.client.ui.controllers;
 
+import com.MagicalStay.client.ui.MainApp;
 import com.MagicalStay.data.ConnectionStatus;
 import com.MagicalStay.data.DatabaseClient;
 import com.MagicalStay.data.RequestDTO;
-import com.MagicalStay.ui.MainApp;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;

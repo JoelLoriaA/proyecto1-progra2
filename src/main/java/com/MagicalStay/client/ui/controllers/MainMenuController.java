@@ -1,7 +1,7 @@
-package com.MagicalStay.ui.controllers;
+package com.MagicalStay.client.ui.controllers;
 
 
-import com.MagicalStay.ui.MainApp;
+import com.MagicalStay.client.ui.MainApp;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -9,8 +9,6 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.MenuItem;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
