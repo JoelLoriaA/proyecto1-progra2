@@ -1,6 +1,6 @@
 package com.MagicalStay.ui;
 
-import com.MagicalStay.sockets.sevidormultihilo.KKMultiServidorHilo;
+import com.MagicalStay.sockets.sevidormultihilo.MultiServidorHilo;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
@@ -47,8 +47,8 @@ public class VisualAndMultipleThreadServer extends Application {
                     System.out.println("Servidor activo");
                     while(escuchando){
                         System.out.println(Thread.currentThread().toString());
-                        KKMultiServidorHilo hilo = new KKMultiServidorHilo(serverSocket.accept());
-                        hilo.start();
+                        MultiServidorHilo hilo = new MultiServidorHilo(serverSocket.accept());
+                        hilo.run();
                     }
                     serverSocket.close();
                 } catch (IOException e) {

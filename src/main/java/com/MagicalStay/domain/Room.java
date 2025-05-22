@@ -1,10 +1,33 @@
 package com.MagicalStay.domain;
 
+import java.util.List;
+
 public class Room {
     private String roomNumber;
     private RoomType roomType;
     private RoomCondition roomCondition;
     private Hotel hotel;
+    private String description;
+    private String features;
+    private double price;
+    private int capacity;
+    private List<String> images;
+
+
+    public Room(String roomNumber, Hotel hotel, RoomType roomType,
+                RoomCondition roomCondition, double price, int capacity,
+                String features, String description, List<String> images) {
+
+        this.roomNumber = roomNumber;
+        this.hotel = hotel;
+        this.roomType = roomType;
+        this.roomCondition = roomCondition;
+        this.price = price;
+        this.capacity = capacity;
+        this.features = features;
+        this.description = description;
+        this.images = images;
+    }
 
     public Room(String roomNumber, RoomType roomType, RoomCondition roomCondition, Hotel hotel) {
         this.roomNumber = roomNumber;
@@ -12,6 +35,13 @@ public class Room {
         this.roomCondition = roomCondition;
         this.hotel = hotel;
     }
+
+    // Agregar getters y setters para los nuevos campos
+    public String getDescription() { return description; }
+    public String getFeatures() { return features; }
+    public double getPrice() { return price; }
+    public int getCapacity() { return capacity; }
+    public List<String> getImages() { return images; }
 
     // Getters y setters
     public String getRoomNumber() {

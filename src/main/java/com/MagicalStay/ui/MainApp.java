@@ -15,27 +15,50 @@ public class MainApp extends Application {
 
     private static BorderPane root = new BorderPane();
     private static Socket socket = null;
+
     @Override
-    public void start(Stage primaryStage) throws Exception {
-        MenuBar menuBar = (MenuBar)
-                FXMLLoader.load(getClass().getResource("/main-menubar.fxml"));
+    public void start(Stage primaryStage) {
+        try {
+            // Usar getResourceAsStream para verificar si los recursos existen
+            MenuBar menuBar = FXMLLoader.load(
+                MainApp.class.getResource("/main-menubar.fxml"));
+            
+            AnchorPane anchorPane = FXMLLoader.load(
+                MainApp.class.getResource("/main-pane.fxml"));
 
-        AnchorPane anchorPane = (AnchorPane) FXMLLoader.load(getClass().getResource("/main-pane.fxml"));
-        root.setTop(menuBar);
-        root.setCenter(anchorPane);
-        Scene scene = new Scene(root);
+            if (menuBar == null || anchorPane == null) {
+                throw new IOException("No se pudieron cargar los archivos FXML");
+            }
 
-        primaryStage.setTitle("Múltiples formularios");
-        primaryStage.setScene(scene);
-        primaryStage.setMaximized(true);
+            root.setTop(menuBar);
+            root.setCenter(anchorPane);
+            Scene scene = new Scene(root);
+
+            primaryStage.setTitle("Múltiples formularios");
+            primaryStage.setScene(scene);
+            primaryStage.setMaximized(true);
+            primaryStage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            // Crear una interfaz básica en caso de error
+            createFallbackUI(primaryStage);
+        }
+    }
+
+    private void createFallbackUI(Stage primaryStage) {
+        BorderPane fallbackRoot = new BorderPane();
+        Scene fallbackScene = new Scene(fallbackRoot, 800, 600);
+        primaryStage.setScene(fallbackScene);
         primaryStage.show();
     }
 
+    public static void main(String[] args) {
+        launch(args);
+    }
 
     public static Socket createSocket() throws IOException {
-        if (socket == null){
-//            InetAddress inetAddress = InetAddress.getLocalHost();
-             socket = new Socket("192.168.100.144", 99999);
+        if (socket == null) {
+            socket = new Socket("192.168.56.1", 99999);
         }
         return socket;
     }

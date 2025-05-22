@@ -13,22 +13,17 @@ import java.util.List;
 public class RoomData extends JsonDataResponse {
     private RandomAccessFile raf;
     private static final int ROOM_NUMBER_SIZE = 20;    // 10 caracteres
-    private static final int ROOM_TYPE_ID_SIZE = 8;    // long para RoomType ID
-    private static final int ROOM_CONDITION_ID_SIZE = 8; // long para RoomCondition ID
+    private static final int ROOM_TYPE_SIZE = 4;       // int para enum ordinal
+    private static final int ROOM_CONDITION_SIZE = 4;  // int para enum ordinal
     private static final int HOTEL_ID_SIZE = 8;        // long para Hotel ID
-    private static final int RECORD_SIZE = ROOM_NUMBER_SIZE + ROOM_TYPE_ID_SIZE +
-            ROOM_CONDITION_ID_SIZE + HOTEL_ID_SIZE;
+    private static final int RECORD_SIZE = ROOM_NUMBER_SIZE + ROOM_TYPE_SIZE +
+            ROOM_CONDITION_SIZE + HOTEL_ID_SIZE;
 
-    // Dependencias para obtener objetos completos
-    private RoomTypeData roomTypeData;
-    private RoomConditionData roomConditionData;
+    // Dependencia para obtener objetos Hotel
     private HotelData hotelData;
 
-    public RoomData(String filename, RoomTypeData roomTypeData,
-                    RoomConditionData roomConditionData, HotelData hotelData) throws IOException {
+    public RoomData(String filename, HotelData hotelData) throws IOException {
         this.raf = new RandomAccessFile(filename, "rw");
-        this.roomTypeData = roomTypeData;
-        this.roomConditionData = roomConditionData;
         this.hotelData = hotelData;
     }
 
@@ -37,9 +32,9 @@ public class RoomData extends JsonDataResponse {
             ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
 
             writeString(buffer, room.getRoomNumber(), ROOM_NUMBER_SIZE);
-            buffer.putLong(room.getRoomType().getId());
-            buffer.putLong(room.getRoomCondition().getId());
-            buffer.putLong(room.getHotel().getId());
+            buffer.putInt(room.getRoomType().ordinal());
+            buffer.putInt(room.getRoomCondition().ordinal());
+            buffer.putLong(room.getHotel().getHotelId());
 
             raf.seek(raf.length());
             raf.write(buffer.array());
@@ -60,20 +55,20 @@ public class RoomData extends JsonDataResponse {
 
                 String currentRoomNumber = readString(buffer, ROOM_NUMBER_SIZE);
                 if (currentRoomNumber.trim().equals(roomNumber)) {
-                    long roomTypeId = buffer.getLong();
-                    long roomConditionId = buffer.getLong();
+                    int roomTypeOrdinal = buffer.getInt();
+                    int roomConditionOrdinal = buffer.getInt();
                     long hotelId = buffer.getLong();
 
-                    // Obtener objetos completos usando las dependencias
-                    RoomType roomType = getRoomTypeById(roomTypeId);
-                    RoomCondition roomCondition = getRoomConditionById(roomConditionId);
+                    // Convertir ordinales a enums
+                    RoomType roomType = RoomType.values()[roomTypeOrdinal];
+                    RoomCondition roomCondition = RoomCondition.values()[roomConditionOrdinal];
                     Hotel hotel = getHotelById(hotelId);
 
-                    if (roomType != null && roomCondition != null && hotel != null) {
+                    if (hotel != null) {
                         Room room = new Room(currentRoomNumber.trim(), roomType, roomCondition, hotel);
                         return createJsonResponse(true, "Habitación encontrada", room);
                     } else {
-                        return createJsonResponse(false, "Error: Referencias inválidas en la habitación", null);
+                        return createJsonResponse(false, "Error: Hotel no encontrado para la habitación", null);
                     }
                 }
             }
@@ -93,17 +88,22 @@ public class RoomData extends JsonDataResponse {
                 buffer.rewind();
 
                 String roomNumber = readString(buffer, ROOM_NUMBER_SIZE);
-                long roomTypeId = buffer.getLong();
-                long roomConditionId = buffer.getLong();
+                int roomTypeOrdinal = buffer.getInt();
+                int roomConditionOrdinal = buffer.getInt();
                 long hotelId = buffer.getLong();
 
-                // Obtener objetos completos
-                RoomType roomType = getRoomTypeById(roomTypeId);
-                RoomCondition roomCondition = getRoomConditionById(roomConditionId);
-                Hotel hotel = getHotelById(hotelId);
+                try {
+                    // Convertir ordinales a enums con validación
+                    RoomType roomType = RoomType.values()[roomTypeOrdinal];
+                    RoomCondition roomCondition = RoomCondition.values()[roomConditionOrdinal];
+                    Hotel hotel = getHotelById(hotelId);
 
-                if (roomType != null && roomCondition != null && hotel != null) {
-                    rooms.add(new Room(roomNumber.trim(), roomType, roomCondition, hotel));
+                    if (hotel != null) {
+                        rooms.add(new Room(roomNumber.trim(), roomType, roomCondition, hotel));
+                    }
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    // Ignorar registros con ordinales inválidos
+                    continue;
                 }
             }
             return createJsonResponse(true, "Habitaciones recuperadas exitosamente", rooms);
@@ -125,9 +125,9 @@ public class RoomData extends JsonDataResponse {
                     ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
 
                     writeString(buffer, room.getRoomNumber(), ROOM_NUMBER_SIZE);
-                    buffer.putLong(room.getRoomType().getId());
-                    buffer.putLong(room.getRoomCondition().getId());
-                    buffer.putLong(room.getHotel().getId());
+                    buffer.putInt(room.getRoomType().ordinal());
+                    buffer.putInt(room.getRoomCondition().ordinal());
+                    buffer.putLong(room.getHotel().getHotelId());
 
                     raf.write(buffer.array());
                     return createJsonResponse(true, "Habitación actualizada exitosamente", room);
@@ -167,34 +167,81 @@ public class RoomData extends JsonDataResponse {
         }
     }
 
-    // Métodos auxiliares para obtener objetos por ID
-    private RoomType getRoomTypeById(long id) {
+
+    public String readByRoomType(RoomType roomType) throws IOException {
         try {
-            // Asumiendo que RoomTypeData tiene un método similar
-            String response = roomTypeData.read(String.valueOf(id));
-            // Necesitarías parsear la respuesta JSON para obtener el objeto RoomType
-            // Esto depende de cómo implementes JsonDataResponse
-            return null; // Implementar según tu lógica de deserialización
+            List<Room> rooms = new ArrayList<>();
+            for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
+                raf.seek(pos);
+                ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
+                raf.readFully(buffer.array());
+                buffer.rewind();
+
+                String roomNumber = readString(buffer, ROOM_NUMBER_SIZE);
+                int roomTypeOrdinal = buffer.getInt();
+                int roomConditionOrdinal = buffer.getInt();
+                long hotelId = buffer.getLong();
+
+                if (roomTypeOrdinal == roomType.ordinal()) {
+                    try {
+                        RoomCondition roomCondition = RoomCondition.values()[roomConditionOrdinal];
+                        Hotel hotel = getHotelById(hotelId);
+
+                        if (hotel != null) {
+                            rooms.add(new Room(roomNumber.trim(), roomType, roomCondition, hotel));
+                        }
+                    } catch (ArrayIndexOutOfBoundsException e) {
+                        continue;
+                    }
+                }
+            }
+            return createJsonResponse(true, "Habitaciones por tipo recuperadas exitosamente", rooms);
         } catch (Exception e) {
-            return null;
+            return createJsonResponse(false, "Error al recuperar habitaciones por tipo: " + e.getMessage(), null);
         }
     }
 
-    private RoomCondition getRoomConditionById(long id) {
+
+    public String readByRoomCondition(RoomCondition roomCondition) throws IOException {
         try {
-            String response = roomConditionData.read(String.valueOf(id));
-            // Parsear respuesta JSON para obtener RoomCondition
-            return null; // Implementar según tu lógica
+            List<Room> rooms = new ArrayList<>();
+            for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
+                raf.seek(pos);
+                ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
+                raf.readFully(buffer.array());
+                buffer.rewind();
+
+                String roomNumber = readString(buffer, ROOM_NUMBER_SIZE);
+                int roomTypeOrdinal = buffer.getInt();
+                int roomConditionOrdinal = buffer.getInt();
+                long hotelId = buffer.getLong();
+
+                if (roomConditionOrdinal == roomCondition.ordinal()) {
+                    try {
+                        RoomType roomType = RoomType.values()[roomTypeOrdinal];
+                        Hotel hotel = getHotelById(hotelId);
+
+                        if (hotel != null) {
+                            rooms.add(new Room(roomNumber.trim(), roomType, roomCondition, hotel));
+                        }
+                    } catch (ArrayIndexOutOfBoundsException e) {
+                        continue;
+                    }
+                }
+            }
+            return createJsonResponse(true, "Habitaciones por condición recuperadas exitosamente", rooms);
         } catch (Exception e) {
-            return null;
+            return createJsonResponse(false, "Error al recuperar habitaciones por condición: " + e.getMessage(), null);
         }
     }
 
+    // Método auxiliar para obtener Hotel por ID
     private Hotel getHotelById(long id) {
         try {
-            String response = hotelData.read(String.valueOf(id));
-            // Parsear respuesta JSON para obtener Hotel
-            return null; // Implementar según tu lógica
+            String response = hotelData.read((int) id);
+            // Necesitarás implementar la deserialización según tu JsonDataResponse
+            // Por ahora retorna null, pero debes implementar el parsing del JSON
+            return null; // Implementar según tu lógica de deserialización
         } catch (Exception e) {
             return null;
         }
