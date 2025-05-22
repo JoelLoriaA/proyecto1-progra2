@@ -7,7 +7,7 @@
 
 <MenuBar xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.client.ui.controllers.MainMenuController">
     <menus>
-        <Menu mnemonicParsing="false" onAction="#systemOnAction" text="Sistema">
+        <Menu mnemonicParsing="false" text="Sistema">
             <items>
                 <MenuItem fx:id="connectMenuItem" mnemonicParsing="false" onAction="#handleConnect" text="Conectar al servidor" />
                 <MenuItem fx:id="disconnectMenuItem" disable="true" mnemonicParsing="false" onAction="#handleDisconnect" text="Desconectar" />
