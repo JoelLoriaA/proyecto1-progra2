@@ -1,19 +1,17 @@
 package com.MagicalStay.client.sockets;
 
 import javafx.application.Platform;
-import javafx.concurrent.Task;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 
 public class SocketCliente {
     private Socket socket;
     private ObjectOutputStream salida;
     private ObjectInputStream entrada;
-    private boolean conectado = false;
-    private ClienteCallback callback;
+    private boolean conectado;
+    private final ClienteCallback callback;
+    private Thread listenerThread;
 
     public interface ClienteCallback {
         void onMensajeRecibido(String mensaje);
@@ -22,114 +20,88 @@ public class SocketCliente {
         void onDesconexion();
     }
 
-    public void setCallback(ClienteCallback callback) {
+    public SocketCliente(ClienteCallback callback) {
         this.callback = callback;
+        this.conectado = false;
     }
 
     public void conectar(String host, int puerto) {
-        Task<Void> conexionTask = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-                try {
-                    socket = new Socket(host, puerto);
-                    salida = new ObjectOutputStream(socket.getOutputStream());
-                    entrada = new ObjectInputStream(socket.getInputStream());
-                    conectado = true;
-                    
-                    Platform.runLater(() -> {
-                        if (callback != null) {
-                            callback.onConexionEstablecida();
-                        }
-                    });
+        if (conectado) {
+            return;
+        }
 
-                    // Iniciar hilo de escucha
-                    iniciarEscucha();
-                } catch (IOException e) {
-                    Platform.runLater(() -> {
-                        if (callback != null) {
-                            callback.onError("Error al conectar: " + e.getMessage());
-                        }
-                    });
-                }
-                return null;
+        new Thread(() -> {
+            try {
+                socket = new Socket(host, puerto);
+                salida = new ObjectOutputStream(socket.getOutputStream());
+                entrada = new ObjectInputStream(socket.getInputStream());
+                conectado = true;
+                
+                Platform.runLater(() -> callback.onConexionEstablecida());
+                iniciarEscucha();
+            } catch (IOException e) {
+                Platform.runLater(() -> callback.onError("Error de conexión: " + e.getMessage()));
             }
-        };
-
-        new Thread(conexionTask).start();
+        }).start();
     }
 
     private void iniciarEscucha() {
-        Thread escuchaThread = new Thread(() -> {
+        listenerThread = new Thread(() -> {
             while (conectado) {
                 try {
-                    String mensaje = (String) entrada.readObject();
-                    Platform.runLater(() -> {
-                        if (callback != null) {
-                            callback.onMensajeRecibido(mensaje);
-                        }
-                    });
+                    Object mensaje = entrada.readObject();
+                    if (mensaje instanceof String) {
+                        String mensajeStr = (String) mensaje;
+                        Platform.runLater(() -> callback.onMensajeRecibido(mensajeStr));
+                    }
+                } catch (SocketException e) {
+                    if (conectado) {
+                        desconectar();
+                    }
+                    break;
                 } catch (IOException | ClassNotFoundException e) {
                     if (conectado) {
-                        conectado = false;
-                        Platform.runLater(() -> {
-                            if (callback != null) {
-                                callback.onError("Error de comunicación: " + e.getMessage());
-                                callback.onDesconexion();
-                            }
-                        });
+                        Platform.runLater(() -> callback.onError("Error de comunicación: " + e.getMessage()));
+                        desconectar();
                     }
                     break;
                 }
             }
         });
-        escuchaThread.setDaemon(true);
-        escuchaThread.start();
+        listenerThread.setDaemon(true);
+        listenerThread.start();
     }
 
     public void enviarMensaje(String mensaje) {
         if (!conectado) {
-            if (callback != null) {
-                callback.onError("No está conectado al servidor");
-            }
+            Platform.runLater(() -> callback.onError("No está conectado al servidor"));
             return;
         }
 
-        Task<Void> envioTask = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-                try {
-                    salida.writeObject(mensaje);
-                    salida.flush();
-                } catch (IOException e) {
-                    Platform.runLater(() -> {
-                        if (callback != null) {
-                            callback.onError("Error al enviar mensaje: " + e.getMessage());
-                        }
-                    });
-                }
-                return null;
+        new Thread(() -> {
+            try {
+                salida.writeObject(mensaje);
+                salida.flush();
+            } catch (IOException e) {
+                Platform.runLater(() -> callback.onError("Error enviando mensaje: " + e.getMessage()));
+                desconectar();
             }
-        };
-
-        new Thread(envioTask).start();
+        }).start();
     }
 
     public void desconectar() {
-        if (conectado) {
-            try {
-                conectado = false;
-                if (salida != null) salida.close();
-                if (entrada != null) entrada.close();
-                if (socket != null) socket.close();
-                
-                if (callback != null) {
-                    Platform.runLater(() -> callback.onDesconexion());
-                }
-            } catch (IOException e) {
-                if (callback != null) {
-                    Platform.runLater(() -> callback.onError("Error al desconectar: " + e.getMessage()));
-                }
-            }
+        if (!conectado) {
+            return;
+        }
+        
+        conectado = false;
+        try {
+            if (salida != null) salida.close();
+            if (entrada != null) entrada.close();
+            if (socket != null) socket.close();
+            Platform.runLater(() -> callback.onDesconexion());
+        } catch (IOException e) {
+            Platform.runLater(() -> callback.onError("Error al desconectar: " + e.getMessage()));
         }
     }
 
