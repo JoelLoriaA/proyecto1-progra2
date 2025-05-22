@@ -1,7 +1,6 @@
 package com.MagicalStay.client.ui.controllers;
 
-
-import com.MagicalStay.client.ui.MainApp;
+import com.MagicalStay.server.HotelServerManager;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -13,7 +12,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.net.Socket;
 
 public class MainMenuController {
 
@@ -52,35 +50,22 @@ public class MainMenuController {
 
     @FXML
     private void handleConnect(ActionEvent event) {
-        try {
-            Socket socket = MainApp.createSocket();
-            if (socket != null && socket.isConnected()) {
-                connectMenuItem.setDisable(true);
-                disconnectMenuItem.setDisable(false);
-                showAlert(Alert.AlertType.INFORMATION, "Conexión Exitosa",
-                        "Se ha establecido conexión con el servidor.");
-            }
-        } catch (IOException e) {
-            showAlert(Alert.AlertType.ERROR, "Error de Conexión",
-                    "No se pudo conectar al servidor: " + e.getMessage());
-        }
+        HotelServerManager.startServer();
+        // Assuming startServer() throws an exception if it fails,
+        // otherwise you might need a way to check if the server started successfully.
+        connectMenuItem.setDisable(true);
+        disconnectMenuItem.setDisable(false);
+        showAlert(Alert.AlertType.INFORMATION, "Servidor Iniciado", "El servidor se ha iniciado correctamente.");
     }
 
     @FXML
     private void handleDisconnect(ActionEvent event) {
-        Socket socket = MainApp.getSocket();
-        if (socket != null) {
-            try {
-                socket.close();
-                connectMenuItem.setDisable(false);
-                disconnectMenuItem.setDisable(true);
-                showAlert(Alert.AlertType.INFORMATION, "Desconexión",
-                        "Se ha desconectado del servidor.");
-            } catch (IOException e) {
-                showAlert(Alert.AlertType.ERROR, "Error de Desconexión",
-                        "Error al cerrar la conexión: " + e.getMessage());
-            }
-        }
+        HotelServerManager.stopServer();
+        showAlert(Alert.AlertType.INFORMATION, "Servidor Detenido", "El servidor se ha detenido correctamente.");
+        connectMenuItem.setDisable(false);
+        disconnectMenuItem.setDisable(true);
+        showAlert(Alert.AlertType.INFORMATION, "Desconexión",
+                "Se ha desconectado del servidor.");
     }
 
     @FXML
@@ -180,9 +165,5 @@ public class MainMenuController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
-    }
-
-    @FXML
-    public void systemOnAction(ActionEvent actionEvent) {
     }
 }
