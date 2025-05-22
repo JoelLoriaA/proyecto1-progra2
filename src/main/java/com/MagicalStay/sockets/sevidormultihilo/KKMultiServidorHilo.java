@@ -1,7 +1,5 @@
 package com.MagicalStay.sockets.sevidormultihilo;
 
-import com.MagicalStay.sockets.protocolo.KnockKnockProtocol;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
