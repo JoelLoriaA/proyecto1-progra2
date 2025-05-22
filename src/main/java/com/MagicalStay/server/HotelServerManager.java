@@ -52,4 +52,8 @@ public class HotelServerManager {
             }
         }
     }
+
+    public static void main(String[] args) {
+        startServer();
+    }
 }

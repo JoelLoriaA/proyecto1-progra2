@@ -1,6 +1,5 @@
 package com.MagicalStay.client.ui.controllers;
 
-import com.MagicalStay.server.HotelServerManager;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -12,6 +11,8 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+// ... (importaciones existentes)
+import com.MagicalStay.client.sockets.SocketCliente;
 
 public class MainMenuController {
 
@@ -42,30 +43,46 @@ public class MainMenuController {
     @FXML
     private MenuItem bookingHistoryMenuItem;
 
-    // Initialize method called automatically when FXML is loaded
+    private SocketCliente echoCliente;
+
     @FXML
     private void initialize() {
-        // Initialization code if needed
+        echoCliente = new SocketCliente();
+        echoCliente.setCallback(new SocketCliente.ClienteCallback() {
+            @Override
+            public void onMensajeRecibido(String mensaje) {
+                showAlert(Alert.AlertType.INFORMATION, "Mensaje Recibido", mensaje);
+            }
+
+            @Override
+            public void onError(String error) {
+                showAlert(Alert.AlertType.ERROR, "Error", error);
+            }
+
+            @Override
+            public void onConexionEstablecida() {
+                connectMenuItem.setDisable(true);
+                disconnectMenuItem.setDisable(false);
+                showAlert(Alert.AlertType.INFORMATION, "Conexión", "Conectado al servidor exitosamente");
+            }
+
+            @Override
+            public void onDesconexion() {
+                connectMenuItem.setDisable(false);
+                disconnectMenuItem.setDisable(true);
+            }
+        });
     }
 
     @FXML
     private void handleConnect(ActionEvent event) {
-        HotelServerManager.startServer();
-        // Assuming startServer() throws an exception if it fails,
-        // otherwise you might need a way to check if the server started successfully.
-        connectMenuItem.setDisable(true);
-        disconnectMenuItem.setDisable(false);
-        showAlert(Alert.AlertType.INFORMATION, "Servidor Iniciado", "El servidor se ha iniciado correctamente.");
+        echoCliente.conectar("localhost", 9999);
     }
 
     @FXML
     private void handleDisconnect(ActionEvent event) {
-        HotelServerManager.stopServer();
-        showAlert(Alert.AlertType.INFORMATION, "Servidor Detenido", "El servidor se ha detenido correctamente.");
-        connectMenuItem.setDisable(false);
-        disconnectMenuItem.setDisable(true);
-        showAlert(Alert.AlertType.INFORMATION, "Desconexión",
-                "Se ha desconectado del servidor.");
+        echoCliente.desconectar();
+        showAlert(Alert.AlertType.INFORMATION, "Desconexión", "Se ha desconectado del servidor.");
     }
 
     @FXML
