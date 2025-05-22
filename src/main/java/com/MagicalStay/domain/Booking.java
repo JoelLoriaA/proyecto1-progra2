@@ -8,6 +8,8 @@ public class Booking {
     private LocalDate startDate;
     private LocalDate leavingDate;
     private List<Room> reservedRooms;
+    private FrontDeskClerk frontDeskClerk;
+    private Guest guest;
 
     public Booking(int bookingId, LocalDate startDate, LocalDate leavingDate, List<Room> reservedRooms) {
         this.bookingId = bookingId;
@@ -57,6 +59,4 @@ public class Booking {
                 ", reservedRooms=" + reservedRooms +
                 '}';
     }
-
-
 }

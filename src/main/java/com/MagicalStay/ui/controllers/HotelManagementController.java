@@ -111,6 +111,8 @@ public class HotelManagementController {
     private ObservableList<Room> roomList;
     private Hotel selectedHotel;
     private boolean editMode = false;
+    @FXML
+    private Button searchButton;
 
     @FXML
     private void initialize() {

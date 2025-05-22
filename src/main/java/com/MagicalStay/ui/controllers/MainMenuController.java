@@ -33,6 +33,18 @@ public class MainMenuController {
 
     @FXML
     private MenuItem roomManagementMenuItem;
+    @FXML
+    private MenuItem guestMenuItem;
+    @FXML
+    private MenuItem newBookingMenuItem;
+    @FXML
+    private MenuItem aboutMenuItem;
+    @FXML
+    private MenuItem receptionistMenuItem;
+    @FXML
+    private MenuItem searchAvailabilityMenuItem;
+    @FXML
+    private MenuItem bookingHistoryMenuItem;
 
     // Initialize method called automatically when FXML is loaded
     @FXML

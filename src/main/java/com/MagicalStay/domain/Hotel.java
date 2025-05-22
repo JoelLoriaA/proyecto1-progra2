@@ -7,12 +7,22 @@ public class Hotel {
     private String name;
     private String address;
     private List<Room> rooms;  // Lista de habitaciones
+    private List<Guest> guests;
 
     public Hotel(int hotelId, String name, String address, List<Room> rooms) {
         this.hotelId = hotelId;
         this.name = name;
         this.address = address;
         this.rooms = rooms;
+    }
+
+
+    public Hotel(int hotelId, String name, String address, List<Room> rooms, List<Guest> guests) {
+        this.hotelId = hotelId;
+        this.name = name;
+        this.address = address;
+        this.rooms = rooms;
+        this.guests = guests;
     }
 
     public int getHotelId() {

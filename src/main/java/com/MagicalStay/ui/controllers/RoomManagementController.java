@@ -2,6 +2,7 @@ package com.MagicalStay.ui.controllers;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -10,7 +11,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.FlowPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import model.Room;
+import com.MagicalStay.domain.Room;
 
 import java.io.File;
 import java.util.List;
@@ -27,39 +28,15 @@ public class RoomManagementController {
     private Room selectedRoom = null;
     private final ObservableList<String> roomImages = FXCollections.observableArrayList();
     @FXML
-    private CheckBox balconyCheckBox;
-    @FXML
-    private ComboBox roomStatusComboBox;
-    @FXML
     private Button deleteButton;
-    @FXML
-    private CheckBox tvCheckBox;
-    @FXML
-    private TableColumn roomTypeColumn;
-    @FXML
-    private CheckBox minibarCheckBox;
-    @FXML
-    private TableColumn roomNumberColumn;
-    @FXML
-    private TableView roomListTableView;
-    @FXML
-    private FlowPane imagesFlowPane;
     @FXML
     private Button cancelButton;
     @FXML
     private Button closeButton;
     @FXML
-    private ComboBox roomTypeComboBox;
-    @FXML
     private TextField priceTextField;
     @FXML
-    private CheckBox acCheckBox;
-    @FXML
     private Button saveButton;
-    @FXML
-    private TextField roomNumberTextField;
-    @FXML
-    private ComboBox hotelComboBox;
     @FXML
     private ComboBox typeComboBox;
     @FXML
@@ -67,27 +44,31 @@ public class RoomManagementController {
     @FXML
     private Button addButton;
     @FXML
-    private Button removeImageButton;
-    @FXML
     private Label statusLabel;
-    @FXML
-    private Button addImageButton;
-    @FXML
-    private ComboBox adultsComboBox;
-    @FXML
-    private CheckBox wifiCheckBox;
     @FXML
     private ComboBox statusComboBox;
     @FXML
-    private TableColumn roomStatusColumn;
-    @FXML
     private Button editButton;
     @FXML
-    private CheckBox safeCheckBox;
+    private TextArea featuresTextArea;
     @FXML
-    private ComboBox roomHotelComboBox;
+    private Button searchButton;
     @FXML
-    private ComboBox childrenComboBox;
+    private Button manageImagesButton;
+    @FXML
+    private TableView imagesTableView;
+    @FXML
+    private TableColumn imagePathColumn;
+    @FXML
+    private TextField searchTextField;
+    @FXML
+    private ListView roomListView;
+    @FXML
+    private TableColumn imageNameColumn;
+    @FXML
+    private TextField numberTextField;
+    @FXML
+    private Spinner capacitySpinner;
 
     @FXML
     public void initialize() {
@@ -321,11 +302,19 @@ public class RoomManagementController {
         alert.showAndWait();
     }
 
-    @FXML
+    @Deprecated
     public void handleRemoveImage(ActionEvent actionEvent) {
     }
 
-    @FXML
+    @Deprecated
     public void handleStatusFilter(ActionEvent actionEvent) {
+    }
+
+    @FXML
+    public void handleSearch(ActionEvent actionEvent) {
+    }
+
+    @FXML
+    public void handleManageImages(ActionEvent actionEvent) {
     }
 }
