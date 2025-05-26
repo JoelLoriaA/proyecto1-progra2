@@ -1,5 +1,6 @@
 package com.MagicalStay.client.ui;
 
+import com.MagicalStay.shared.config.ConfiguracionApp;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -61,7 +62,7 @@ public class MainApp extends Application {
 
     public static Socket createSocket() throws IOException {
         if (socket == null) {
-            socket = new Socket("localhost", 5000); // Usar el puerto definido en ServerApp
+            socket = new Socket(ConfiguracionApp.HOST_SERVIDOR, ConfiguracionApp.PUERTO_SERVIDOR);// Usar el puerto definido en ServerApp
         }
         return socket;
     }
