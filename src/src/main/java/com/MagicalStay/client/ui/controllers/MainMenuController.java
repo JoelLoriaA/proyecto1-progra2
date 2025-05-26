@@ -1,7 +1,5 @@
 package com.MagicalStay.client.ui.controllers;
 
-import com.MagicalStay.shared.config.ConfiguracionApp;
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -45,58 +43,46 @@ public class MainMenuController {
     @FXML
     private MenuItem bookingHistoryMenuItem;
 
-    private final SocketCliente socketCliente;
+    private SocketCliente echoCliente;
 
-    public MainMenuController() {
-        socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
+    @FXML
+    private void initialize() {
+        echoCliente = new SocketCliente();
+        echoCliente.setCallback(new SocketCliente.ClienteCallback() {
             @Override
             public void onMensajeRecibido(String mensaje) {
-                Platform.runLater(() -> showAlert(Alert.AlertType.INFORMATION, "Mensaje", mensaje));
+                showAlert(Alert.AlertType.INFORMATION, "Mensaje Recibido", mensaje);
             }
 
             @Override
             public void onError(String error) {
-                Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Error", error));
+                showAlert(Alert.AlertType.ERROR, "Error", error);
             }
 
             @Override
             public void onConexionEstablecida() {
-                Platform.runLater(() -> {
-                    connectMenuItem.setDisable(true);
-                    disconnectMenuItem.setDisable(false);
-                    habilitarMenusOperacion(true);
-                });
+                connectMenuItem.setDisable(true);
+                disconnectMenuItem.setDisable(false);
+                showAlert(Alert.AlertType.INFORMATION, "Conexión", "Conectado al servidor exitosamente");
             }
 
             @Override
             public void onDesconexion() {
-                Platform.runLater(() -> {
-                    connectMenuItem.setDisable(false);
-                    disconnectMenuItem.setDisable(true);
-                    habilitarMenusOperacion(false);
-                });
+                connectMenuItem.setDisable(false);
+                disconnectMenuItem.setDisable(true);
             }
         });
     }
 
-    private void habilitarMenusOperacion(boolean habilitar) {
-        hotelManagementMenuItem.setDisable(!habilitar);
-        roomManagementMenuItem.setDisable(!habilitar);
-        guestMenuItem.setDisable(!habilitar);
-        receptionistMenuItem.setDisable(!habilitar);
-        newBookingMenuItem.setDisable(!habilitar);
-        searchAvailabilityMenuItem.setDisable(!habilitar);
-        bookingHistoryMenuItem.setDisable(!habilitar);
+    @FXML
+    private void handleConnect(ActionEvent event) {
+        echoCliente.conectar("localhost", 9999);
     }
 
     @FXML
-    private void handleConnect() {
-        socketCliente.conectar(ConfiguracionApp.HOST_SERVIDOR, ConfiguracionApp.PUERTO_SERVIDOR);
-    }
-
-    @FXML
-    private void handleDisconnect() {
-        socketCliente.desconectar();
+    private void handleDisconnect(ActionEvent event) {
+        echoCliente.desconectar();
+        showAlert(Alert.AlertType.INFORMATION, "Desconexión", "Se ha desconectado del servidor.");
     }
 
     @FXML
@@ -110,7 +96,7 @@ public class MainMenuController {
     private void handleHotelManagement(ActionEvent event) {
         try {
             // Load the hotel management FXML
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/MagicalStay/hotel-management.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/hotel-management.fxml"));
             Parent root = loader.load();
 
             // Create a new stage for the hotel management window
@@ -130,7 +116,7 @@ public class MainMenuController {
     private void handleRoomManagement(ActionEvent event) {
         try {
             // Load the room management FXML
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/MagicalStay/room-management.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/room-management.fxml"));
             Parent root = loader.load();
 
             // Create a new stage for the room management window

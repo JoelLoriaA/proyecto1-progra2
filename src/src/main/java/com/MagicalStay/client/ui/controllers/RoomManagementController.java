@@ -1,7 +1,6 @@
 package com.MagicalStay.client.ui.controllers;
 
-import com.MagicalStay.client.sockets.SocketCliente;
-import com.MagicalStay.client.data.DataFactory;
+import com.MagicalStay.shared.data.DataFactory;
 import com.MagicalStay.shared.data.RoomData;
 import com.MagicalStay.shared.domain.Room;
 import com.MagicalStay.shared.domain.RoomType;
@@ -25,8 +24,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.io.Closeable;
-import javafx.application.Platform;
-import java.util.stream.Collectors;
 
 public class RoomManagementController implements Closeable {
     @FXML
@@ -75,94 +72,6 @@ public class RoomManagementController implements Closeable {
     private Hotel selectedHotel;
     private boolean editMode = false;
     private final ObservableList<String> roomImages = FXCollections.observableArrayList();
-
-    // ... (mantener los campos FXML existentes)
-    
-    private final SocketCliente socketCliente;
-    
-    private void actualizarTablaHabitaciones(Object data) {
-        try {
-            List<Room> rooms = objectMapper.convertValue(data, 
-                new TypeReference<List<Room>>() {});
-            
-            // Filtrar por hotel seleccionado si es necesario
-            if (selectedHotel != null) {
-                rooms = rooms.stream()
-                    .filter(room -> room.getHotel().getHotelId() == selectedHotel.getHotelId())
-                    .collect(Collectors.toList());
-            }
-            
-            roomList = FXCollections.observableArrayList(rooms);
-            roomTableView.setItems(roomList);
-            
-            if (rooms.isEmpty()) {
-                statusLabel.setText("No se encontraron habitaciones");
-            } else {
-                statusLabel.setText("Se encontraron " + rooms.size() + " habitaciones");
-            }
-            
-        } catch (Exception e) {
-            FXUtility.alertError("Error", 
-                "Error al actualizar la tabla: " + e.getMessage()).show();
-        }
-    }
-
-    public RoomManagementController() {
-        socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
-            @Override
-            public void onMensajeRecibido(String mensaje) {
-                Platform.runLater(() -> procesarRespuestaServidor(mensaje));
-            }
-
-            @Override
-            public void onError(String error) {
-                Platform.runLater(() -> 
-                    FXUtility.alertError("Error de comunicación", error).show());
-            }
-
-            @Override
-            public void onConexionEstablecida() {
-                Platform.runLater(() -> loadRoomsFromServer());
-            }
-
-            @Override
-            public void onDesconexion() {
-                Platform.runLater(() -> 
-                    FXUtility.alertError("Desconexión", 
-                        "Se perdió la conexión con el servidor").show());
-            }
-        });
-    }
-
-    private void loadRoomsFromServer() {
-        if (!socketCliente.estaConectado()) {
-            FXUtility.alertError("Error", 
-                "No hay conexión con el servidor").show();
-            return;
-        }
-        
-        try {
-            String comando = "OBTENER_HABITACIONES|" + selectedHotel.getHotelId();
-            socketCliente.enviarMensaje(comando);
-        } catch (Exception e) {
-            FXUtility.alertError("Error", 
-                "Error al solicitar habitaciones: " + e.getMessage()).show();
-        }
-    }
-
-    private void procesarRespuestaServidor(String respuesta) {
-        try {
-            JsonResponse response = objectMapper.readValue(respuesta, JsonResponse.class);
-            if (response.isSuccess()) {
-                actualizarTablaHabitaciones(response.getData());
-            } else {
-                FXUtility.alertError("Error", response.getMessage()).show();
-            }
-        } catch (Exception e) {
-            FXUtility.alertError("Error", 
-                "Error procesando respuesta: " + e.getMessage()).show();
-        }
-    }
 
     @FXML
     private void initialize() {
@@ -533,15 +442,13 @@ public class RoomManagementController implements Closeable {
             if (roomData != null) {
                 roomData.close();
             }
-            if (socketCliente != null) {
-                socketCliente.desconectar();
-            }
             // Limpiar otros recursos
             imagePane.getChildren().clear();
             roomImages.clear();
         } catch (Exception e) {
-            FXUtility.alertError("Error", 
-                "Error al cerrar recursos: " + e.getMessage()).show();
+
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE,
+                    "Error al cerrar recursos", e);
         }
     }
 
@@ -553,6 +460,7 @@ public class RoomManagementController implements Closeable {
             imageView.setFitWidth(100);
             imageView.setPreserveRatio(true);
 
+            // Agregar menú contextual para eliminar imagen
             imageView.setOnMouseClicked(event -> {
                 if (event.getButton() == MouseButton.SECONDARY) {
                     roomImages.remove(imagePath);
@@ -562,8 +470,8 @@ public class RoomManagementController implements Closeable {
 
             imagePane.getChildren().add(imageView);
         } catch (Exception e) {
-            FXUtility.alertError("Error", 
-                "Error al cargar imagen: " + imagePath).show();
+            Logger.getLogger(getClass().getName()).log(Level.WARNING,
+                    "Error al cargar imagen: " + imagePath, e);
         }
     }
 

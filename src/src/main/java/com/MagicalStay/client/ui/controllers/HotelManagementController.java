@@ -1,6 +1,6 @@
 package com.MagicalStay.client.ui.controllers;
 
-import com.MagicalStay.client.data.DataFactory;
+import com.MagicalStay.shared.data.DataFactory;
 import com.MagicalStay.shared.data.HotelData;
 import com.MagicalStay.shared.data.RoomData;
 import com.MagicalStay.shared.domain.Hotel;

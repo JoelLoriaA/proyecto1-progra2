@@ -61,7 +61,7 @@ public class MainApp extends Application {
 
     public static Socket createSocket() throws IOException {
         if (socket == null) {
-            socket = new Socket("localhost", 5000); // Usar el puerto definido en ServerApp
+            socket = new Socket("192.168.56.1", 99999);
         }
         return socket;
     }

@@ -22,10 +22,6 @@ public class RoomData extends JsonDataResponse {
     // Dependencia para obtener objetos Hotel
     private HotelData hotelData;
 
-
-    public RoomData() {
-    }
-
     public RoomData(String filename, HotelData hotelData) throws IOException {
         this.raf = new RandomAccessFile(filename, "rw");
         this.hotelData = hotelData;

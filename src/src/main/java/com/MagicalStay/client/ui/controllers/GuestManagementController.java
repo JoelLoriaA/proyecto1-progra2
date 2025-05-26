@@ -1,6 +1,6 @@
 package com.MagicalStay.client.ui.controllers;
 
-import com.MagicalStay.client.data.DataFactory;
+import com.MagicalStay.shared.data.DataFactory;
 import com.MagicalStay.shared.data.GuestData;
 import com.MagicalStay.shared.domain.Guest;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -272,14 +272,6 @@ public class GuestManagementController {
             }
         } catch (NumberFormatException e) {
             errorMessage.append("El teléfono debe ser un número válido.\n");
-        }
-
-        // Agregar validación de email
-        if (!emailField.getText().trim().isEmpty()) {
-            String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
-            if (!emailField.getText().matches(emailRegex)) {
-                errorMessage.append("El formato del email no es válido.\n");
-            }
         }
 
         if (errorMessage.length() > 0) {

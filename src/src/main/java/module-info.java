@@ -9,10 +9,7 @@ module com.magicalstay.progra2 {
     exports com.MagicalStay.client.ui.controllers to javafx.fxml, javafx.graphics;
     exports com.MagicalStay.client.ui to javafx.fxml, javafx.graphics;
     exports com.MagicalStay.server to javafx.graphics;
-    exports com.MagicalStay.shared.config;
-
+    
     opens com.MagicalStay.client.ui.controllers to javafx.fxml;
     opens com.MagicalStay.client.ui to javafx.fxml;
-    exports com.MagicalStay.client.data to javafx.fxml, javafx.graphics;
-    opens com.MagicalStay.client.data to javafx.fxml;
 }

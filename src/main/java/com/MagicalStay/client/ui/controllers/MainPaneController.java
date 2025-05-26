@@ -1,113 +1,150 @@
 package com.MagicalStay.client.ui.controllers;
 
-import com.MagicalStay.client.ui.MainApp;
-import com.MagicalStay.shared.data.ConnectionStatus;
-import com.MagicalStay.shared.data.DatabaseClient;
-import com.MagicalStay.shared.data.RequestDTO;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
+import com.MagicalStay.client.sockets.SocketCliente;
+import com.MagicalStay.shared.config.ConfiguracionApp;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
 import javafx.util.Duration;
-import javafx.concurrent.Task;
-import javafx.application.Platform;
-import javafx.scene.control.Alert;
 
-import java.io.IOException;
-import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 
-public class MainPaneController {
-    @FXML
-    private BorderPane welcomePane;
-    @FXML
-    private StackPane mdiContainer;
-    @FXML
-    private Button connectButton;
-    @FXML
-    private Button exitButton;
-    @FXML
-    private Label statusLabel;
-    @FXML
-    private Label connectionStatusLabel;
-    @FXML
-    private Label dateTimeLabel;
+public class MainPaneController implements SocketCliente.ClienteCallback {
+    @FXML private BorderPane welcomePane;
+    @FXML private StackPane mdiContainer;
+    @FXML private Button connectButton;
+    @FXML private Button exitButton;
+    @FXML private Label statusLabel;
+    @FXML private Label connectionStatusLabel;
+    @FXML private Label dateTimeLabel;
 
     private Timeline clockTimeline;
-    private DatabaseClient databaseClient;
-    private Socket socket;
+    private SocketCliente socketCliente;
+    private static final int MAX_REINTENTOS = 3;
+    private int intentosConexion = 0;
+    private Timeline reconexionTimeline;
 
     @FXML
     private void initialize() {
-        // Configuración del reloj
         setupClock();
-        
-        // Inicializar el cliente de base de datos
-        databaseClient = new DatabaseClient();
-        
-        // Estado inicial
+        setupSocketCliente();
         mdiContainer.setVisible(false);
         updateConnectionStatus(false);
     }
 
+    private void setupSocketCliente() {
+        socketCliente = new SocketCliente(this);
+    }
+
     @FXML
     private void handleConnect(ActionEvent event) {
-        // Show a loading indicator or disable buttons while connecting
+        intentosConexion = 0;
+        conectarAlServidor();
+    }
+
+    private void conectarAlServidor() {
         connectButton.setDisable(true);
-        statusLabel.setText("Estado: Conectando...");
+        statusLabel.setText("Estado: Conectando... Intento " + (intentosConexion + 1) + " de " + MAX_REINTENTOS);
 
-        Task<Void> connectionTask = new Task<Void>() {
-            @Override
-            protected Void call() throws Exception {
-                try {
-                    socket = MainApp.createSocket();
-
-                    // Verify database connection
-                    RequestDTO testRequest = new RequestDTO("TEST_CONNECTION", null, null);
-                    databaseClient.executeRequest(testRequest, ConnectionStatus.class)
-                            .thenAcceptAsync(status -> {
-                                Platform.runLater(() -> {
-                                    if (status.isConnected()) {
-                                        updateConnectionStatus(true);
-                                        showMainContainer();
-                                    } else {
-                                        updateConnectionStatus(false);
-                                        showError("La base de datos no está disponible");
-                                    }
-                                });
-                            })
-                            .exceptionally(throwable -> {
-                                Platform.runLater(() -> {
-                                    updateConnectionStatus(false);
-                                    showError("Error de conexión: " + throwable.getMessage());
-                                });
-                                return null;
-                            });
-
-                } catch (IOException e) {
-                    Platform.runLater(() -> {
-                        updateConnectionStatus(false);
-                        showError("Error de conexión: " + e.getMessage());
-                    });
-                }
-                return null;
+        new Thread(() -> {
+            try {
+                socketCliente.conectar(
+                    ConfiguracionApp.HOST_SERVIDOR, 
+                    ConfiguracionApp.PUERTO_SERVIDOR
+                );
+            } catch (Exception e) {
+                Platform.runLater(() -> manejarErrorConexion(e.getMessage()));
             }
-        };
+        }).start();
+    }
 
-        new Thread(connectionTask).start();
+    private void manejarErrorConexion(String error) {
+        if (intentosConexion < MAX_REINTENTOS) {
+            intentosConexion++;
+            programarReconexion();
+        } else {
+            updateConnectionStatus(false);
+            showErrorConReintentar("Error de conexión: " + error);
+            connectButton.setDisable(false);
+        }
+    }
+
+    private void programarReconexion() {
+        if (reconexionTimeline != null) {
+            reconexionTimeline.stop();
+        }
+        
+        reconexionTimeline = new Timeline(
+            new KeyFrame(Duration.seconds(5), e -> conectarAlServidor())
+        );
+        reconexionTimeline.play();
+    }
+
+    private void showErrorConReintentar(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error de Conexión");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        
+        ButtonType retryButton = new ButtonType("Reintentar");
+        alert.getButtonTypes().add(retryButton);
+        
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == retryButton) {
+            intentosConexion = 0;
+            conectarAlServidor();
+        }
+    }
+
+    // Implementación de SocketCliente.ClienteCallback
+    @Override
+    public void onMensajeRecibido(String mensaje) {
+        Platform.runLater(() -> {
+            // Procesar mensajes del servidor
+            System.out.println("Mensaje del servidor: " + mensaje);
+        });
+    }
+
+    @Override
+    public void onError(String error) {
+        Platform.runLater(() -> {
+            showError(error);
+            updateConnectionStatus(false);
+        });
+    }
+
+    @Override
+    public void onConexionEstablecida() {
+        Platform.runLater(() -> {
+            updateConnectionStatus(true);
+            showMainContainer();
+            if (reconexionTimeline != null) {
+                reconexionTimeline.stop();
+            }
+        });
+    }
+
+    @Override
+    public void onDesconexion() {
+        Platform.runLater(() -> {
+            updateConnectionStatus(false);
+            welcomePane.setVisible(true);
+            mdiContainer.setVisible(false);
+            connectButton.setDisable(false);
+        });
     }
 
     private void updateConnectionStatus(boolean connected) {
         statusLabel.setText("Estado: " + (connected ? "Conectado" : "Desconectado"));
-        connectionStatusLabel.setText(connected ? 
-            "Conectado al servidor" : 
-            "Sin conexión al servidor");
+        connectionStatusLabel.setText(connected ? "Conectado al servidor" : "Sin conexión al servidor");
         connectButton.setDisable(connected);
     }
 
@@ -118,7 +155,7 @@ public class MainPaneController {
 
     private void showError(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error de Conexión");
+        alert.setTitle("Error");
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
@@ -126,21 +163,14 @@ public class MainPaneController {
 
     @FXML
     private void handleExit(ActionEvent event) {
-        // Cerrar conexiones antes de salir
-        if (socket != null && !socket.isClosed()) {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        if (socketCliente != null) {
+            socketCliente.desconectar();
         }
         
-        // Detener el reloj
         if (clockTimeline != null) {
             clockTimeline.stop();
         }
         
-        // Cerrar la aplicación
         Stage stage = (Stage) exitButton.getScene().getWindow();
         stage.close();
     }

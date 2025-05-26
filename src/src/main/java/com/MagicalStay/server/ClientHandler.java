@@ -14,39 +14,32 @@ public class ClientHandler implements Runnable {
 
     @Override
     public void run() {
-        try {
-            salida = new ObjectOutputStream(socket.getOutputStream());
-            entrada = new ObjectInputStream(socket.getInputStream());
+        try (
+            ObjectOutputStream salida = new ObjectOutputStream(socket.getOutputStream());
+            ObjectInputStream entrada = new ObjectInputStream(socket.getInputStream())
+        ) {
+            this.salida = salida;
+            this.entrada = entrada;
             
-        handleConnect();
+            handleConnect();
 
-        while (!socket.isClosed()) {
-            String comando = (String) entrada.readObject();
-            handleMessage(comando);
+            while (!socket.isClosed()) {
+                String comando = (String) entrada.readObject();
+                handleMessage(comando);
 
-            if (comando.equalsIgnoreCase("salir")) {
-                break;
+                if (comando.equalsIgnoreCase("salir")) {
+                    break;
+                }
             }
+        } catch (EOFException e) {
+            System.out.println("Cliente desconectado: " + socket.getInetAddress());
+        } catch (Exception e) {
+            System.err.println("Error en la comunicación con el cliente: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            handleDisconnect();
         }
-    } catch (EOFException e) {
-        System.out.println("Cliente desconectado: " + socket.getInetAddress());
-    } catch (Exception e) {
-        System.err.println("Error en la comunicación con el cliente: " + e.getMessage());
-        e.printStackTrace();
-    } finally {
-        cerrarRecursos();
-        handleDisconnect();
     }
-}
-
-private void cerrarRecursos() {
-    try {
-        if (entrada != null) entrada.close();
-        if (salida != null) salida.close();
-    } catch (IOException e) {
-        System.err.println("Error al cerrar recursos: " + e.getMessage());
-    }
-}
 
     private void handleConnect() throws IOException {
         System.out.println("Nuevo cliente conectado desde: " + socket.getInetAddress());

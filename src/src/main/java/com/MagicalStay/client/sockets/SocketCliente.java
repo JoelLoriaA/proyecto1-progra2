@@ -3,15 +3,15 @@ package com.MagicalStay.client.sockets;
 import javafx.application.Platform;
 import java.io.*;
 import java.net.Socket;
-import java.net.InetSocketAddress;
+import java.net.SocketException;
 
 public class SocketCliente {
-    private static final int TIMEOUT_CONEXION = 5000;
     private Socket socket;
     private ObjectOutputStream salida;
     private ObjectInputStream entrada;
-    private volatile boolean conectado;
+    private boolean conectado;
     private final ClienteCallback callback;
+    private Thread listenerThread;
 
     public interface ClienteCallback {
         void onMensajeRecibido(String mensaje);
@@ -22,49 +22,59 @@ public class SocketCliente {
 
     public SocketCliente(ClienteCallback callback) {
         this.callback = callback;
+        this.conectado = false;
     }
 
     public void conectar(String host, int puerto) {
-        if (conectado) return;
+        if (conectado) {
+            return;
+        }
 
         new Thread(() -> {
             try {
-                socket = new Socket();
-                socket.connect(new InetSocketAddress(host, puerto), TIMEOUT_CONEXION);
+                socket = new Socket(host, puerto);
                 salida = new ObjectOutputStream(socket.getOutputStream());
                 entrada = new ObjectInputStream(socket.getInputStream());
                 conectado = true;
                 
                 Platform.runLater(() -> callback.onConexionEstablecida());
-                escucharMensajes();
+                iniciarEscucha();
             } catch (IOException e) {
                 Platform.runLater(() -> callback.onError("Error de conexión: " + e.getMessage()));
             }
         }).start();
     }
 
-    private void escucharMensajes() {
-        new Thread(() -> {
+    private void iniciarEscucha() {
+        listenerThread = new Thread(() -> {
             while (conectado) {
                 try {
                     Object mensaje = entrada.readObject();
                     if (mensaje instanceof String) {
-                        Platform.runLater(() -> callback.onMensajeRecibido((String) mensaje));
+                        String mensajeStr = (String) mensaje;
+                        Platform.runLater(() -> callback.onMensajeRecibido(mensajeStr));
                     }
-                } catch (Exception e) {
+                } catch (SocketException e) {
                     if (conectado) {
-                        Platform.runLater(() -> callback.onError("Error: " + e.getMessage()));
+                        desconectar();
+                    }
+                    break;
+                } catch (IOException | ClassNotFoundException e) {
+                    if (conectado) {
+                        Platform.runLater(() -> callback.onError("Error de comunicación: " + e.getMessage()));
                         desconectar();
                     }
                     break;
                 }
             }
-        }).start();
+        });
+        listenerThread.setDaemon(true);
+        listenerThread.start();
     }
 
     public void enviarMensaje(String mensaje) {
         if (!conectado) {
-            callback.onError("No conectado al servidor");
+            Platform.runLater(() -> callback.onError("No está conectado al servidor"));
             return;
         }
 
@@ -73,16 +83,16 @@ public class SocketCliente {
                 salida.writeObject(mensaje);
                 salida.flush();
             } catch (IOException e) {
-                Platform.runLater(() -> {
-                    callback.onError("Error enviando mensaje: " + e.getMessage());
-                    desconectar();
-                });
+                Platform.runLater(() -> callback.onError("Error enviando mensaje: " + e.getMessage()));
+                desconectar();
             }
         }).start();
     }
 
     public void desconectar() {
-        if (!conectado) return;
+        if (!conectado) {
+            return;
+        }
         
         conectado = false;
         try {

@@ -2,9 +2,6 @@ package com.MagicalStay.shared.data;
 
 import com.MagicalStay.shared.domain.Guest;
 import java.io.IOException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -26,9 +23,6 @@ public class GuestData extends JsonDataResponse {
         this.raf = new RandomAccessFile(filename, "rw");
     }
 
-    public GuestData() {
-    }
-
     public String create(Guest guest) throws IOException {
         try {
             ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
@@ -43,7 +37,7 @@ public class GuestData extends JsonDataResponse {
 
             raf.seek(raf.length());
             raf.write(buffer.array());
-
+            
             return createJsonResponse(true, "Huésped registrado exitosamente", guest);
         } catch (Exception e) {
             return createJsonResponse(false, "Error al registrar el huésped: " + e.getMessage(), null);
@@ -61,15 +55,15 @@ public class GuestData extends JsonDataResponse {
                 String name = readString(buffer, NAME_SIZE);
                 String lastName = readString(buffer, LAST_NAME_SIZE);
                 int readDni = buffer.getInt();
-
+                
                 if (readDni == dni) {
                     int phoneNumber = buffer.getInt();
                     String email = readString(buffer, EMAIL_SIZE);
                     String address = readString(buffer, ADDRESS_SIZE);
                     String nationality = readString(buffer, NATIONALITY_SIZE);
 
-                    Guest guest = new Guest(name.trim(), lastName.trim(), readDni, phoneNumber,
-                            email.trim(), address.trim(), nationality.trim());
+                    Guest guest = new Guest(name.trim(), lastName.trim(), readDni, phoneNumber, 
+                                   email.trim(), address.trim(), nationality.trim());
                     return createJsonResponse(true, "Huésped encontrado", guest);
                 }
             }
@@ -96,8 +90,8 @@ public class GuestData extends JsonDataResponse {
                 String address = readString(buffer, ADDRESS_SIZE);
                 String nationality = readString(buffer, NATIONALITY_SIZE);
 
-                guests.add(new Guest(name.trim(), lastName.trim(), dni, phoneNumber,
-                        email.trim(), address.trim(), nationality.trim()));
+                guests.add(new Guest(name.trim(), lastName.trim(), dni, phoneNumber, 
+                          email.trim(), address.trim(), nationality.trim()));
             }
             return createJsonResponse(true, "Huéspedes recuperados exitosamente", guests);
         } catch (Exception e) {

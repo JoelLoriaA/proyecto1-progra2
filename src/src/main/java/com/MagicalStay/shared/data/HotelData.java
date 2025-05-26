@@ -24,13 +24,10 @@ public class HotelData extends JsonDataResponse {
         this.raf = new RandomAccessFile(filename, "rw");
     }
 
-    public HotelData() {
-    }
-
     // Create
     public String create(Hotel hotel) throws IOException {
         try {
-            if (hotel.getName().length() > NAME_LENGTH ||
+            if (hotel.getName().length() > NAME_LENGTH || 
                 hotel.getAddress().length() > ADDRESS_LENGTH) {
                 return createJsonResponse(false, "Name or address exceeds maximum length", null);
             }
@@ -39,16 +36,16 @@ public class HotelData extends JsonDataResponse {
             buffer.putInt(hotel.getHotelId());
             writeString(buffer, hotel.getName(), NAME_LENGTH);
             writeString(buffer, hotel.getAddress(), ADDRESS_LENGTH);
-
+            
             List<Room> rooms = hotel.getRooms();
             for (int i = 0; i < MAX_ROOMS; i++) {
                 String roomNumber = i < rooms.size() ? rooms.get(i).getRoomNumber() : "";
                 writeString(buffer, roomNumber, 10);
             }
-
+            
             raf.seek(raf.length());
             raf.write(buffer.array());
-
+            
             return createJsonResponse(true, "Hotel created successfully", hotel);
         } catch (Exception e) {
             return createJsonResponse(false, "Error creating hotel: " + e.getMessage(), null);
@@ -78,7 +75,7 @@ public class HotelData extends JsonDataResponse {
 
     public String update(Hotel hotel) throws IOException {
         try {
-            if (hotel.getName().length() > NAME_LENGTH ||
+            if (hotel.getName().length() > NAME_LENGTH || 
                 hotel.getAddress().length() > ADDRESS_LENGTH) {
                 return createJsonResponse(false, "Name or address exceeds maximum length", null);
             }
@@ -122,12 +119,12 @@ public class HotelData extends JsonDataResponse {
             ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
             raf.readFully(buffer.array());
             buffer.rewind();
-
+            
             int currentHotelId = buffer.getInt();
             if (currentHotelId == hotelId) {
                 String name = readString(buffer, NAME_LENGTH);
                 String address = readString(buffer, ADDRESS_LENGTH);
-
+                
                 List<Room> rooms = new ArrayList<>();
                 for (int i = 0; i < MAX_ROOMS; i++) {
                     String roomNumber = readString(buffer, 10);
@@ -137,7 +134,7 @@ public class HotelData extends JsonDataResponse {
                         rooms.add(new Room(roomNumber, null, null, null));
                     }
                 }
-
+                
                 return new Hotel(hotelId, name, address, rooms);
             }
         }
@@ -152,11 +149,11 @@ public class HotelData extends JsonDataResponse {
             ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
             raf.readFully(buffer.array());
             buffer.rewind();
-
+            
             int hotelId = buffer.getInt();
             String name = readString(buffer, NAME_LENGTH);
             String address = readString(buffer, ADDRESS_LENGTH);
-
+            
             List<Room> rooms = new ArrayList<>();
             for (int i = 0; i < MAX_ROOMS; i++) {
                 String roomNumber = readString(buffer, 10);
@@ -164,7 +161,7 @@ public class HotelData extends JsonDataResponse {
                     rooms.add(new Room(roomNumber, null, null, null));
                 }
             }
-
+            
             hotels.add(new Hotel(hotelId, name, address, rooms));
         }
         return hotels;
@@ -172,7 +169,7 @@ public class HotelData extends JsonDataResponse {
 
     // Update
     private boolean updateHotelInFile(Hotel hotel) throws IOException {
-        if (hotel.getName().length() > NAME_LENGTH ||
+        if (hotel.getName().length() > NAME_LENGTH || 
             hotel.getAddress().length() > ADDRESS_LENGTH) {
             throw new IllegalArgumentException("Name or address exceeds maximum length");
         }
@@ -182,17 +179,17 @@ public class HotelData extends JsonDataResponse {
             if (raf.readInt() == hotel.getHotelId()) {
                 raf.seek(pos);
                 ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
-
+                
                 buffer.putInt(hotel.getHotelId());
                 writeString(buffer, hotel.getName(), NAME_LENGTH);
                 writeString(buffer, hotel.getAddress(), ADDRESS_LENGTH);
-
+                
                 List<Room> rooms = hotel.getRooms();
                 for (int i = 0; i < MAX_ROOMS; i++) {
                     String roomNumber = i < rooms.size() ? rooms.get(i).getRoomNumber() : "";
                     writeString(buffer, roomNumber, 10);
                 }
-
+                
                 raf.write(buffer.array());
                 return true;
             }
@@ -253,7 +250,7 @@ public class HotelData extends JsonDataResponse {
 
             int hotelId = buffer.getInt();
             String name = readString(buffer, NAME_LENGTH);
-
+            
             if (name.toLowerCase().contains(searchName)) {
                 // Si encuentra coincidencia, lee el registro completo
                 String address = readString(buffer, ADDRESS_LENGTH);
