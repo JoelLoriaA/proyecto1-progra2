@@ -2,191 +2,200 @@ package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.shared.config.ConfiguracionApp;
-import javafx.application.Platform;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.animation.Timeline;
-import javafx.animation.KeyFrame;
-import javafx.util.Duration;
+import javafx.application.Platform;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Optional;
+import java.io.IOException;
 
 public class MainPaneController implements SocketCliente.ClienteCallback {
+
     @FXML private BorderPane welcomePane;
-    @FXML private StackPane mdiContainer;
     @FXML private Button connectButton;
     @FXML private Button exitButton;
     @FXML private Label statusLabel;
-    @FXML private Label connectionStatusLabel;
-    @FXML private Label dateTimeLabel;
 
-    private Timeline clockTimeline;
+    // Nuevos elementos para la interfaz conectada
+    @FXML private VBox connectedInterface;
+    @FXML private Button hotelManagementButton;
+    @FXML private Button roomManagementButton;
+    @FXML private Button bookingManagementButton;
+    @FXML private Button guestManagementButton;
+    @FXML private Button reportsButton;
+    @FXML private Button disconnectButton;
+    @FXML private Label welcomeLabel;
+    @FXML private Label connectionStatusLabel;
+
     private SocketCliente socketCliente;
-    private static final int MAX_REINTENTOS = 3;
-    private int intentosConexion = 0;
-    private Timeline reconexionTimeline;
+    private boolean isConnected = false;
+    @FXML
+    private BorderPane mdiContainer;
 
     @FXML
     private void initialize() {
-        setupClock();
-        setupSocketCliente();
-        mdiContainer.setVisible(false);
-        updateConnectionStatus(false);
-    }
-
-    private void setupSocketCliente() {
         socketCliente = new SocketCliente(this);
+        updateConnectionStatus(false);
+
+        // Debug: verificar que los elementos FXML se cargaron
+        System.out.println("welcomePane: " + (welcomePane != null));
+        System.out.println("mdiContainer: " + (mdiContainer != null));
+        System.out.println("connectButton: " + (connectButton != null));
+        System.out.println("statusLabel: " + (statusLabel != null));
     }
 
     @FXML
-    private void handleConnect(ActionEvent event) {
-        intentosConexion = 0;
-        conectarAlServidor();
+    private void handleConnect() {
+        if (!isConnected) {
+            statusLabel.setText("Conectando al servidor...");
+            connectButton.setDisable(true);
+
+            // Intentar conexión al servidor
+            socketCliente.conectar(ConfiguracionApp.HOST_SERVIDOR, ConfiguracionApp.PUERTO_SERVIDOR);
+        }
     }
 
-    private void conectarAlServidor() {
-        connectButton.setDisable(true);
-        statusLabel.setText("Estado: Conectando... Intento " + (intentosConexion + 1) + " de " + MAX_REINTENTOS);
+    @FXML
+    private void handleExit() {
+        if (isConnected) {
+            socketCliente.desconectar();
+        }
+        Platform.exit();
+    }
 
-        new Thread(() -> {
-            try {
-                socketCliente.conectar(
-                    ConfiguracionApp.HOST_SERVIDOR, 
-                    ConfiguracionApp.PUERTO_SERVIDOR
-                );
-            } catch (Exception e) {
-                Platform.runLater(() -> manejarErrorConexion(e.getMessage()));
+    @FXML
+    private void handleDisconnect() {
+        socketCliente.desconectar();
+    }
+
+    @FXML
+    private void handleHotelManagement() {
+        openWindow("/com/MagicalStay/hotel-management.fxml", "Gestión de Hoteles");
+    }
+
+    @FXML
+    private void handleRoomManagement() {
+        openWindow("/com/MagicalStay/room-management.fxml", "Gestión de Habitaciones");
+    }
+
+    @FXML
+    private void handleBookingManagement() {
+        openWindow("/com/MagicalStay/booking-management.fxml", "Gestión de Reservas");
+    }
+
+    @FXML
+    private void handleGuestManagement() {
+        openWindow("/com/MagicalStay/guest-management.fxml", "Gestión de Huéspedes");
+    }
+
+    @FXML
+    private void handleReports() {
+        openWindow("/com/MagicalStay/reports.fxml", "Reportes");
+    }
+
+    private void openWindow(String fxmlPath, String title) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Parent root = loader.load();
+
+            Stage stage = new Stage();
+            stage.setTitle(title);
+            stage.setScene(new Scene(root));
+            stage.show();
+
+        } catch (IOException e) {
+            showAlert("Error", "No se pudo abrir la ventana: " + title,
+                    "Error: " + e.getMessage());
+        }
+    }
+
+    private void updateConnectionStatus(boolean connected) {
+        this.isConnected = connected;
+
+        System.out.println("Actualizando estado de conexión: " + connected);
+
+        if (connected) {
+            // Mostrar interfaz conectada
+            if (welcomePane != null) {
+                welcomePane.setVisible(false);
+                System.out.println("welcomePane ocultado");
             }
-        }).start();
-    }
+            if (mdiContainer != null) {
+                mdiContainer.setVisible(true);
+                System.out.println("mdiContainer mostrado");
+            }
 
-    private void manejarErrorConexion(String error) {
-        if (intentosConexion < MAX_REINTENTOS) {
-            intentosConexion++;
-            programarReconexion();
         } else {
-            updateConnectionStatus(false);
-            showErrorConReintentar("Error de conexión: " + error);
-            connectButton.setDisable(false);
+            // Mostrar interfaz de bienvenida
+            if (welcomePane != null) {
+                welcomePane.setVisible(true);
+                System.out.println("welcomePane mostrado");
+            }
+            if (mdiContainer != null) {
+                mdiContainer.setVisible(false);
+                System.out.println("mdiContainer ocultado");
+            }
+            if (connectButton != null) {
+                connectButton.setDisable(false);
+            }
         }
     }
 
-    private void programarReconexion() {
-        if (reconexionTimeline != null) {
-            reconexionTimeline.stop();
-        }
-        
-        reconexionTimeline = new Timeline(
-            new KeyFrame(Duration.seconds(5), e -> conectarAlServidor())
-        );
-        reconexionTimeline.play();
-    }
-
-    private void showErrorConReintentar(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error de Conexión");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        
-        ButtonType retryButton = new ButtonType("Reintentar");
-        alert.getButtonTypes().add(retryButton);
-        
-        Optional<ButtonType> result = alert.showAndWait();
-        if (result.isPresent() && result.get() == retryButton) {
-            intentosConexion = 0;
-            conectarAlServidor();
-        }
+    private void showAlert(String title, String header, String content) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 
     // Implementación de SocketCliente.ClienteCallback
     @Override
     public void onMensajeRecibido(String mensaje) {
-        Platform.runLater(() -> {
-            // Procesar mensajes del servidor
-            System.out.println("Mensaje del servidor: " + mensaje);
-        });
+        System.out.println("Mensaje del servidor: " + mensaje);
+
+        if (welcomeLabel != null) {
+            welcomeLabel.setText("¡Bienvenido al Sistema de Reservas!");
+        }
     }
 
     @Override
     public void onError(String error) {
-        Platform.runLater(() -> {
-            showError(error);
-            updateConnectionStatus(false);
-        });
+        statusLabel.setText("Error: " + error);
+        connectButton.setDisable(false);
+        updateConnectionStatus(false);
+
+        showAlert("Error de Conexión", "No se pudo conectar al servidor", error);
     }
 
     @Override
     public void onConexionEstablecida() {
-        Platform.runLater(() -> {
-            updateConnectionStatus(true);
-            showMainContainer();
-            if (reconexionTimeline != null) {
-                reconexionTimeline.stop();
-            }
-        });
+        statusLabel.setText("Conectado al servidor");
+        updateConnectionStatus(true);
+
+        if (connectionStatusLabel != null) {
+            connectionStatusLabel.setText("Estado: Servidor Conectado");
+        }
+
+        showAlert("Conexión Exitosa", "¡Conectado al servidor!",
+                "La conexión se ha establecido correctamente.");
     }
 
     @Override
     public void onDesconexion() {
-        Platform.runLater(() -> {
-            updateConnectionStatus(false);
-            welcomePane.setVisible(true);
-            mdiContainer.setVisible(false);
-            connectButton.setDisable(false);
-        });
-    }
+        statusLabel.setText("Desconectado del servidor");
+        updateConnectionStatus(false);
 
-    private void updateConnectionStatus(boolean connected) {
-        statusLabel.setText("Estado: " + (connected ? "Conectado" : "Desconectado"));
-        connectionStatusLabel.setText(connected ? "Conectado al servidor" : "Sin conexión al servidor");
-        connectButton.setDisable(connected);
-    }
-
-    private void showMainContainer() {
-        welcomePane.setVisible(false);
-        mdiContainer.setVisible(true);
-    }
-
-    private void showError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-
-    @FXML
-    private void handleExit(ActionEvent event) {
-        if (socketCliente != null) {
-            socketCliente.desconectar();
+        if (connectionStatusLabel != null) {
+            connectionStatusLabel.setText("Estado: Desconectado");
         }
-        
-        if (clockTimeline != null) {
-            clockTimeline.stop();
-        }
-        
-        Stage stage = (Stage) exitButton.getScene().getWindow();
-        stage.close();
-    }
-
-    private void setupClock() {
-        clockTimeline = new Timeline(
-            new KeyFrame(Duration.seconds(1), e -> updateClock())
-        );
-        clockTimeline.setCycleCount(Timeline.INDEFINITE);
-        clockTimeline.play();
-        updateClock();
-    }
-
-    private void updateClock() {
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        dateTimeLabel.setText("Fecha: " + formatter.format(now));
     }
 }
