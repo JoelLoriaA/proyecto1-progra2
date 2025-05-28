@@ -3,10 +3,7 @@ package com.MagicalStay.client.ui.controllers;
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.client.data.DataFactory;
 import com.MagicalStay.shared.data.RoomData;
-import com.MagicalStay.shared.domain.Room;
-import com.MagicalStay.shared.domain.RoomType;
-import com.MagicalStay.shared.domain.RoomCondition;
-import com.MagicalStay.shared.domain.Hotel;
+import com.MagicalStay.shared.domain.*;
 import com.MagicalStay.shared.util.FXUtility;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -25,8 +22,10 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.FlowPane;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.io.Closeable;
@@ -365,10 +364,75 @@ public class RoomManagementController implements Closeable {
 
 
     @FXML
-    private void handleSave() {
+    private Hotel selectedHotel2;
+
+    public void handleSave() {
+        
+        if (selectedHotel == null) {
+            Random random = new Random();
+
+            // 1. Create Dummy Guests
+            List<Guest> dummyGuests = new ArrayList<>();
+            for (int i = 0; i < 2; i++) { // Let's create 2 dummy guests
+                dummyGuests.add(new Guest(
+                        "Guest" + (i + 1),
+                        "Lastname" + (i + 1),
+                        100000000 + random.nextInt(900000000), // Random DNI
+                        80000000 + random.nextInt(20000000), // Random Phone Number
+                        "guest" + (i + 1) + "@example.com",
+                        "Dummy Address " + (i + 1),
+                        (i == 0 ? "Costa Rican" : "Nicaraguan") // Example nationalities
+                ));
+            }
+
+            // 2. Create Dummy Rooms (these rooms will refer to the hotel we are about to create)
+            // Note: For creating rooms that refer to the *newly created* hotel,
+            // we'll first create the hotel, then add rooms to its list.
+            // For now, let's just prepare the lists.
+            List<Room> dummyRooms = new ArrayList<>();
+
+
+            // 3. Create the Dummy Hotel (selectedHotel)
+            selectedHotel2 = new Hotel(
+                    23, // Dummy hotelId
+                    "Dummy Test Hotel", // Dummy name
+                    "123 Testing Ave, Test City", // Dummy address
+                    dummyRooms, // Pass the empty list initially, then add rooms to it
+                    dummyGuests // Pass the populated list of dummy guests
+            );
+
+            // 4. Now, populate dummyRooms using the newly created selectedHotel
+            dummyRooms.add(new Room(
+                    "101",
+                    RoomType.ESTANDAR, // Assuming RoomType is an enum, e.g., RoomType.STANDARD
+                    RoomCondition.DISPONIBLE, // Assuming RoomCondition is an enum, e.g., RoomCondition.CLEAN
+                    selectedHotel2 // Associate with the dummy hotel
+            ));
+            dummyRooms.add(new Room(
+                    "205",
+                    RoomType.DELUXE,
+                    RoomCondition.DISPONIBLE,
+                    selectedHotel2
+            ));
+            dummyRooms.add(new Room(
+                    "300",
+                    RoomType.SUITE,
+                    RoomCondition.DISPONIBLE,
+                    selectedHotel2
+            ));
+
+
+            System.out.println("DEBUG: selectedHotel was null, assigned a dummy hotel with dummy data for testing.");
+        }
+        // --- END TEMPORARY BLOCK ---
+
         // Validar campos antes de guardar
-        if (!validateFields() || selectedHotel == null) {
-            FXUtility.alertError("Error", "Por favor seleccione un hotel y complete todos los campos").show();
+        if (!validateFields()) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(null);
+            alert.setContentText("Por favor complete todos los campos");
+            alert.show();
             return;
         }
 
@@ -377,7 +441,7 @@ public class RoomManagementController implements Closeable {
                     numberTextField.getText(),
                     typeComboBox.getValue(),
                     statusComboBox.getValue(),
-                    selectedHotel
+                    selectedHotel2 // This will now be your dummy hotel if no real one is selected
             );
 
             String jsonResponse = editMode ? roomData.update(room) : roomData.create(room);
@@ -405,19 +469,29 @@ public class RoomManagementController implements Closeable {
                 selectedRoom = null;
 
             } else {
-                // En caso de error, mostrar el mensaje
                 String errorMessage = response != null ? response.getMessage() : "Error desconocido";
-                FXUtility.alertError("Error", "No se pudo guardar la habitación: " + errorMessage).show();
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setHeaderText(null);
+                alert.setContentText("No se pudo guardar la habitación: " + errorMessage);
+                alert.show();
             }
         } catch (JsonProcessingException e) {
-            FXUtility.alertError("Error", "Error al procesar la respuesta JSON: " + e.getMessage()).show();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(null);
+            alert.setContentText("Error al procesar la respuesta JSON: " + e.getMessage());
+            alert.show();
         } catch (Exception e) {
-            FXUtility.alertError("Error", "Error al guardar la habitación: " + e.getMessage()).show();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(null);
+            alert.setContentText("Error al guardar la habitación: " + e.getMessage());
+            alert.show();
         }
     }
 
-
-
+    // ... (rest of your controller methods like validateFields, setFieldsEnabled, etc.)
 
 
 

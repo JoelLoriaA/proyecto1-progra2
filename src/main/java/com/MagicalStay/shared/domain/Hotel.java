@@ -37,6 +37,10 @@ public class Hotel {
         this.guests = guests;
     }
 
+    public Hotel(long string, String string2, String string3) {
+        //TODO Auto-generated constructor stub
+    }
+
     public int getHotelId() {
         return hotelId;
     }

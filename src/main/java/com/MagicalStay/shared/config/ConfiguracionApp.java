@@ -4,6 +4,7 @@ public class ConfiguracionApp {
 
     // Configuración del servidor
     public static final String HOST_SERVIDOR = "10.59.56.133"; // Cambiar por la IP del servidor para conexiones remotas
+    public static final String HOST_SERVIDOR = "192.168.0.112"; // Cambiar por la IP del servidor para conexiones remotas
     public static final int PUERTO_SERVIDOR = 5000;
 
     // Configuración de la aplicación
