@@ -24,21 +24,28 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
     @FXML private Button exitButton;
     @FXML private Label statusLabel;
 
-    // Nuevos elementos para la interfaz conectada
-    @FXML private VBox connectedInterface;
-    @FXML private Button hotelManagementButton;
-    @FXML private Button roomManagementButton;
-    @FXML private Button bookingManagementButton;
-    @FXML private Button guestManagementButton;
-    @FXML private Button reportsButton;
-    @FXML private Button disconnectButton;
-    @FXML private Label welcomeLabel;
-    @FXML private Label connectionStatusLabel;
-
     private SocketCliente socketCliente;
     private boolean isConnected = false;
     @FXML
+    private Label connectionStatusLabel;
+    @FXML
+    private Button disconnectButton;
+    @FXML
     private BorderPane mdiContainer;
+    @FXML
+    private Button guestManagementButton;
+    @FXML
+    private Button hotelManagementButton;
+    @FXML
+    private Button bookingManagementButton;
+    @FXML
+    private Label welcomeLabel;
+    @FXML
+    private VBox connectedInterface;
+    @FXML
+    private Button reportsButton;
+    @FXML
+    private Button roomManagementButton;
 
     @FXML
     private void initialize() {

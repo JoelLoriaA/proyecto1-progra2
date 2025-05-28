@@ -9,6 +9,10 @@ public class Hotel {
     private List<Room> rooms;  // Lista de habitaciones
     private List<Guest> guests;
 
+
+
+
+
     public Hotel(int hotelId, String name, String address, List<Room> rooms) {
         this.hotelId = hotelId;
         this.name = name;
@@ -16,6 +20,14 @@ public class Hotel {
         this.rooms = rooms;
     }
 
+
+    public List<Guest> getGuests() {
+        return guests;
+    }
+
+    public void setGuests(List<Guest> guests) {
+        this.guests = guests;
+    }
 
     public Hotel(int hotelId, String name, String address, List<Room> rooms, List<Guest> guests) {
         this.hotelId = hotelId;
@@ -66,4 +78,5 @@ public class Hotel {
                 ", room=" + rooms +
                 '}';
     }
+
 }
