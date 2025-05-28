@@ -270,4 +270,45 @@ public class RoomData extends JsonDataResponse {
             raf.close();
         }
     }
+
+    public List<Room> loadRooms() throws IOException {
+        List<Room> rooms = new ArrayList<>();
+        raf.seek(0);
+        for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
+            raf.seek(pos);
+            ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
+            raf.readFully(buffer.array());
+            buffer.rewind();
+    
+            String roomNumber = readString(buffer, ROOM_NUMBER_SIZE);
+            int roomTypeOrdinal = buffer.getInt();
+            int roomConditionOrdinal = buffer.getInt();
+            long hotelId = buffer.getLong();
+    
+            try {
+                RoomType roomType = RoomType.values()[roomTypeOrdinal];
+                RoomCondition roomCondition = RoomCondition.values()[roomConditionOrdinal];
+                Hotel hotel = getHotelById(hotelId);
+                if (hotel != null) {
+                    rooms.add(new Room(roomNumber.trim(), roomType, roomCondition, hotel));
+                }
+            } catch (ArrayIndexOutOfBoundsException e) {
+                continue;
+            }
+        }
+        return rooms;
+    }
+    
+    public void saveRoom(List<Room> rooms) throws IOException {
+        raf.setLength(0); // Borrar contenido previo
+        for (Room room : rooms) {
+            ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
+            writeString(buffer, room.getRoomNumber(), ROOM_NUMBER_SIZE);
+            buffer.putInt(room.getRoomType().ordinal());
+            buffer.putInt(room.getRoomCondition().ordinal());
+            buffer.putLong(room.getHotel().getHotelId());
+            raf.write(buffer.array());
+        }
+    }
+    
 }

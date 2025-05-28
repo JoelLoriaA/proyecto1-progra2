@@ -3,15 +3,17 @@ package com.MagicalStay.client.ui.controllers;
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.client.data.DataFactory;
 import com.MagicalStay.shared.data.RoomData;
-import com.MagicalStay.shared.domain.Room;
-import com.MagicalStay.shared.domain.RoomType;
-import com.MagicalStay.shared.domain.RoomCondition;
-import com.MagicalStay.shared.domain.Hotel;
+import com.MagicalStay.shared.domain.*;
 import com.MagicalStay.shared.util.FXUtility;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -20,8 +22,10 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.FlowPane;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.io.Closeable;
@@ -31,14 +35,6 @@ import java.util.stream.Collectors;
 public class RoomManagementController implements Closeable {
     @FXML
     private TextField searchTextField;
-    @FXML
-    private TableView<Room> roomTableView;
-    @FXML
-    private TableColumn<Room, String> roomNumberColumn;
-    @FXML
-    private TableColumn<Room, String> roomTypeColumn;
-    @FXML
-    private TableColumn<Room, String> roomStatusColumn;
     @FXML
     private TextField numberTextField;
     @FXML
@@ -54,8 +50,6 @@ public class RoomManagementController implements Closeable {
     @FXML
     private Spinner<Integer> capacitySpinner;
     @FXML
-    private FlowPane imagePane;
-    @FXML
     private Button addButton;
     @FXML
     private Button editButton;
@@ -68,44 +62,29 @@ public class RoomManagementController implements Closeable {
     @FXML
     private Label statusLabel;
 
+    @FXML
+    private TableColumn<Room, String> roomNumberColumn;
+    @FXML
+    private TableColumn<Room, String> roomTypeColumn;
+    @FXML
+    private TableColumn<Room, Integer> roomCapacityColumn;
+    @FXML
+    private TableColumn<Room, Double> roomPriceColumn;
+    @FXML
+    private TableColumn<Room, String> roomStatusColumn;
+
     private RoomData roomData;
     private ObjectMapper objectMapper;
     private ObservableList<Room> roomList;
     private Room selectedRoom;
     private Hotel selectedHotel;
     private boolean editMode = false;
-    private final ObservableList<String> roomImages = FXCollections.observableArrayList();
 
-    // ... (mantener los campos FXML existentes)
-    
     private final SocketCliente socketCliente;
-    
-    private void actualizarTablaHabitaciones(Object data) {
-        try {
-            List<Room> rooms = objectMapper.convertValue(data, 
-                new TypeReference<List<Room>>() {});
-            
-            // Filtrar por hotel seleccionado si es necesario
-            if (selectedHotel != null) {
-                rooms = rooms.stream()
-                    .filter(room -> room.getHotel().getHotelId() == selectedHotel.getHotelId())
-                    .collect(Collectors.toList());
-            }
-            
-            roomList = FXCollections.observableArrayList(rooms);
-            roomTableView.setItems(roomList);
-            
-            if (rooms.isEmpty()) {
-                statusLabel.setText("No se encontraron habitaciones");
-            } else {
-                statusLabel.setText("Se encontraron " + rooms.size() + " habitaciones");
-            }
-            
-        } catch (Exception e) {
-            FXUtility.alertError("Error", 
-                "Error al actualizar la tabla: " + e.getMessage()).show();
-        }
-    }
+    @FXML
+    private Button searchButton;
+    @FXML
+    private TableView<Room> roomTableView;
 
     public RoomManagementController() {
         socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
@@ -116,8 +95,8 @@ public class RoomManagementController implements Closeable {
 
             @Override
             public void onError(String error) {
-                Platform.runLater(() -> 
-                    FXUtility.alertError("Error de comunicación", error).show());
+                Platform.runLater(() ->
+                        FXUtility.alertError("Error de comunicación", error).show());
             }
 
             @Override
@@ -127,26 +106,26 @@ public class RoomManagementController implements Closeable {
 
             @Override
             public void onDesconexion() {
-                Platform.runLater(() -> 
-                    FXUtility.alertError("Desconexión", 
-                        "Se perdió la conexión con el servidor").show());
+                Platform.runLater(() ->
+                        FXUtility.alertError("Desconexión",
+                                "Se perdió la conexión con el servidor").show());
             }
         });
     }
 
     private void loadRoomsFromServer() {
         if (!socketCliente.estaConectado()) {
-            FXUtility.alertError("Error", 
-                "No hay conexión con el servidor").show();
+            FXUtility.alertError("Error",
+                    "No hay conexión con el servidor").show();
             return;
         }
-        
+
         try {
             String comando = "OBTENER_HABITACIONES|" + selectedHotel.getHotelId();
             socketCliente.enviarMensaje(comando);
         } catch (Exception e) {
-            FXUtility.alertError("Error", 
-                "Error al solicitar habitaciones: " + e.getMessage()).show();
+            FXUtility.alertError("Error",
+                    "Error al solicitar habitaciones: " + e.getMessage()).show();
         }
     }
 
@@ -154,13 +133,13 @@ public class RoomManagementController implements Closeable {
         try {
             JsonResponse response = objectMapper.readValue(respuesta, JsonResponse.class);
             if (response.isSuccess()) {
-                actualizarTablaHabitaciones(response.getData());
+                actualizarTablaHabitaciones((List<Room>) response.getData());
             } else {
                 FXUtility.alertError("Error", response.getMessage()).show();
             }
         } catch (Exception e) {
-            FXUtility.alertError("Error", 
-                "Error procesando respuesta: " + e.getMessage()).show();
+            FXUtility.alertError("Error",
+                    "Error procesando respuesta: " + e.getMessage()).show();
         }
     }
 
@@ -171,20 +150,16 @@ public class RoomManagementController implements Closeable {
             objectMapper = new ObjectMapper();
 
             setupControls();
-            setupTableColumns();
             setFieldsEnabled(false);
 
-            // Configurar listener para búsqueda
-            searchTextField.textProperty().addListener((observable, oldValue, newValue) ->
-                    handleSearch());
+            // Configurar las columnas del TableView
+            roomNumberColumn.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getRoomNumber()));
+            roomTypeColumn.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getRoomType().toString()));
+            roomCapacityColumn.setCellValueFactory(cellData -> new SimpleIntegerProperty(cellData.getValue().getCapacity()).asObject());
+            roomPriceColumn.setCellValueFactory(cellData -> new SimpleDoubleProperty(cellData.getValue().getPrice()).asObject());
+            roomStatusColumn.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getRoomCondition().toString()));
 
-            // Configurar listener para selección de tabla
-            roomTableView.getSelectionModel().selectedItemProperty().addListener(
-                    (observable, oldValue, newValue) -> {
-                        if (newValue != null) {
-                            handleRoomSelection();
-                        }
-                    });
+            searchTextField.textProperty().addListener((observable, oldValue, newValue) -> handleSearch());
 
             // Deshabilitar botones inicialmente
             editButton.setDisable(true);
@@ -192,12 +167,15 @@ public class RoomManagementController implements Closeable {
             saveButton.setDisable(true);
             cancelButton.setDisable(true);
 
-        } catch (Exception e) {
-            FXUtility.alertError("Error de Inicialización",
-                    "No se pudieron cargar los datos: " + e.getMessage());
-        }
+            if (selectedHotel != null) {
+                loadRoomsFromFile();
+            }
 
+        } catch (Exception e) {
+            FXUtility.alertError("Error de Inicialización", "No se pudieron cargar los datos: " + e.getMessage());
+        }
     }
+
 
     @FXML
     private void handleSearch() {
@@ -208,14 +186,12 @@ public class RoomManagementController implements Closeable {
             JsonResponse response = objectMapper.readValue(jsonResponse, JsonResponse.class);
 
             if (response.isSuccess()) {
-                List<Room> rooms = objectMapper.convertValue(response.getData(),
-                        new TypeReference<List<Room>>() {
-                        });
+                List<Room> rooms = objectMapper.convertValue(response.getData(), new TypeReference<List<Room>>() {});
 
                 // Filtrar por hotel seleccionado
                 rooms = rooms.stream()
                         .filter(room -> room.getHotel().getHotelId() == selectedHotel.getHotelId())
-                        .collect(java.util.stream.Collectors.toList());
+                        .collect(Collectors.toList());
 
                 // Aplicar filtro de búsqueda si hay texto
                 if (!searchText.isEmpty()) {
@@ -224,7 +200,7 @@ public class RoomManagementController implements Closeable {
                                     room.getRoomNumber().toLowerCase().contains(searchText) ||
                                             room.getRoomType().toString().toLowerCase().contains(searchText) ||
                                             room.getRoomCondition().toString().toLowerCase().contains(searchText))
-                            .collect(java.util.stream.Collectors.toList());
+                            .collect(Collectors.toList());
                 }
 
                 roomList = FXCollections.observableArrayList(rooms);
@@ -235,16 +211,15 @@ public class RoomManagementController implements Closeable {
                 } else {
                     statusLabel.setText("");
                 }
-
             } else {
                 statusLabel.setText("Error en la búsqueda: " + response.getMessage());
             }
         } catch (Exception e) {
             statusLabel.setText("Error al realizar la búsqueda: " + e.getMessage());
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE,
-                    "Error en búsqueda de habitaciones", e);
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Error en búsqueda de habitaciones", e);
         }
     }
+
 
     private void setFieldsEnabled(boolean enabled) {
         numberTextField.setDisable(!enabled);
@@ -268,23 +243,7 @@ public class RoomManagementController implements Closeable {
     private void setupControls() {
         typeComboBox.setItems(FXCollections.observableArrayList(RoomType.values()));
         statusComboBox.setItems(FXCollections.observableArrayList(RoomCondition.values()));
-
-        capacitySpinner.setValueFactory(
-                new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 10, 1));
-    }
-
-    private void setupTableColumns() {
-        roomNumberColumn.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleStringProperty(
-                        cellData.getValue().getRoomNumber()));
-
-        roomTypeColumn.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleStringProperty(
-                        cellData.getValue().getRoomType().toString()));
-
-        roomStatusColumn.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleStringProperty(
-                        cellData.getValue().getRoomCondition().toString()));
+        capacitySpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 10, 1));
     }
 
     public void setSelectedHotel(Hotel hotel) {
@@ -294,8 +253,7 @@ public class RoomManagementController implements Closeable {
 
     private void loadRoomsFromFile() {
         if (selectedHotel == null) {
-            FXUtility.alertInformation("Advertencia",
-                    "No hay hotel seleccionado");
+            FXUtility.alertInformation("Advertencia", "No hay hotel seleccionado");
             return;
         }
 
@@ -304,16 +262,12 @@ public class RoomManagementController implements Closeable {
             JsonResponse response = objectMapper.readValue(jsonResponse, JsonResponse.class);
 
             if (response.isSuccess()) {
-                List<Room> rooms = objectMapper.convertValue(response.getData(),
-                        new TypeReference<List<Room>>() {
-                        });
+                List<Room> rooms = objectMapper.convertValue(response.getData(), new TypeReference<List<Room>>() {});
 
                 // Filtrar habitaciones por hotel si hay uno seleccionado
-                if (selectedHotel != null) {
-                    rooms = rooms.stream()
-                            .filter(room -> room.getHotel().getHotelId() == selectedHotel.getHotelId())
-                            .collect(java.util.stream.Collectors.toList());
-                }
+                rooms = rooms.stream()
+                        .filter(room -> room.getHotel().getHotelId() == selectedHotel.getHotelId())
+                        .collect(Collectors.toList());
 
                 roomList = FXCollections.observableArrayList(rooms);
                 roomTableView.setItems(roomList);
@@ -334,32 +288,16 @@ public class RoomManagementController implements Closeable {
             numberTextField.setText(selectedRoom.getRoomNumber());
             typeComboBox.setValue(selectedRoom.getRoomType());
             statusComboBox.setValue(selectedRoom.getRoomCondition());
-
-            // Limpiar los campos no soportados
-            descriptionTextArea.clear();
-            featuresTextArea.clear();
-            priceTextField.clear();
-            capacitySpinner.getValueFactory().setValue(1);
-
-            // Limpiar imágenes
-            imagePane.getChildren().clear();
-            roomImages.clear();
+            descriptionTextArea.setText(selectedRoom.getDescription());
+            featuresTextArea.setText(selectedRoom.getFeatures());
+            priceTextField.setText(String.valueOf(selectedRoom.getPrice()));
+            capacitySpinner.getValueFactory().setValue(selectedRoom.getCapacity());
 
             editButton.setDisable(false);
             deleteButton.setDisable(false);
         }
     }
 
-    private void loadRoomImages(Room room) {
-        imagePane.getChildren().clear();
-        roomImages.clear();
-        if (room.getImages() != null) {
-            roomImages.addAll(room.getImages());
-            for (String imagePath : room.getImages()) {
-                addImageToPane(imagePath);
-            }
-        }
-    }
 
     @FXML
     private void handleAddRoom() {
@@ -379,10 +317,7 @@ public class RoomManagementController implements Closeable {
         featuresTextArea.clear();
         priceTextField.clear();
         capacitySpinner.getValueFactory().setValue(1);
-        imagePane.getChildren().clear();
-        roomImages.clear();
 
-        // Resetear selección y botones
         selectedRoom = null;
         editButton.setDisable(true);
         deleteButton.setDisable(true);
@@ -414,32 +349,90 @@ public class RoomManagementController implements Closeable {
                     JsonResponse response = objectMapper.readValue(jsonResponse, JsonResponse.class);
 
                     if (response.isSuccess()) {
-                        loadRoomsFromFile();
+                        loadRoomsFromFile();  // Recargar la lista después de eliminar
                         clearFields();
                         statusLabel.setText("Habitación eliminada con éxito");
                     } else {
-                        FXUtility.alertError(
-                                "Error",
-                                "No se pudo eliminar la habitación: " + response.getMessage()
-                        ).show();
+                        FXUtility.alertError("Error", "No se pudo eliminar la habitación: " + response.getMessage()).show();
                     }
                 } catch (Exception e) {
-                    FXUtility.alertError(
-                            "Error",
-                            "Error al eliminar la habitación: " + e.getMessage()
-                    ).show();
+                    FXUtility.alertError("Error", "Error al eliminar la habitación: " + e.getMessage()).show();
                 }
             }
         }
     }
 
+
     @FXML
-    private void handleSave() {
-        if (!validateFields() || selectedHotel == null) {
-            FXUtility.alertError(
-                    "Error",
-                    "Por favor seleccione un hotel y complete todos los campos"
-            ).show();
+    private Hotel selectedHotel2;
+
+    public void handleSave() {
+        
+        if (selectedHotel == null) {
+            Random random = new Random();
+
+            // 1. Create Dummy Guests
+            List<Guest> dummyGuests = new ArrayList<>();
+            for (int i = 0; i < 2; i++) { // Let's create 2 dummy guests
+                dummyGuests.add(new Guest(
+                        "Guest" + (i + 1),
+                        "Lastname" + (i + 1),
+                        100000000 + random.nextInt(900000000), // Random DNI
+                        80000000 + random.nextInt(20000000), // Random Phone Number
+                        "guest" + (i + 1) + "@example.com",
+                        "Dummy Address " + (i + 1),
+                        (i == 0 ? "Costa Rican" : "Nicaraguan") // Example nationalities
+                ));
+            }
+
+            // 2. Create Dummy Rooms (these rooms will refer to the hotel we are about to create)
+            // Note: For creating rooms that refer to the *newly created* hotel,
+            // we'll first create the hotel, then add rooms to its list.
+            // For now, let's just prepare the lists.
+            List<Room> dummyRooms = new ArrayList<>();
+
+
+            // 3. Create the Dummy Hotel (selectedHotel)
+            selectedHotel2 = new Hotel(
+                    23, // Dummy hotelId
+                    "Dummy Test Hotel", // Dummy name
+                    "123 Testing Ave, Test City", // Dummy address
+                    dummyRooms, // Pass the empty list initially, then add rooms to it
+                    dummyGuests // Pass the populated list of dummy guests
+            );
+
+            // 4. Now, populate dummyRooms using the newly created selectedHotel
+            dummyRooms.add(new Room(
+                    "101",
+                    RoomType.ESTANDAR, // Assuming RoomType is an enum, e.g., RoomType.STANDARD
+                    RoomCondition.DISPONIBLE, // Assuming RoomCondition is an enum, e.g., RoomCondition.CLEAN
+                    selectedHotel2 // Associate with the dummy hotel
+            ));
+            dummyRooms.add(new Room(
+                    "205",
+                    RoomType.DELUXE,
+                    RoomCondition.DISPONIBLE,
+                    selectedHotel2
+            ));
+            dummyRooms.add(new Room(
+                    "300",
+                    RoomType.SUITE,
+                    RoomCondition.DISPONIBLE,
+                    selectedHotel2
+            ));
+
+
+            System.out.println("DEBUG: selectedHotel was null, assigned a dummy hotel with dummy data for testing.");
+        }
+        // --- END TEMPORARY BLOCK ---
+
+        // Validar campos antes de guardar
+        if (!validateFields()) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(null);
+            alert.setContentText("Por favor complete todos los campos");
+            alert.show();
             return;
         }
 
@@ -448,31 +441,59 @@ public class RoomManagementController implements Closeable {
                     numberTextField.getText(),
                     typeComboBox.getValue(),
                     statusComboBox.getValue(),
-                    selectedHotel
+                    selectedHotel2 // This will now be your dummy hotel if no real one is selected
             );
 
             String jsonResponse = editMode ? roomData.update(room) : roomData.create(room);
             JsonResponse response = objectMapper.readValue(jsonResponse, JsonResponse.class);
 
-            if (response.isSuccess()) {
-                loadRoomsFromFile();
+            if (response != null && response.isSuccess()) {
+                if (!editMode) {
+                    roomList.add(room);
+                } else {
+                    int index = roomList.indexOf(selectedRoom);
+                    if (index != -1) {
+                        roomList.set(index, room);
+                    }
+                }
+
+                Platform.runLater(() -> roomTableView.setItems(roomList));
+
+                // Restablecer el estado de los campos
                 setFieldsEnabled(false);
                 saveButton.setDisable(true);
                 cancelButton.setDisable(true);
                 statusLabel.setText("Habitación guardada con éxito");
+
+                // Limpiar la selección de la habitación
+                selectedRoom = null;
+
             } else {
-                FXUtility.alertError(
-                        "Error",
-                        "No se pudo guardar la habitación: " + response.getMessage()
-                ).show();
+                String errorMessage = response != null ? response.getMessage() : "Error desconocido";
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setHeaderText(null);
+                alert.setContentText("No se pudo guardar la habitación: " + errorMessage);
+                alert.show();
             }
+        } catch (JsonProcessingException e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(null);
+            alert.setContentText("Error al procesar la respuesta JSON: " + e.getMessage());
+            alert.show();
         } catch (Exception e) {
-            FXUtility.alertError(
-                    "Error",
-                    "Error al guardar la habitación: " + e.getMessage()
-            ).show();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(null);
+            alert.setContentText("Error al guardar la habitación: " + e.getMessage());
+            alert.show();
         }
     }
+
+    // ... (rest of your controller methods like validateFields, setFieldsEnabled, etc.)
+
+
 
     private boolean validateFields() {
         StringBuilder errorMessage = new StringBuilder();
@@ -488,14 +509,44 @@ public class RoomManagementController implements Closeable {
         }
 
         if (errorMessage.length() > 0) {
-            FXUtility.alertError(
-                    "Error de Validación",
-                    errorMessage.toString()
-            ).show();
+            FXUtility.alertError("Error de Validación", errorMessage.toString()).show();
             return false;
         }
         return true;
     }
+
+    @FXML
+    public void handleCancel() {
+        if (selectedRoom != null) {
+            handleRoomSelection();
+        } else {
+            clearFields();
+        }
+        setFieldsEnabled(false);
+        editMode = false;
+        saveButton.setDisable(true);
+        cancelButton.setDisable(true);
+        statusLabel.setText("");
+    }
+
+    private void actualizarTablaHabitaciones(List<Room> rooms) {
+        // Crear la lista observable con las habitaciones
+        roomList = FXCollections.observableArrayList(rooms);
+
+        // Configurar la tabla para mostrar la lista de habitaciones
+        roomTableView.setItems(roomList);
+
+        // Si no hay habitaciones, mostramos un mensaje en la etiqueta de estado
+        if (rooms.isEmpty()) {
+            statusLabel.setText("No se encontraron habitaciones disponibles.");
+        } else {
+            statusLabel.setText("");  // Limpiar mensaje de estado
+        }
+    }
+
+    public void handleClose(ActionEvent actionEvent) {
+    }
+
 
     private static class JsonResponse {
         private boolean success;
@@ -536,49 +587,8 @@ public class RoomManagementController implements Closeable {
             if (socketCliente != null) {
                 socketCliente.desconectar();
             }
-            // Limpiar otros recursos
-            imagePane.getChildren().clear();
-            roomImages.clear();
         } catch (Exception e) {
-            FXUtility.alertError("Error", 
-                "Error al cerrar recursos: " + e.getMessage()).show();
+            FXUtility.alertError("Error", "Error al cerrar recursos: " + e.getMessage()).show();
         }
-    }
-
-    private void addImageToPane(String imagePath) {
-        try {
-            Image image = new Image(new File(imagePath).toURI().toString());
-            ImageView imageView = new ImageView(image);
-            imageView.setFitHeight(100);
-            imageView.setFitWidth(100);
-            imageView.setPreserveRatio(true);
-
-            imageView.setOnMouseClicked(event -> {
-                if (event.getButton() == MouseButton.SECONDARY) {
-                    roomImages.remove(imagePath);
-                    imagePane.getChildren().remove(imageView);
-                }
-            });
-
-            imagePane.getChildren().add(imageView);
-        } catch (Exception e) {
-            FXUtility.alertError("Error", 
-                "Error al cargar imagen: " + imagePath).show();
-        }
-    }
-
-    @FXML
-    private void handleCancel() {
-        if (selectedRoom != null) {
-            // Restaurar valores originales
-            handleRoomSelection();
-        } else {
-            clearFields();
-        }
-        setFieldsEnabled(false);
-        editMode = false;
-        saveButton.setDisable(true);
-        cancelButton.setDisable(true);
-        statusLabel.setText("");
     }
 }

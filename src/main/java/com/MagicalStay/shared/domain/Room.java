@@ -36,6 +36,10 @@ public class Room {
         this.hotel = hotel;
     }
 
+    public Room(String string, String string2, int i, boolean b) {
+        //TODO Auto-generated constructor stub
+    }
+
     // Agregar getters y setters para los nuevos campos
     public String getDescription() { return description; }
     public String getFeatures() { return features; }
