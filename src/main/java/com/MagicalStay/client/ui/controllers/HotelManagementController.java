@@ -1,296 +1,545 @@
 package com.MagicalStay.client.ui.controllers;
 
+import com.MagicalStay.client.data.DataFactory;
 import com.MagicalStay.shared.data.HotelData;
+import com.MagicalStay.shared.data.RoomData;
 import com.MagicalStay.shared.domain.Hotel;
+import com.MagicalStay.shared.domain.Room;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
-import javafx.event.Event;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseEvent;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class HotelManagementController {
 
-    // Elementos FXML vinculados al archivo de la interfaz gráfica
+    // FXML elements for hotel list
     @FXML
     private TextField searchTextField;
+
     @FXML
     private ListView<Hotel> hotelListView;
+
     @FXML
     private Button addButton;
+
     @FXML
     private Button editButton;
+
     @FXML
     private Button deleteButton;
+
+    // FXML elements for hotel details
     @FXML
     private TextField codeTextField;
+
     @FXML
     private TextField nameTextField;
+
+    @FXML
+    private TextField locationTextField;
+
     @FXML
     private TextArea addressTextArea;
+
+    @FXML
+    private TextField phoneTextField;
+
+    @FXML
+    private ComboBox<String> categoryComboBox;
+
+    @FXML
+    private CheckBox wifiCheckBox;
+
+    @FXML
+    private CheckBox poolCheckBox;
+
+    @FXML
+    private CheckBox gymCheckBox;
+
+    @FXML
+    private CheckBox restaurantCheckBox;
+
+    @FXML
+    private CheckBox parkingCheckBox;
+
+    @FXML
+    private TextArea descriptionTextArea;
+
     @FXML
     private Button saveButton;
+
     @FXML
     private Button cancelButton;
+
+    @FXML
+    private Button manageRoomsButton;
+
+    // FXML elements for room table
+    @FXML
+    private TableView<Room> roomsTableView;
+
+    @FXML
+    private TableColumn<Room, String> roomNumberColumn;
+
+    @FXML
+    private TableColumn<Room, String> roomTypeColumn;
+
+    @FXML
+    private TableColumn<Room, String> roomStatusColumn;
+
     @FXML
     private Label statusLabel;
 
-    // Datos y lógica
-    private ObservableList<Hotel> hotelList;
-    private Hotel selectedHotel;
-    private boolean editMode = false; // Modo edición o creación
-    private HotelData hotelData;
-    private ObjectMapper objectMapper;
-    @FXML
-    private Button searchButton;
-    @FXML
-    private TableColumn guestIdColumn;
-    @FXML
-    private TableColumn roomTypeColumn;
-    @FXML
-    private Button manageGuestsButton;
-    @FXML
-    private TableColumn roomNumberColumn;
-    @FXML
-    private TableColumn guestEmailColumn;
-    @FXML
-    private Button manageRoomsButton;
-    @FXML
-    private TableColumn guestNameColumn;
-    @FXML
-    private TableColumn roomStatusColumn;
     @FXML
     private Button closeButton;
+
     @FXML
-    private TableView guestsTableView;
-    @FXML
-    private TableColumn roomPriceColumn;
-    @FXML
-    private TableView roomsTableView;
+    private Button searchButton;
+
+    // Data
+    private ObservableList<Hotel> hotelList;
+    private ObservableList<Room> roomList;
+    private Hotel selectedHotel;
+    private boolean editMode = false;
+
+    // Data access objects
+    private HotelData hotelData;
+    private RoomData roomData;
+    private ObjectMapper objectMapper;
 
     @FXML
     private void initialize() {
-        hotelData = new HotelData();
-        objectMapper = new ObjectMapper();
-
-        // Inicializar la lista de hoteles y cargar los datos desde el servidor
-        loadHotels();
-        hotelListView.setItems(hotelList);
-
-        // Agregar marcador cuando no hay hoteles disponibles
-        hotelListView.setPlaceholder(new Label("No hay hoteles disponibles. Por favor, agrega uno nuevo."));
-
-        // Configurar el ListView para mostrar los datos
-        hotelListView.setCellFactory(lv -> new ListCell<Hotel>() {
-            @Override
-            protected void updateItem(Hotel hotel, boolean empty) {
-                super.updateItem(hotel, empty);
-                if (empty || hotel == null) {
-                    setText(null);
-                } else {
-                    setText(hotel.getName() + " - " + hotel.getAddress());
-                }
-            }
-        });
-
-        // Deshabilitar campos hasta que se seleccionen o creen datos
-        setFieldsEnabled(false);
-    }
-
-    /** Carga la lista de hoteles desde el servidor. */
-    private void loadHotels() {
         try {
-            String jsonResponse = hotelData.readAll(); // Llamada al servidor
+            // Initialize data access objects
+            hotelData = DataFactory.getHotelData();
+            roomData = DataFactory.getRoomData();
+            objectMapper = new ObjectMapper();
 
-            // Detectar si la respuesta está vacía
-            if (jsonResponse == null || jsonResponse.isEmpty() || jsonResponse.equals("[]")) {
-                hotelList = FXCollections.observableArrayList(); // Inicializar lista vacía
-                statusLabel.setText("No hay hoteles disponibles. Presiona 'Agregar' para crear el primero.");
-            } else {
-                List<Hotel> hotels = objectMapper.readValue(jsonResponse, new TypeReference<>() {});
-                hotelList = FXCollections.observableArrayList(hotels);
-                statusLabel.setText("Hoteles cargados correctamente.");
-            }
+            // Initialize category combo box
+            categoryComboBox.setItems(FXCollections.observableArrayList(
+                    "1 Estrella", "2 Estrellas", "3 Estrellas", "4 Estrellas", "5 Estrellas"
+            ));
+
+            // Setup room table columns
+            roomNumberColumn.setCellValueFactory(new PropertyValueFactory<>("roomNumber"));
+            roomTypeColumn.setCellValueFactory(cellData ->
+                    new javafx.beans.property.SimpleStringProperty(
+                            cellData.getValue().getRoomType().toString()));
+            roomStatusColumn.setCellValueFactory(cellData ->
+                    new javafx.beans.property.SimpleStringProperty(
+                            cellData.getValue().getRoomCondition().toString()));
+
+            // Load data from files
+            loadHotelsFromFile();
+
+            // Set the hotel list view items
+            hotelListView.setItems(hotelList);
+
+            // Set cell factory to display hotel names in the list
+            hotelListView.setCellFactory(lv -> new ListCell<Hotel>() {
+                @Override
+                protected void updateItem(Hotel hotel, boolean empty) {
+                    super.updateItem(hotel, empty);
+                    if (empty || hotel == null) {
+                        setText(null);
+                    } else {
+                        setText(hotel.getName() + " (" + hotel.getAddress() + ")");
+                    }
+                }
+            });
+
+            // Disable detail fields initially
+            setFieldsEnabled(false);
+
         } catch (IOException e) {
-            hotelList = FXCollections.observableArrayList(); // Inicializar lista vacía en caso de error
-            showError("Error al cargar hoteles", "No se pudo cargar la lista de hoteles: " + e.getMessage());
+            showAlert(Alert.AlertType.ERROR, "Error de Inicialización",
+                    "No se pudieron cargar los datos: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    /** Activa o desactiva los campos editables del formulario. */
-    private void setFieldsEnabled(boolean enabled) {
-        codeTextField.setDisable(true); // Siempre desactivado (es automático o inmutable)
-        nameTextField.setDisable(!enabled);
-        addressTextArea.setDisable(!enabled);
-        saveButton.setDisable(!enabled);
-        cancelButton.setDisable(!enabled);
+    private void loadHotelsFromFile() {
+        try {
+            String jsonResponse = hotelData.readAll();
+            DataResponse response = parseDataResponse(jsonResponse);
+
+            if (response.isSuccess()) {
+                List<Hotel> hotels = objectMapper.convertValue(response.getData(),
+                        new TypeReference<List<Hotel>>() {});
+                hotelList = FXCollections.observableArrayList(hotels);
+            } else {
+                hotelList = FXCollections.observableArrayList();
+                statusLabel.setText("No se encontraron hoteles: " + response.getMessage());
+            }
+        } catch (Exception e) {
+            hotelList = FXCollections.observableArrayList();
+            statusLabel.setText("Error al cargar hoteles: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
-    /** Limpia los campos del formulario. */
+    private void loadRoomsForHotel(Hotel hotel) {
+        try {
+            String jsonResponse = roomData.readAll();
+            DataResponse response = parseDataResponse(jsonResponse);
+
+            if (response.isSuccess()) {
+                List<Room> allRooms = objectMapper.convertValue(response.getData(),
+                        new TypeReference<List<Room>>() {});
+
+                // Filtrar habitaciones por hotel
+                List<Room> hotelRooms = allRooms.stream()
+                        .filter(room -> room.getHotel().getHotelId() == hotel.getHotelId())
+                        .collect(java.util.stream.Collectors.toList());
+
+                roomList = FXCollections.observableArrayList(hotelRooms);
+                roomsTableView.setItems(roomList);
+            } else {
+                roomList = FXCollections.observableArrayList();
+                roomsTableView.setItems(roomList);
+            }
+        } catch (Exception e) {
+            roomList = FXCollections.observableArrayList();
+            roomsTableView.setItems(roomList);
+            statusLabel.setText("Error al cargar habitaciones: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void handleHotelSelection(MouseEvent event) {
+        selectedHotel = hotelListView.getSelectionModel().getSelectedItem();
+        if (selectedHotel != null) {
+            // Fill the fields with hotel data
+            codeTextField.setText(String.valueOf(selectedHotel.getHotelId()));
+            nameTextField.setText(selectedHotel.getName());
+            locationTextField.setText(""); // Adaptar según tu modelo de Hotel
+            addressTextArea.setText(selectedHotel.getAddress());
+            phoneTextField.setText(""); // Adaptar según tu modelo de Hotel
+            categoryComboBox.setValue("3 Estrellas"); // Valor por defecto
+            descriptionTextArea.setText(""); // Adaptar según tu modelo de Hotel
+
+            // Set services based on the hotel (demo settings)
+            wifiCheckBox.setSelected(true);
+            poolCheckBox.setSelected(false);
+            gymCheckBox.setSelected(true);
+            restaurantCheckBox.setSelected(true);
+            parkingCheckBox.setSelected(true);
+
+            // Load rooms for this hotel
+            loadRoomsForHotel(selectedHotel);
+
+            // Enable buttons
+            editButton.setDisable(false);
+            deleteButton.setDisable(false);
+            manageRoomsButton.setDisable(false);
+        }
+    }
+
+    @FXML
+    private void handleSearch(ActionEvent event) {
+        String searchText = searchTextField.getText().toLowerCase().trim();
+        if (searchText.isEmpty()) {
+            hotelListView.setItems(hotelList);
+        } else {
+            try {
+                // Usar el método de búsqueda por nombre de HotelData
+                String jsonResponse = hotelData.findByName(searchText);
+                DataResponse response = parseDataResponse(jsonResponse);
+
+                if (response.isSuccess()) {
+                    List<Hotel> filteredHotels = objectMapper.convertValue(response.getData(),
+                            new TypeReference<List<Hotel>>() {});
+                    hotelListView.setItems(FXCollections.observableArrayList(filteredHotels));
+                } else {
+                    hotelListView.setItems(FXCollections.observableArrayList());
+                    statusLabel.setText("No se encontraron hoteles con ese nombre");
+                }
+            } catch (Exception e) {
+                statusLabel.setText("Error en la búsqueda: " + e.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    private void handleAddHotel(ActionEvent event) {
+        clearFields();
+        setFieldsEnabled(true);
+        editMode = false;
+
+        // Set default values
+        codeTextField.setText("[Automático]");
+        categoryComboBox.setValue("3 Estrellas");
+
+        saveButton.setDisable(false);
+        cancelButton.setDisable(false);
+
+        statusLabel.setText("Agregando nuevo hotel...");
+    }
+
+    @FXML
+    private void handleEditHotel(ActionEvent event) {
+        if (selectedHotel != null) {
+            setFieldsEnabled(true);
+            editMode = true;
+
+            saveButton.setDisable(false);
+            cancelButton.setDisable(false);
+
+            statusLabel.setText("Editando hotel: " + selectedHotel.getName());
+        }
+    }
+
+    @FXML
+    private void handleDeleteHotel(ActionEvent event) {
+        if (selectedHotel != null) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Confirmar Eliminación");
+            alert.setHeaderText(null);
+            alert.setContentText("¿Está seguro que desea eliminar el hotel \"" + selectedHotel.getName() + "\"?");
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                try {
+                    String jsonResponse = hotelData.delete(selectedHotel.getHotelId());
+                    DataResponse response = parseDataResponse(jsonResponse);
+
+                    if (response.isSuccess()) {
+                        // Recargar la lista
+                        loadHotelsFromFile();
+                        hotelListView.setItems(hotelList);
+                        clearFields();
+
+                        statusLabel.setText("Hotel eliminado con éxito");
+
+                        // Disable buttons
+                        editButton.setDisable(true);
+                        deleteButton.setDisable(true);
+                        manageRoomsButton.setDisable(true);
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Error",
+                                "No se pudo eliminar el hotel: " + response.getMessage());
+                    }
+                } catch (Exception e) {
+                    showAlert(Alert.AlertType.ERROR, "Error",
+                            "Error al eliminar el hotel: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    @FXML
+    private void handleSave(ActionEvent event) {
+        if (validateFields()) {
+            try {
+                Hotel hotel;
+
+                if (editMode) {
+                    hotel = selectedHotel;
+                } else {
+                    hotel = new Hotel(getNextHotelId(), nameTextField.getText(),
+                            addressTextArea.getText(), new ArrayList<>());
+                }
+
+                // Update the hotel with form data
+                hotel.setName(nameTextField.getText());
+                hotel.setAddress(addressTextArea.getText());
+
+                String jsonResponse;
+                if (editMode) {
+                    jsonResponse = hotelData.update(hotel);
+                } else {
+                    jsonResponse = hotelData.create(hotel);
+                }
+
+                DataResponse response = parseDataResponse(jsonResponse);
+
+                if (response.isSuccess()) {
+                    // Recargar la lista
+                    loadHotelsFromFile();
+                    hotelListView.setItems(hotelList);
+
+                    // Reset UI
+                    setFieldsEnabled(false);
+                    saveButton.setDisable(true);
+                    cancelButton.setDisable(true);
+
+                    // Seleccionar el hotel guardado
+                    for (Hotel h : hotelList) {
+                        if (h.getHotelId() == hotel.getHotelId()) {
+                            hotelListView.getSelectionModel().select(h);
+                            break;
+                        }
+                    }
+
+                    statusLabel.setText("Hotel guardado con éxito");
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error",
+                            "No se pudo guardar el hotel: " + response.getMessage());
+                }
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Error",
+                        "Error al guardar el hotel: " + e.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    private void handleCancel(ActionEvent event) {
+        if (editMode && selectedHotel != null) {
+            // Reload current hotel data
+            handleHotelSelection(null);
+        } else {
+            clearFields();
+        }
+
+        setFieldsEnabled(false);
+        saveButton.setDisable(true);
+        cancelButton.setDisable(true);
+
+        statusLabel.setText("Operación cancelada");
+    }
+
+    @FXML
+    private void handleManageRooms(ActionEvent event) {
+        if (selectedHotel != null) {
+            try {
+                // Load the room management FXML
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/room-management.fxml"));
+                Parent root = loader.load();
+
+                // Get the controller and pass the selected hotel
+                RoomManagementController controller = loader.getController();
+                controller.setSelectedHotel(selectedHotel);
+
+                // Create a new stage for the room management window
+                Stage roomStage = new Stage();
+                roomStage.setTitle("Gestión de Habitaciones - " + selectedHotel.getName());
+                roomStage.setScene(new Scene(root));
+                roomStage.initModality(Modality.WINDOW_MODAL);
+                roomStage.initOwner(manageRoomsButton.getScene().getWindow());
+                roomStage.show();
+            } catch (IOException e) {
+                showAlert(Alert.AlertType.ERROR, "Error",
+                        "No se pudo cargar la ventana de gestión de habitaciones: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @FXML
+    private void handleClose(ActionEvent event) throws IOException {
+        DataFactory.closeAll();
+
+        Stage stage = (Stage) closeButton.getScene().getWindow();
+        stage.close();
+    }
+
     private void clearFields() {
         codeTextField.clear();
         nameTextField.clear();
+        locationTextField.clear();
         addressTextArea.clear();
+        phoneTextField.clear();
+        categoryComboBox.setValue(null);
+        descriptionTextArea.clear();
+
+        wifiCheckBox.setSelected(false);
+        poolCheckBox.setSelected(false);
+        gymCheckBox.setSelected(false);
+        restaurantCheckBox.setSelected(false);
+        parkingCheckBox.setSelected(false);
+
+        roomsTableView.setItems(null);
     }
 
-    /** Muestra mensajes de error. */
-    private void showError(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
+    private void setFieldsEnabled(boolean enabled) {
+        nameTextField.setDisable(!enabled);
+        locationTextField.setDisable(!enabled);
+        addressTextArea.setDisable(!enabled);
+        phoneTextField.setDisable(!enabled);
+        categoryComboBox.setDisable(!enabled);
+        descriptionTextArea.setDisable(!enabled);
+
+        wifiCheckBox.setDisable(!enabled);
+        poolCheckBox.setDisable(!enabled);
+        gymCheckBox.setDisable(!enabled);
+        restaurantCheckBox.setDisable(!enabled);
+        parkingCheckBox.setDisable(!enabled);
+    }
+
+    private boolean validateFields() {
+        String errorMessage = "";
+
+        if (nameTextField.getText().trim().isEmpty()) {
+            errorMessage += "El nombre del hotel no puede estar vacío.\n";
+        }
+
+        if (addressTextArea.getText().trim().isEmpty()) {
+            errorMessage += "La dirección no puede estar vacía.\n";
+        }
+
+        if (!errorMessage.isEmpty()) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error de Validación");
+            alert.setHeaderText(null);
+            alert.setContentText(errorMessage);
+            alert.showAndWait();
+            return false;
+        }
+
+        return true;
+    }
+
+    private int getNextHotelId() {
+        int maxId = 0;
+        for (Hotel hotel : hotelList) {
+            if (hotel.getHotelId() > maxId) {
+                maxId = hotel.getHotelId();
+            }
+        }
+        return maxId + 1;
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String message) {
+        Alert alert = new Alert(type);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
     }
 
-    /** Maneja la acción de búsqueda de hoteles. */
-    @FXML
-    private void handleSearch(ActionEvent event) {
-        String searchText = searchTextField.getText().trim().toLowerCase();
-        if (searchText.isEmpty()) {
-            hotelListView.setItems(hotelList); // Restablecer la lista completa
-        } else {
-            try {
-                String jsonResponse = hotelData.findByName(searchText);
-                List<Hotel> filteredHotels = objectMapper.readValue(jsonResponse, new TypeReference<>() {});
-                hotelListView.setItems(FXCollections.observableArrayList(filteredHotels));
-            } catch (IOException e) {
-                showError("Error en búsqueda", "Hubo un problema al buscar hoteles: " + e.getMessage());
-            }
-        }
+    private DataResponse parseDataResponse(String jsonResponse) throws Exception {
+        return objectMapper.readValue(jsonResponse, DataResponse.class);
     }
 
-    /** Maneja la acción de agregar un nuevo hotel. */
-    @FXML
-    private void handleAddHotel(ActionEvent event) {
-        clearFields();
-        setFieldsEnabled(true);
-        editMode = false;
-        codeTextField.setText("[Automático]"); // Indicador visual para el usuario
-        statusLabel.setText("Por favor, complete los campos para agregar un nuevo hotel.");
+    private static class DataResponse {
+        private boolean success;
+        private String message;
+        private Object data;
+
+        // Getters y setters
+        public boolean isSuccess() { return success; }
+        public void setSuccess(boolean success) { this.success = success; }
+
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
+
+        public Object getData() { return data; }
+        public void setData(Object data) { this.data = data; }
     }
-
-    /** Maneja la acción de editar un hotel seleccionado. */
-    @FXML
-    private void handleEditHotel(ActionEvent event) {
-        selectedHotel = hotelListView.getSelectionModel().getSelectedItem();
-        if (selectedHotel != null) {
-            editMode = true;
-            setFieldsEnabled(true);
-
-            // Rellenar los campos con los datos del hotel seleccionado
-            codeTextField.setText(String.valueOf(selectedHotel.getHotelId()));
-            nameTextField.setText(selectedHotel.getName());
-            addressTextArea.setText(selectedHotel.getAddress());
-
-            statusLabel.setText("Editando hotel: " + selectedHotel.getName());
-        }
-    }
-
-    /**
-     * Maneja la acción de guardar un hotel.
-     * Aplica tanto para crear uno nuevo como editar uno existente.
-     */
-    @FXML
-    private void handleSave(ActionEvent event) {
-        String name = nameTextField.getText().trim();
-        String address = addressTextArea.getText().trim();
-
-        // Validación de campos obligatorios
-        if (name.isEmpty() || address.isEmpty()) {
-            showError("Validación fallida", "El nombre y la dirección son obligatorios.");
-            return;
-        }
-
-        try {
-            if (editMode) {
-                // Actualizar un hotel existente
-                selectedHotel.setName(name);
-                selectedHotel.setAddress(address);
-
-                String jsonResponse = hotelData.update(selectedHotel);
-                statusLabel.setText("Hotel actualizado con éxito.");
-            } else {
-                // Crear un nuevo hotel
-                Hotel newHotel = new Hotel(0, name, address, null); // ID = 0 porque lo genera el servidor
-                String jsonResponse = hotelData.create(newHotel);
-
-                // Validar si es el primer hotel que se agrega
-                if (hotelList.isEmpty()) {
-                    statusLabel.setText("Primer hotel agregado con éxito.");
-                } else {
-                    statusLabel.setText("Hotel agregado con éxito.");
-                }
-            }
-
-            // Recargar la lista de hoteles
-            loadHotels();
-            hotelListView.setItems(hotelList);
-
-            // Limpiar y desactivar el formulario
-            clearFields();
-            setFieldsEnabled(false);
-        } catch (IOException e) {
-            showError("Error al guardar", "Hubo un problema al guardar los datos: " + e.getMessage());
-        }
-    }
-
-    /** Maneja la acción de eliminar un hotel seleccionado. */
-    @FXML
-    private void handleDeleteHotel(ActionEvent event) {
-        selectedHotel = hotelListView.getSelectionModel().getSelectedItem();
-        if (selectedHotel != null) {
-            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-            alert.setTitle("Confirmar eliminación");
-            alert.setHeaderText(null);
-            alert.setContentText("¿Está seguro que desea eliminar el hotel seleccionado?");
-
-            Optional<ButtonType> result = alert.showAndWait();
-            if (result.isPresent() && result.get() == ButtonType.OK) {
-                try {
-                    String jsonResponse = hotelData.delete(selectedHotel.getHotelId());
-                    statusLabel.setText("Hotel eliminado con éxito.");
-
-                    // Recargar la lista
-                    loadHotels();
-                    hotelListView.setItems(hotelList);
-
-                    // Limpiar el formulario
-                    clearFields();
-                } catch (IOException e) {
-                    showError("Error al eliminar", "Hubo un problema al eliminar el hotel: " + e.getMessage());
-                }
-            }
-        }
-    }
-
-    /** Maneja la acción de cancelar cualquier operación. */
-    @FXML
-    private void handleCancel(ActionEvent event) {
-        clearFields();
-        setFieldsEnabled(false);
-        statusLabel.setText("Operación cancelada.");
-    }
-
-    @FXML
-    public void handleHotelSelection(Event event) {
-    }
-
-    @FXML
-    public void handleManageRooms(ActionEvent actionEvent) {
-    }
-
-    @FXML
-    public void handleClose(ActionEvent actionEvent) {
-    }
-
-    @FXML
-    public void handleManageGuests(ActionEvent actionEvent) {
-    }
-
 }

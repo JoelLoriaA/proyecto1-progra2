@@ -40,11 +40,16 @@ public class HotelData extends JsonDataResponse {
             writeString(buffer, hotel.getName(), NAME_LENGTH);
             writeString(buffer, hotel.getAddress(), ADDRESS_LENGTH);
 
-            List<Room> rooms = hotel.getRooms();
-            for (int i = 0; i < MAX_ROOMS; i++) {
+
+            if (!getAllHotels().isEmpty()) {
+
+                List<Room> rooms = hotel.getRooms();
+                for (int i = 0; i < MAX_ROOMS; i++) {
                 String roomNumber = i < rooms.size() ? rooms.get(i).getRoomNumber() : "";
                 writeString(buffer, roomNumber, 10);
-            }
+                }   
+                
+        }  
 
             raf.seek(raf.length());
             raf.write(buffer.array());
@@ -145,7 +150,7 @@ public class HotelData extends JsonDataResponse {
     }
 
     // Read All
-    private List<Hotel> getAllHotels() throws IOException {
+    public List<Hotel> getAllHotels() throws IOException {
         List<Hotel> hotels = new ArrayList<>();
         for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
             raf.seek(pos);
@@ -275,4 +280,31 @@ public class HotelData extends JsonDataResponse {
             raf.close();
         }
     }
+
+    public Hotel findById(int id) throws IOException {
+        for (int pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
+            raf.seek(pos);
+            ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
+            raf.readFully(buffer.array());
+            buffer.rewind();
+    
+            int hotelId = buffer.getInt();
+            String name = readString(buffer, NAME_LENGTH);
+            String address = readString(buffer, ADDRESS_LENGTH);
+    
+            List<Room> rooms = new ArrayList<>();
+            for (int i = 0; i < MAX_ROOMS; i++) {
+                String roomNumber = readString(buffer, 10);
+                if (!roomNumber.isEmpty()) {
+                    rooms.add(new Room(roomNumber, null, null, null));
+                }
+            }
+    
+            if (hotelId == id) {
+                return new Hotel(hotelId, name, address, rooms);
+            }
+        }
+        return null;
+    }
+    
 }

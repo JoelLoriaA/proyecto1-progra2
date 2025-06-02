@@ -8,6 +8,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 
 import java.io.IOException;
+import java.net.URL;
 
 public class FXUtility {
 
@@ -35,21 +36,15 @@ public class FXUtility {
         }
     }
 
-    public static Alert alertError(String title, String header){
+    public static Alert alertError(String title, String header) {
         Alert myAlert = new Alert(Alert.AlertType.ERROR);
         myAlert.setTitle(title);
         myAlert.setHeaderText(header);
         myAlert.setContentText(" ");
-
-        // Aplicar estilos personalizados
-        DialogPane dialogPane = myAlert.getDialogPane();
-        dialogPane.getStylesheets().add(
-            FXUtility.class.getResource("/ucr/lab/stylesheet.css").toExternalForm()
-        );
-        dialogPane.getStyleClass().add("error-alert");
-        
         return myAlert;
     }
+    
+    
 
     public static Alert alertInformation(String title, String header){
         Alert myAlert = new Alert(Alert.AlertType.INFORMATION);
