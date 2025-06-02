@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.Separator?>
@@ -32,9 +33,10 @@
                 <VBox spacing="15.0" style="-fx-background-color: #f5f5f5; -fx-padding: 15px; -fx-background-radius: 8px;">
                     <Label style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #333333;" text="📋 Lista de Hoteles" />
                     <HBox alignment="CENTER_LEFT" spacing="8.0">
-                        <TextField fx:id="searchTextField" promptText="🔍 Buscar hotel..." style="-fx-background-radius: 5px; -fx-border-radius: 5px;" HBox.hgrow="ALWAYS" />
-                        <Button fx:id="searchButton" onAction="#handleSearch" style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 5px;" text="Buscar" />
-                    </HBox>
+                        <ComboBox fx:id="searchTypeComboBox" prefHeight="25.0" prefWidth="199.0" promptText="Tipo de búsqueda" style="-fx-background-radius: 5px; -fx-border-radius: 5px;" />
+    <TextField fx:id="searchTextField" promptText="🔍 Buscar..." style="-fx-background-radius: 5px; -fx-border-radius: 5px;" HBox.hgrow="ALWAYS" />
+    <Button fx:id="searchButton" onAction="#handleSearch" prefHeight="25.0" prefWidth="107.0" style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 5px;" text="Buscar" />
+</HBox>
                     <ListView fx:id="hotelListView" onMouseClicked="#handleHotelSelection" style="-fx-background-radius: 5px;" VBox.vgrow="ALWAYS" />
                     <HBox spacing="8.0">
                         <Button fx:id="addButton" maxWidth="Infinity" onAction="#handleAddHotel" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px;" text="➕ Nuevo" HBox.hgrow="ALWAYS" />
@@ -92,7 +94,6 @@
                             <TableColumn fx:id="roomNumberColumn" prefWidth="80" text="Número" />
                             <TableColumn fx:id="roomTypeColumn" prefWidth="120" text="Tipo" />
                             <TableColumn fx:id="roomStatusColumn" prefWidth="100" text="Estado" />
-                            <TableColumn fx:id="roomPriceColumn" prefWidth="100" text="Precio" />
                         </columns>
                     </TableView>
                <Label layoutX="30.0" layoutY="341.0" style="-fx-font-weight: bold;" text="🛏️ Huéspedes del Hotel" />
@@ -107,6 +108,7 @@
                      <TableColumn fx:id="guestNationalityColumn" prefWidth="100" text="Nacionalidad" />
                   </columns>
                </TableView>
+               <Button fx:id="manageRoomsButton1" disable="true" onAction="#handleManageRooms" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🔧 Gestionar Habitaciones" />
                 </VBox>
             </items>
         </SplitPane>

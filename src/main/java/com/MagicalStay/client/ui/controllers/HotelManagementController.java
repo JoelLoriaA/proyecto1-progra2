@@ -26,6 +26,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.Collections;
 
 public class HotelManagementController {
 
@@ -104,8 +106,6 @@ public class HotelManagementController {
     //TODO, adaptar la tableview de Guests
 
     @FXML
-    private TableColumn roomPriceColumn;
-    @FXML
     private TableView guestsTableView;
     @FXML
     private TableColumn guestNationalityColumn;
@@ -121,6 +121,10 @@ public class HotelManagementController {
     private TableColumn guestAddressColumn;
     @FXML
     private TableColumn guestLastNameColumn;
+    @FXML
+    private ComboBox searchTypeComboBox;
+    @FXML
+    private Button manageRoomsButton1;
 
     @FXML
     private void initialize() {
@@ -160,6 +164,23 @@ public class HotelManagementController {
 
             // Disable detail fields initially
             setFieldsEnabled(false);
+
+            guestNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+            guestLastNameColumn.setCellValueFactory(new PropertyValueFactory<>("lastName"));
+            guestDniColumn.setCellValueFactory(new PropertyValueFactory<>("dni"));
+            guestEmailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
+            guestPhoneNumberColumn.setCellValueFactory(new PropertyValueFactory<>("phoneNumber"));
+            guestAddressColumn.setCellValueFactory(new PropertyValueFactory<>("address"));
+            guestNationalityColumn.setCellValueFactory(new PropertyValueFactory<>("nationality"));
+
+
+            searchTypeComboBox.setItems(FXCollections.observableArrayList(
+                "Por Nombre",
+                "Por Dirección",
+                "Por ID",
+                "Todos"
+            ));
+            searchTypeComboBox.setValue("Por Nombre"); // valor por defecto
 
         } catch (IOException e) {
             showAlert(Alert.AlertType.ERROR, "Error de Inicialización",
@@ -224,25 +245,38 @@ public class HotelManagementController {
                 List<Guest> allGuests = objectMapper.convertValue(response.getData(),
                         new TypeReference<List<Guest>>() {});
 
-                // Filtrar habitaciones por hotel
-                List<Guest> guestRooms = allGuests.stream()
-                        .filter(guest -> room.getHotel().getHotelId() == hotel.getHotelId())
-                        .collect(java.util.stream.Collectors.toList());
+                // Filtrar huéspedes por hotel usando sus reservas
+                List<Guest> hotelGuests = allGuests.stream()
+                        .filter(guest -> {
+                            // Verificar si el huésped tiene reservas
+                            if (guest.getBookings() != null) {
+                                // Buscar si alguna reserva corresponde al hotel seleccionado
+                                return guest.getBookings().stream()
+                                        .anyMatch(booking ->
+                                                booking.getHotel() != null &&
+                                                        booking.getHotel().getHotelId() == selectedHotel.getHotelId()
+                                        );
+                            }
+                            return false;
+                        })
+                        .collect(Collectors.toList());
 
-                roomList = FXCollections.observableArrayList(guestRooms);
-                roomsTableView.setItems(roomList);
+                ObservableList<Guest> guestList = FXCollections.observableArrayList(hotelGuests);
+                guestsTableView.setItems(guestList);
+
+                if (hotelGuests.isEmpty()) {
+                    statusLabel.setText("No se encontraron huéspedes para este hotel");
+                } else {
+                    statusLabel.setText("Se encontraron " + hotelGuests.size() + " huéspedes");
+                }
             } else {
-                roomList = FXCollections.observableArrayList();
-                roomsTableView.setItems(roomList);
+                guestsTableView.setItems(FXCollections.observableArrayList());
+                statusLabel.setText("Error al cargar huéspedes: " + response.getMessage());
             }
         } catch (Exception e) {
-            roomList = FXCollections.observableArrayList();
-            roomsTableView.setItems(roomList);
-            statusLabel.setText("Error al cargar habitaciones: " + e.getMessage());
+            guestsTableView.setItems(FXCollections.observableArrayList());
+            statusLabel.setText("Error al cargar huéspedes: " + e.getMessage());
         }
-
-
-
     }
 
 
@@ -267,26 +301,59 @@ public class HotelManagementController {
 
     @FXML
     private void handleSearch(ActionEvent event) {
-        String searchText = searchTextField.getText().toLowerCase().trim();
-        if (searchText.isEmpty()) {
-            hotelListView.setItems(hotelList);
-        } else {
-            try {
-                // Usar el método de búsqueda por nombre de HotelData
-                String jsonResponse = hotelData.retrieveByName(searchText);
-                DataResponse response = parseDataResponse(jsonResponse);
-
-                if (response.isSuccess()) {
-                    List<Hotel> filteredHotels = objectMapper.convertValue(response.getData(),
-                            new TypeReference<List<Hotel>>() {});
-                    hotelListView.setItems(FXCollections.observableArrayList(filteredHotels));
-                } else {
-                    hotelListView.setItems(FXCollections.observableArrayList());
-                    statusLabel.setText("No se encontraron hoteles con ese nombre");
+        String searchText = searchTextField.getText().trim();
+        String searchType = searchTypeComboBox.getValue().toString();
+        
+        try {
+            String jsonResponse;
+            
+            if (searchText.isEmpty() || searchType.equals("Todos")) {
+                jsonResponse = hotelData.retrieveAll();
+            } else {
+                switch (searchType) {
+                    case "Por Nombre":
+                        jsonResponse = hotelData.retrieveByName(searchText);
+                        break;
+                    case "Por Dirección":
+                        jsonResponse = hotelData.retrieveByAddress(searchText);
+                        break;
+                    case "Por ID":
+                        try {
+                            int id = Integer.parseInt(searchText);
+                            jsonResponse = hotelData.retrieveById(id);
+                        } catch (NumberFormatException e) {
+                            showAlert(Alert.AlertType.ERROR, "Error",
+                                    "El ID debe ser un número válido");
+                            return;
+                        }
+                        break;
+                    default:
+                        jsonResponse = hotelData.retrieveAll();
                 }
-            } catch (Exception e) {
-                statusLabel.setText("Error en la búsqueda: " + e.getMessage());
             }
+
+            DataResponse response = parseDataResponse(jsonResponse);
+            
+            if (response.isSuccess()) {
+                List<Hotel> hotels;
+                if (response.getData() instanceof List) {
+                    hotels = objectMapper.convertValue(response.getData(),
+                            new TypeReference<List<Hotel>>() {});
+                } else {
+                    // Si es búsqueda por ID, convertimos el hotel único a una lista
+                    Hotel hotel = objectMapper.convertValue(response.getData(), Hotel.class);
+                    hotels = Collections.singletonList(hotel);
+                }
+                hotelListView.setItems(FXCollections.observableArrayList(hotels));
+                statusLabel.setText("Búsqueda completada con éxito");
+            } else {
+                hotelListView.setItems(FXCollections.observableArrayList());
+                statusLabel.setText("No se encontraron resultados: " + response.getMessage());
+            }
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Error",
+                    "Error en la búsqueda: " + e.getMessage());
+            statusLabel.setText("Error en la búsqueda: " + e.getMessage());
         }
     }
 
