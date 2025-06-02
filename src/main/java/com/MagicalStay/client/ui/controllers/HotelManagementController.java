@@ -124,7 +124,7 @@ public class HotelManagementController {
     @FXML
     private ComboBox searchTypeComboBox;
     @FXML
-    private Button manageRoomsButton1;
+    private Button manageGuestsButton;
 
     @FXML
     private void initialize() {
@@ -236,7 +236,7 @@ public class HotelManagementController {
         }
     }
 
-    private void loadGuestsForHotel() {
+    private void loadGuestsForHotel(Hotel hotel) {
         try {
             String jsonResponse = guestData.readAll();
             DataResponse response = parseDataResponse(jsonResponse);
@@ -254,7 +254,7 @@ public class HotelManagementController {
                                 return guest.getBookings().stream()
                                         .anyMatch(booking ->
                                                 booking.getHotel() != null &&
-                                                        booking.getHotel().getHotelId() == selectedHotel.getHotelId()
+                                                        booking.getHotel().getHotelId() == hotel.getHotelId()
                                         );
                             }
                             return false;
@@ -291,11 +291,14 @@ public class HotelManagementController {
             phoneTextField.setText(""); // Adaptar según tu modelo de Hotel
 
             loadRoomsForHotel(selectedHotel);
+            loadGuestsForHotel(selectedHotel);
 
             // Enable buttons
             editButton.setDisable(false);
             deleteButton.setDisable(false);
             manageRoomsButton.setDisable(false);
+            manageGuestsButton.setDisable(false);
+
         }
     }
 
@@ -588,6 +591,34 @@ public class HotelManagementController {
 
     private DataResponse parseDataResponse(String jsonResponse) throws Exception {
         return objectMapper.readValue(jsonResponse, DataResponse.class);
+    }
+
+    @FXML
+    public void handleManageGuests(ActionEvent actionEvent) {
+        if (selectedHotel != null) {
+            try {
+                // Cargar el FXML de gestión de huéspedes
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/guest.fxml"));
+                Parent root = loader.load();
+
+                // Obtener el controlador y pasar el hotel seleccionado
+                GuestManagementController controller = loader.getController();
+                controller.setSelectedHotel(selectedHotel);
+
+                // Crear una nueva ventana para la gestión de huéspedes
+                Stage guestStage = new Stage();
+                guestStage.setTitle("Gestión de Huéspedes - " + selectedHotel.getName());
+                guestStage.setScene(new Scene(root));
+                guestStage.initModality(Modality.WINDOW_MODAL);
+                guestStage.initOwner(manageGuestsButton.getScene().getWindow());
+                guestStage.show();
+            } catch (IOException e) {
+                showAlert(Alert.AlertType.ERROR, "Error",
+                        "No se pudo cargar la ventana de gestión de huéspedes: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
     }
 
     private static class DataResponse {
