@@ -108,7 +108,12 @@
                      <TableColumn fx:id="guestNationalityColumn" prefWidth="100" text="Nacionalidad" />
                   </columns>
                </TableView>
-               <Button fx:id="manageRoomsButton1" disable="true" onAction="#handleManageRooms" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🔧 Gestionar Habitaciones" />
+               <Label style="-fx-font-weight: bold;" />
+               <HBox alignment="CENTER_RIGHT" spacing="8.0">
+                  <children>
+                     <Button fx:id="manageRoomsButton1" disable="true" onAction="#handleManageRooms" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🔧 Gestionar Habitaciones" />
+                  </children>
+               </HBox>
                 </VBox>
             </items>
         </SplitPane>
