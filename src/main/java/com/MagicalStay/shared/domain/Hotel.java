@@ -35,12 +35,10 @@ public class Hotel {
 
 
     public Hotel() {
-        //TODO Auto-generated constructor stub
     }
 
 
     public Hotel(long hotelId2) {
-        //TODO Auto-generated constructor stub
     }
 
 
@@ -74,6 +72,14 @@ public class Hotel {
 
     public void setRooms(List<Room> rooms) {
         this.rooms = rooms;
+    }
+
+    public List<Guest> getGuests() {
+        return guests;
+    }
+
+    public void setGuests(List<Guest> guests) {
+        this.guests = guests;
     }
 
     @Override

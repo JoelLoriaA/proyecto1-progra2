@@ -127,7 +127,7 @@ public class RoomManagementController implements Closeable {
 
     private void loadHotels() {
         try {
-            String json = hotelData.readAll();
+            String json = hotelData.retrieveAll();
             JsonResponse response = objectMapper.readValue(json, JsonResponse.class);
             if (response.isSuccess()) {
                 List<Hotel> hotels = objectMapper.convertValue(response.getData(), new TypeReference<List<Hotel>>() {});

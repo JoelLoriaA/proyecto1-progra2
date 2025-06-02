@@ -1,104 +1,123 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
 
-<BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.client.ui.controllers.HotelManagementController">
+<BorderPane prefHeight="672.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.client.ui.controllers.HotelManagementController">
     <top>
-        <HBox alignment="CENTER" spacing="10.0" style="-fx-background-color: #336699; -fx-padding: 10px;">
-            <Label text="Gestión de Hoteles" style="-fx-font-size: 20px; -fx-text-fill: white; -fx-font-weight: bold;" />
-        </HBox>
+        <VBox style="-fx-background-color: #FF9800; -fx-padding: 20px;">
+            <Label style="-fx-font-size: 24px; -fx-text-fill: white; -fx-font-weight: bold;" text="🏨 Gestión de Hoteles" />
+            <Label style="-fx-font-size: 14px; -fx-text-fill: #fff3e0;" text="Sistema de Administración de Hoteles" />
+        </VBox>
     </top>
 
     <center>
-        <SplitPane dividerPositions="0.3">
+        <SplitPane dividerPositions="0.3" prefHeight="529.0" prefWidth="1100.0">
             <items>
-                <!-- Lista de Hoteles -->
-                <VBox spacing="10.0" style="-fx-padding: 10px;">
-                    <Label text="Lista de Hoteles" style="-fx-font-weight: bold;" />
-                    <HBox spacing="5.0" alignment="CENTER_LEFT">
-                        <TextField fx:id="searchTextField" promptText="Buscar hotel..." HBox.hgrow="ALWAYS" />
-                        <Button fx:id="searchButton" text="Buscar" onAction="#handleSearch" />
+                <!-- Hotel List Panel -->
+                <VBox spacing="15.0" style="-fx-background-color: #f5f5f5; -fx-padding: 15px; -fx-background-radius: 8px;">
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #333333;" text="📋 Lista de Hoteles" />
+                    <HBox alignment="CENTER_LEFT" spacing="8.0">
+                        <TextField fx:id="searchTextField" promptText="🔍 Buscar hotel..." style="-fx-background-radius: 5px; -fx-border-radius: 5px;" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="searchButton" onAction="#handleSearch" style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 5px;" text="Buscar" />
                     </HBox>
-                    <ListView fx:id="hotelListView" VBox.vgrow="ALWAYS" onMouseClicked="#handleHotelSelection" />
-                    <HBox spacing="5.0">
-                        <Button fx:id="addButton" text="Nuevo" onAction="#handleAddHotel" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
-                        <Button fx:id="editButton" text="Editar" onAction="#handleEditHotel" maxWidth="Infinity" HBox.hgrow="ALWAYS" disable="true" />
-                        <Button fx:id="deleteButton" text="Eliminar" onAction="#handleDeleteHotel" maxWidth="Infinity" HBox.hgrow="ALWAYS" disable="true" />
+                    <ListView fx:id="hotelListView" onMouseClicked="#handleHotelSelection" style="-fx-background-radius: 5px;" VBox.vgrow="ALWAYS" />
+                    <HBox spacing="8.0">
+                        <Button fx:id="addButton" maxWidth="Infinity" onAction="#handleAddHotel" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px;" text="➕ Nuevo" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="editButton" disable="true" maxWidth="Infinity" onAction="#handleEditHotel" style="-fx-background-color: #FF9800; -fx-text-fill: white; -fx-background-radius: 5px;" text="✏️ Editar" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="deleteButton" disable="true" maxWidth="Infinity" onAction="#handleDeleteHotel" style="-fx-background-color: #f44336; -fx-text-fill: white; -fx-background-radius: 5px;" text="🗑️ Eliminar" HBox.hgrow="ALWAYS" />
                     </HBox>
                 </VBox>
 
-                <!-- Detalles del Hotel -->
-                <VBox spacing="15.0" style="-fx-padding: 15px;">
-                    <Label text="Detalles del Hotel" style="-fx-font-weight: bold; -fx-font-size: 16px;" />
+                <!-- Hotel Details Panel -->
+                <VBox spacing="15.0" style="-fx-background-color: #ffffff; -fx-padding: 20px; -fx-background-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);">
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 18px; -fx-text-fill: #333333;" text="🏨 Detalles del Hotel" />
 
-                    <GridPane hgap="10" vgap="10">
+                    <GridPane hgap="15" vgap="12">
                         <columnConstraints>
-                            <ColumnConstraints minWidth="100" />
+                            <ColumnConstraints hgrow="NEVER" minWidth="120" />
                             <ColumnConstraints hgrow="ALWAYS" />
                         </columnConstraints>
 
-                        <Label text="ID:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                        <TextField fx:id="codeTextField" GridPane.columnIndex="1" GridPane.rowIndex="0" editable="false" />
+                        <Label style="-fx-font-weight: bold;" text="Código:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <TextField fx:id="codeTextField" editable="false" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
-                        <Label text="Nombre:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
-                        <TextField fx:id="nameTextField" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                        <Label style="-fx-font-weight: bold;" text="Nombre:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <TextField fx:id="nameTextField" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
-                        <Label text="Dirección:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
-                        <TextArea fx:id="addressTextArea" GridPane.columnIndex="1" GridPane.rowIndex="2" wrapText="true" prefRowCount="2" />
+                        <Label style="-fx-font-weight: bold;" text="Dirección:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                        <TextArea fx:id="addressTextArea" prefRowCount="3" style="-fx-background-radius: 5px;" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                        <Label style="-fx-font-weight: bold;" text="Teléfono:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                        <TextField fx:id="phoneTextField" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                  <rowConstraints>
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                  </rowConstraints>
                     </GridPane>
 
-                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
-                        <Button fx:id="saveButton" text="Guardar" onAction="#handleSave" disable="true" />
-                        <Button fx:id="cancelButton" text="Cancelar" onAction="#handleCancel" disable="true" />
+                    <HBox alignment="CENTER_RIGHT" spacing="15.0">
+                        <Button fx:id="saveButton" disable="true" onAction="#handleSave" prefWidth="120" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px; -fx-font-weight: bold;" text="💾 Guardar" />
+                        <Button fx:id="cancelButton" disable="true" onAction="#handleCancel" prefWidth="120" style="-fx-background-color: #9E9E9E; -fx-text-fill: white; -fx-background-radius: 5px;" text="❌ Cancelar" />
                     </HBox>
 
                     <Separator />
 
-                    <!-- Sección Habitaciones -->
-                    <Label text="Habitaciones del Hotel" style="-fx-font-weight: bold;" />
-                    <HBox spacing="5.0" alignment="CENTER_RIGHT">
-                        <Button fx:id="manageRoomsButton" text="Gestionar Habitaciones" onAction="#handleManageRooms" disable="true" />
+                    <Label style="-fx-font-weight: bold;" text="🛏️ Habitaciones del Hotel" />
+                    <HBox alignment="CENTER_RIGHT" spacing="8.0">
+                        <Button fx:id="manageRoomsButton" disable="true" onAction="#handleManageRooms" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🔧 Gestionar Habitaciones" />
                     </HBox>
-                    <TableView fx:id="roomsTableView" VBox.vgrow="ALWAYS">
+                    <TableView fx:id="roomsTableView" prefHeight="78.0" prefWidth="726.0" style="-fx-background-radius: 5px;" VBox.vgrow="ALWAYS">
                         <columns>
-                            <TableColumn fx:id="roomNumberColumn" text="Número" prefWidth="80.0" maxWidth="800.0"
-                                         minWidth="30.0"/>
-                            <TableColumn fx:id="roomTypeColumn" text="Tipo" prefWidth="120.0" maxWidth="1200.0"
-                                         minWidth="30.0"/>
-                            <TableColumn fx:id="roomStatusColumn" text="Estado" prefWidth="100.0" maxWidth="1000.0"
-                                         minWidth="30.0"/>
-                            <TableColumn fx:id="roomPriceColumn" text="Precio" prefWidth="100.0" maxWidth="1000.0"
-                                         minWidth="30.0"/>
+                            <TableColumn fx:id="roomNumberColumn" prefWidth="80" text="Número" />
+                            <TableColumn fx:id="roomTypeColumn" prefWidth="120" text="Tipo" />
+                            <TableColumn fx:id="roomStatusColumn" prefWidth="100" text="Estado" />
+                            <TableColumn fx:id="roomPriceColumn" prefWidth="100" text="Precio" />
                         </columns>
                     </TableView>
-
-                    <!-- Sección Huéspedes -->
-                    <Label text="Huéspedes del Hotel" style="-fx-font-weight: bold;" />
-                    <HBox spacing="5.0" alignment="CENTER_RIGHT">
-                        <Button fx:id="manageGuestsButton" text="Gestionar Huéspedes" onAction="#handleManageGuests" disable="true" />
-                    </HBox>
-                    <TableView fx:id="guestsTableView" VBox.vgrow="ALWAYS">
-                        <columns>
-                            <TableColumn fx:id="guestIdColumn" text="ID" prefWidth="60.0" maxWidth="600.0"
-                                         minWidth="30.0"/>
-                            <TableColumn fx:id="guestNameColumn" text="Nombre" prefWidth="150.0" maxWidth="1500.0"
-                                         minWidth="30.0"/>
-                            <TableColumn fx:id="guestEmailColumn" text="Correo" prefWidth="180.0" maxWidth="1800.0"
-                                         minWidth="30.0"/>
-                        </columns>
-                    </TableView>
+               <Label layoutX="30.0" layoutY="341.0" style="-fx-font-weight: bold;" text="🛏️ Huéspedes del Hotel" />
+               <TableView fx:id="guestsTableView" layoutX="30.0" layoutY="443.0" prefHeight="78.0" prefWidth="726.0" style="-fx-background-radius: 5px;">
+                  <columns>
+                     <TableColumn fx:id="guestNameColumn" prefWidth="80" text="Nombre" />
+                     <TableColumn fx:id="guestLastNameColumn" prefWidth="120" text="Apellidos" />
+                     <TableColumn fx:id="guestDniColumn" prefWidth="100" text="Cédula" />
+                     <TableColumn fx:id="guestPhoneNumberColumn" prefWidth="100" text="Número Telefónico" />
+                     <TableColumn fx:id="guestEmailColumn" prefWidth="100" text="Email" />
+                     <TableColumn fx:id="guestAddressColumn" prefWidth="100" text="Dirección" />
+                     <TableColumn fx:id="guestNationalityColumn" prefWidth="100" text="Nacionalidad" />
+                  </columns>
+               </TableView>
                 </VBox>
             </items>
         </SplitPane>
     </center>
 
     <bottom>
-        <HBox alignment="CENTER_RIGHT" spacing="5.0" style="-fx-padding: 5px; -fx-background-color: #f0f0f0;">
+        <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #fff3e0; -fx-padding: 10px;">
+            <Label style="-fx-font-weight: bold;" text="Estado:" />
             <Label fx:id="statusLabel" text="Listo" />
             <Pane HBox.hgrow="ALWAYS" />
-            <Button fx:id="closeButton" text="Cerrar" onAction="#handleClose" />
+            <Button fx:id="closeButton" onAction="#handleClose" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🚪 Cerrar" />
         </HBox>
     </bottom>
 </BorderPane>

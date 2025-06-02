@@ -8,12 +8,10 @@ import com.MagicalStay.shared.domain.RoomCondition;
 import com.MagicalStay.shared.domain.RoomDTO;
 import com.MagicalStay.shared.domain.Hotel;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -299,7 +297,7 @@ public class RoomData extends JsonDataResponse {
     
     private Hotel getHotelById(int id) {
         try {
-            String json = hotelData.read((int) id);
+            String json = hotelData.retrieveById((int) id);
 
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(json);

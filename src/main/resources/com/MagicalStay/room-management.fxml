@@ -1,28 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
-<?import javafx.scene.control.Separator?>
-<?import javafx.scene.control.Spinner?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TextArea?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
 <AnchorPane prefHeight="750.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.client.ui.controllers.RoomManagementController">
     <children>
-        <!-- Main Management Interface -->
         <BorderPane AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-            <!-- Header -->
             <top>
                 <VBox style="-fx-background-color: #FF9800; -fx-padding: 20px;">
                     <Label style="-fx-font-size: 24px; -fx-text-fill: white; -fx-font-weight: bold;" text="🛏️ Gestión de Habitaciones" />
@@ -30,14 +13,10 @@
                 </VBox>
             </top>
 
-            <!-- Main Content -->
             <center>
                 <HBox spacing="20.0" style="-fx-padding: 20px;">
-                    <!-- Left Panel - Room List -->
                     <VBox prefWidth="380.0" spacing="15.0" style="-fx-background-color: #f5f5f5; -fx-padding: 15px; -fx-background-radius: 8px;">
                         <Label style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #333333;" text="📋 Lista de Habitaciones" />
-
-                        <!-- Search Section -->
                         <VBox spacing="8.0">
                             <HBox alignment="CENTER_LEFT" spacing="8.0">
                                 <TextField fx:id="searchTextField" promptText="🔍 Buscar habitación por número o tipo..." style="-fx-background-radius: 5px; -fx-border-radius: 5px;" HBox.hgrow="ALWAYS" />
@@ -45,7 +24,6 @@
                             </HBox>
                         </VBox>
 
-                        <!-- Room Table -->
                         <TableView fx:id="roomTableView" onMouseClicked="#handleRoomSelection" style="-fx-background-radius: 5px; -fx-border-radius: 5px;" VBox.vgrow="ALWAYS">
                             <columns>
                                 <TableColumn fx:id="roomNumberColumn" text="Número" prefWidth="150" />
@@ -56,7 +34,6 @@
                             </columns>
                         </TableView>
 
-                        <!-- Action Buttons -->
                         <VBox spacing="8.0">
                             <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #555555;" text="Acciones:" />
                             <HBox spacing="8.0">
@@ -67,38 +44,43 @@
                         </VBox>
                     </VBox>
 
-                    <!-- Right Panel - Room Details -->
+                    <!-- RIGHT PANEL -->
                     <VBox spacing="15.0" style="-fx-background-color: #ffffff; -fx-padding: 20px; -fx-background-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);" HBox.hgrow="ALWAYS">
                         <Label style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #333333;" text="🛏️ Detalles de la Habitación" />
 
-                        <!-- Room Form -->
                         <GridPane hgap="15" vgap="12">
                             <columnConstraints>
                                 <ColumnConstraints hgrow="NEVER" minWidth="120" />
                                 <ColumnConstraints hgrow="ALWAYS" />
                             </columnConstraints>
 
-                            <Label style="-fx-font-weight: bold;" text="Número:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                            <TextField fx:id="numberTextField" promptText="Número de habitación" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                            <!-- NUEVO COMBOBOX DE HOTEL -->
+                            <Label style="-fx-font-weight: bold;" text="Hotel:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                            <ComboBox fx:id="hotelComboBox" promptText="Selecciona un hotel" style="-fx-background-radius: 5px;" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
-                            <Label style="-fx-font-weight: bold;" text="Tipo:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
-                            <ComboBox fx:id="typeComboBox" maxWidth="Infinity" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                            <Label style="-fx-font-weight: bold;" text="Número:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                            <TextField fx:id="numberTextField" promptText="Número de habitación" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
-                            <Label style="-fx-font-weight: bold;" text="Capacidad:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
-                            <Spinner fx:id="capacitySpinner" maxWidth="150" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                            <Label style="-fx-font-weight: bold;" text="Tipo:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                            <ComboBox fx:id="typeComboBox" maxWidth="Infinity" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="2" />
 
-                            <Label style="-fx-font-weight: bold;" text="Precio:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
-                            <TextField fx:id="priceTextField" promptText="0.00" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                            <Label style="-fx-font-weight: bold;" text="Capacidad:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                            <Spinner fx:id="capacitySpinner" maxWidth="150" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="3" />
 
-                            <Label style="-fx-font-weight: bold;" text="Estado:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
-                            <ComboBox fx:id="statusComboBox" maxWidth="Infinity" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                            <Label style="-fx-font-weight: bold;" text="Precio:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                            <TextField fx:id="priceTextField" promptText="0.00" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="4" />
 
-                            <Label style="-fx-font-weight: bold;" text="Características:" GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.valignment="TOP" />
-                            <TextArea fx:id="featuresTextArea" prefRowCount="3" promptText="Características especiales de la habitación (TV, aire acondicionado, etc.)" style="-fx-background-radius: 5px;" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                            <Label style="-fx-font-weight: bold;" text="Estado:" GridPane.columnIndex="0" GridPane.rowIndex="5" />
+                            <ComboBox fx:id="statusComboBox" maxWidth="Infinity" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="5" />
 
-                            <Label style="-fx-font-weight: bold;" text="Descripción:" GridPane.columnIndex="0" GridPane.rowIndex="6" GridPane.valignment="TOP" />
-                            <TextArea fx:id="descriptionTextArea" prefRowCount="3" promptText="Descripción detallada de la habitación" style="-fx-background-radius: 5px;" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+                            <Label style="-fx-font-weight: bold;" text="Características:" GridPane.columnIndex="0" GridPane.rowIndex="6" GridPane.valignment="TOP" />
+                            <TextArea fx:id="featuresTextArea" prefRowCount="3" promptText="Características especiales de la habitación (TV, aire acondicionado, etc.)" style="-fx-background-radius: 5px;" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+
+                            <Label style="-fx-font-weight: bold;" text="Descripción:" GridPane.columnIndex="0" GridPane.rowIndex="7" GridPane.valignment="TOP" />
+                            <TextArea fx:id="descriptionTextArea" prefRowCount="3" promptText="Descripción detallada de la habitación" style="-fx-background-radius: 5px;" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="7" />
+
                             <rowConstraints>
+                                <RowConstraints />
                                 <RowConstraints />
                                 <RowConstraints />
                                 <RowConstraints />
@@ -109,7 +91,6 @@
                             </rowConstraints>
                         </GridPane>
 
-                        <!-- Form Action Buttons -->
                         <HBox alignment="CENTER" spacing="15.0">
                             <Button fx:id="saveButton" disable="true" onAction="#handleSave" prefWidth="120" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5px;" text="💾 Guardar" />
                             <Button fx:id="cancelButton" disable="true" onAction="#handleCancel" prefWidth="120" style="-fx-background-color: #9E9E9E; -fx-text-fill: white; -fx-background-radius: 5px;" text="❌ Cancelar" />
@@ -117,7 +98,6 @@
 
                         <Separator />
 
-                        <!-- Images Section -->
                         <VBox spacing="10.0">
                             <TableView fx:id="imagesTableView" prefHeight="150" style="-fx-background-radius: 5px;">
                                 <columns>
@@ -130,7 +110,6 @@
                 </HBox>
             </center>
 
-            <!-- Status Bar -->
             <bottom>
                 <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #fff3e0; -fx-padding: 10px;">
                     <Label style="-fx-font-weight: bold;" text="Estado:" />

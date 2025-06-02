@@ -1,8 +1,10 @@
 package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.client.data.DataFactory;
+import com.MagicalStay.shared.data.GuestData;
 import com.MagicalStay.shared.data.HotelData;
 import com.MagicalStay.shared.data.RoomData;
+import com.MagicalStay.shared.domain.Guest;
 import com.MagicalStay.shared.domain.Hotel;
 import com.MagicalStay.shared.domain.Room;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,34 +53,10 @@ public class HotelManagementController {
     private TextField nameTextField;
 
     @FXML
-    private TextField locationTextField;
-
-    @FXML
     private TextArea addressTextArea;
 
     @FXML
     private TextField phoneTextField;
-
-    @FXML
-    private ComboBox<String> categoryComboBox;
-
-    @FXML
-    private CheckBox wifiCheckBox;
-
-    @FXML
-    private CheckBox poolCheckBox;
-
-    @FXML
-    private CheckBox gymCheckBox;
-
-    @FXML
-    private CheckBox restaurantCheckBox;
-
-    @FXML
-    private CheckBox parkingCheckBox;
-
-    @FXML
-    private TextArea descriptionTextArea;
 
     @FXML
     private Button saveButton;
@@ -120,7 +98,29 @@ public class HotelManagementController {
     // Data access objects
     private HotelData hotelData;
     private RoomData roomData;
+    private GuestData guestData;
     private ObjectMapper objectMapper;
+
+    //TODO, adaptar la tableview de Guests
+
+    @FXML
+    private TableColumn roomPriceColumn;
+    @FXML
+    private TableView guestsTableView;
+    @FXML
+    private TableColumn guestNationalityColumn;
+    @FXML
+    private TableColumn guestEmailColumn;
+    @FXML
+    private TableColumn guestNameColumn;
+    @FXML
+    private TableColumn guestPhoneNumberColumn;
+    @FXML
+    private TableColumn guestDniColumn;
+    @FXML
+    private TableColumn guestAddressColumn;
+    @FXML
+    private TableColumn guestLastNameColumn;
 
     @FXML
     private void initialize() {
@@ -129,11 +129,6 @@ public class HotelManagementController {
             hotelData = DataFactory.getHotelData();
             roomData = DataFactory.getRoomData();
             objectMapper = new ObjectMapper();
-
-            // Initialize category combo box
-            categoryComboBox.setItems(FXCollections.observableArrayList(
-                    "1 Estrella", "2 Estrellas", "3 Estrellas", "4 Estrellas", "5 Estrellas"
-            ));
 
             // Setup room table columns
             roomNumberColumn.setCellValueFactory(new PropertyValueFactory<>("roomNumber"));
@@ -175,7 +170,7 @@ public class HotelManagementController {
 
     private void loadHotelsFromFile() {
         try {
-            String jsonResponse = hotelData.readAll();
+            String jsonResponse = hotelData.retrieveAll();
             DataResponse response = parseDataResponse(jsonResponse);
 
             if (response.isSuccess()) {
@@ -220,6 +215,37 @@ public class HotelManagementController {
         }
     }
 
+    private void loadGuestsForHotel() {
+        try {
+            String jsonResponse = guestData.readAll();
+            DataResponse response = parseDataResponse(jsonResponse);
+
+            if (response.isSuccess()) {
+                List<Guest> allGuests = objectMapper.convertValue(response.getData(),
+                        new TypeReference<List<Guest>>() {});
+
+                // Filtrar habitaciones por hotel
+                List<Guest> guestRooms = allGuests.stream()
+                        .filter(guest -> room.getHotel().getHotelId() == hotel.getHotelId())
+                        .collect(java.util.stream.Collectors.toList());
+
+                roomList = FXCollections.observableArrayList(guestRooms);
+                roomsTableView.setItems(roomList);
+            } else {
+                roomList = FXCollections.observableArrayList();
+                roomsTableView.setItems(roomList);
+            }
+        } catch (Exception e) {
+            roomList = FXCollections.observableArrayList();
+            roomsTableView.setItems(roomList);
+            statusLabel.setText("Error al cargar habitaciones: " + e.getMessage());
+        }
+
+
+
+    }
+
+
     @FXML
     private void handleHotelSelection(MouseEvent event) {
         selectedHotel = hotelListView.getSelectionModel().getSelectedItem();
@@ -227,20 +253,9 @@ public class HotelManagementController {
             // Fill the fields with hotel data
             codeTextField.setText(String.valueOf(selectedHotel.getHotelId()));
             nameTextField.setText(selectedHotel.getName());
-            locationTextField.setText(""); // Adaptar según tu modelo de Hotel
             addressTextArea.setText(selectedHotel.getAddress());
             phoneTextField.setText(""); // Adaptar según tu modelo de Hotel
-            categoryComboBox.setValue("3 Estrellas"); // Valor por defecto
-            descriptionTextArea.setText(""); // Adaptar según tu modelo de Hotel
 
-            // Set services based on the hotel (demo settings)
-            wifiCheckBox.setSelected(true);
-            poolCheckBox.setSelected(false);
-            gymCheckBox.setSelected(true);
-            restaurantCheckBox.setSelected(true);
-            parkingCheckBox.setSelected(true);
-
-            // Load rooms for this hotel
             loadRoomsForHotel(selectedHotel);
 
             // Enable buttons
@@ -258,7 +273,7 @@ public class HotelManagementController {
         } else {
             try {
                 // Usar el método de búsqueda por nombre de HotelData
-                String jsonResponse = hotelData.findByName(searchText);
+                String jsonResponse = hotelData.retrieveByName(searchText);
                 DataResponse response = parseDataResponse(jsonResponse);
 
                 if (response.isSuccess()) {
@@ -283,7 +298,6 @@ public class HotelManagementController {
 
         // Set default values
         codeTextField.setText("[Automático]");
-        categoryComboBox.setValue("3 Estrellas");
 
         saveButton.setDisable(false);
         cancelButton.setDisable(false);
@@ -452,34 +466,16 @@ public class HotelManagementController {
     private void clearFields() {
         codeTextField.clear();
         nameTextField.clear();
-        locationTextField.clear();
         addressTextArea.clear();
         phoneTextField.clear();
-        categoryComboBox.setValue(null);
-        descriptionTextArea.clear();
-
-        wifiCheckBox.setSelected(false);
-        poolCheckBox.setSelected(false);
-        gymCheckBox.setSelected(false);
-        restaurantCheckBox.setSelected(false);
-        parkingCheckBox.setSelected(false);
-
         roomsTableView.setItems(null);
     }
 
     private void setFieldsEnabled(boolean enabled) {
         nameTextField.setDisable(!enabled);
-        locationTextField.setDisable(!enabled);
         addressTextArea.setDisable(!enabled);
         phoneTextField.setDisable(!enabled);
-        categoryComboBox.setDisable(!enabled);
-        descriptionTextArea.setDisable(!enabled);
 
-        wifiCheckBox.setDisable(!enabled);
-        poolCheckBox.setDisable(!enabled);
-        gymCheckBox.setDisable(!enabled);
-        restaurantCheckBox.setDisable(!enabled);
-        parkingCheckBox.setDisable(!enabled);
     }
 
     private boolean validateFields() {

@@ -1,9 +1,8 @@
-package com.MagicalStay.domain;
+package com.MagicalStay.shared.data;
 
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.*;
 
-import com.MagicalStay.shared.data.*;
 import com.MagicalStay.shared.domain.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,12 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Arrays;
-
-
-import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.*;
-import java.io.*;
 
 
 public class RoomDataTest {
@@ -48,8 +41,6 @@ public class RoomDataTest {
     public void cleanup() throws IOException {
         if (roomData != null) roomData.close();
         if (hotelData != null) hotelData.close();
-        if (roomFile != null) roomFile.delete();
-        if (hotelFile != null) hotelFile.delete();
     }
 
     @Test
