@@ -10,6 +10,7 @@ public class Booking {
     private List<Room> reservedRooms;
     private FrontDeskClerk frontDeskClerk;
     private Guest guest;
+    private Hotel hotel;
 
     public Booking(int bookingId, LocalDate startDate, LocalDate leavingDate, List<Room> reservedRooms) {
         this.bookingId = bookingId;
@@ -48,6 +49,30 @@ public class Booking {
 
     public void setReservedRooms(List<Room> reservedRooms) {
         this.reservedRooms = reservedRooms;
+    }
+
+    public FrontDeskClerk getFrontDeskClerk() {
+        return frontDeskClerk;
+    }
+
+    public void setFrontDeskClerk(FrontDeskClerk frontDeskClerk) {
+        this.frontDeskClerk = frontDeskClerk;
+    }
+
+    public Guest getGuest() {
+        return guest;
+    }
+
+    public void setGuest(Guest guest) {
+        this.guest = guest;
+    }
+
+    public Hotel getHotel() {
+        return hotel;
+    }
+
+    public void setHotel(Hotel hotel) {
+        this.hotel = hotel;
     }
 
     @Override
