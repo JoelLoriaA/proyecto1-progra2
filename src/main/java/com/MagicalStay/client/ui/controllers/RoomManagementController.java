@@ -155,35 +155,35 @@ public class RoomManagementController implements Closeable {
     }
 
     private void loadRoomsFromFile() {
-
         if (selectedHotel == null) {
             FXUtility.alertError("Error", "No hay hotel seleccionado.").show();
             return;
         }
-        
-        try {
-
-            
-            String json = roomData.readAll();
-            JsonResponse res = objectMapper.readValue(json, JsonResponse.class);
     
-            if (res.isSuccess()) {
-                List<?> rawRooms = (List<?>) res.getData();
+        try {
+            String jsonResponse = roomData.retrieveAll();
+            DataResponse response = parseDataResponse(jsonResponse);
+    
+            if (response.isSuccess()) {
                 List<Room> allRooms = objectMapper.convertValue(
-                    rawRooms,
+                    response.getData(),
                     new TypeReference<List<Room>>() {}
                 );
-                List<Room> filtered = allRooms.stream()
-                    .filter(r -> r.getHotel().getHotelId() == selectedHotel.getHotelId())
+                List<Room> filteredRooms = allRooms.stream()
+                    .filter(r -> r.getHotel() != null && r.getHotel().getHotelId() == selectedHotel.getHotelId())
                     .collect(Collectors.toList());
-    
-                roomList.setAll(filtered);
+                roomList.setAll(filteredRooms);
+            } else {
+                roomList.clear();
+                statusLabel.setText("No se encontraron habitaciones: " + response.getMessage());
             }
-    
         } catch (Exception e) {
-            FXUtility.alertError("Error", "No se pudieron cargar las habitaciones.").show();
+            roomList.clear();
+            statusLabel.setText("Error al cargar habitaciones: " + e.getMessage());
+            e.printStackTrace();
         }
     }
+    
     
 
     @FXML
@@ -206,98 +206,115 @@ public class RoomManagementController implements Closeable {
     @FXML
     private void handleDeleteRoom() {
         if (selectedRoom == null) {
-            System.out.println("[DeleteRoom] No hay habitación seleccionada.");
+            FXUtility.alertError("Error", "No hay habitación seleccionada.").show();
             return;
         }
     
-        Alert alert = new Alert(
-            Alert.AlertType.CONFIRMATION,
-            "¿Eliminar habitación " + selectedRoom.getRoomNumber() + "?",
-            ButtonType.YES,
-            ButtonType.NO
-        );
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirmar Eliminación");
+        alert.setHeaderText(null);
+        alert.setContentText("¿Está seguro que desea eliminar la habitación \"" +
+                             selectedRoom.getRoomNumber() + "\"?");
     
-        alert.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.YES) {
-                try {
-                    String json = roomData.delete(selectedRoom.getRoomNumber(), selectedRoom.getHotel().getHotelId());
-                    System.out.println("[DeleteRoom] JSON devuelto por delete: " + json);
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                String jsonResponse = roomData.delete(selectedRoom.getRoomNumber());
+                DataResponse response = parseDataResponse(jsonResponse);
     
-                    // Usa TypeReference para evitar problemas con genéricos
-                    JsonResponse<Object> res = objectMapper.readValue(
-                        json, new TypeReference<JsonResponse<Object>>() {}
-                    );
+                if (response.isSuccess()) {
+                    loadRoomsFromFile();
+                    roomTableView.setItems(roomList);
+                    clearFields();
     
-                    System.out.println("[DeleteRoom] Success: " + res.isSuccess());
-                    System.out.println("[DeleteRoom] Message: " + res.getMessage());
+                    selectedRoom = null;
+                    statusLabel.setText("Habitación eliminada con éxito.");
     
-                    if (res.isSuccess()) {
-                        boolean removed = roomList.removeIf(
-                            r -> r.getRoomNumber().trim().equalsIgnoreCase(selectedRoom.getRoomNumber().trim())
-                        );
-    
-                        System.out.println("[DeleteRoom] Habitación en lista fue eliminada: " + removed);
-    
-                        roomTableView.refresh();
-                        clearFields();
-                        selectedRoom = null;
-                        statusLabel.setText("Habitación eliminada.");
-                    } else {
-                        FXUtility.alertError("Error", res.getMessage()).show();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    FXUtility.alertError("Error", "Error al eliminar: " + e.getMessage()).show();
+                    // Deshabilitar botones si aplica
+                    editButton.setDisable(true);
+                    deleteButton.setDisable(true);
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error",
+                            "No se pudo eliminar la habitación: " + response.getMessage());
                 }
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Error",
+                        "Error al eliminar la habitación: " + e.getMessage());
+                e.printStackTrace();
             }
-        });
-    }
+        }
+    }    
     
     @FXML
-    private void handleSave() {
-        if (!validateFields()) return;
-    
-        if (selectedHotel == null) {
-            FXUtility.alertError("Error", "No hay hotel seleccionado.").show();
-            return;
-        }
-    
-        try {
-            Room newRoom = new Room(
-                    numberTextField.getText(),
-                    selectedHotel,
-                    typeComboBox.getValue(),
-                    statusComboBox.getValue(),
-                    Double.parseDouble(priceTextField.getText()),
-                    capacitySpinner.getValue(),
-                    featuresTextArea.getText(),
-                    descriptionTextArea.getText()
-            );
-    
-            String json = editMode ? roomData.update(newRoom) : roomData.create(newRoom);
-            JsonResponse res = objectMapper.readValue(json, JsonResponse.class);
-    
-            if (res.isSuccess()) {
-                System.out.println("Habitación guardada: " + newRoom.getRoomNumber() +
-                                   " HotelId: " + newRoom.getHotel().getHotelId());
-    
-                loadRoomsFromFile();  // ← Asegura que se cargue desde archivo actualizado
-                roomTableView.refresh();
-    
-                setFieldsEnabled(false);
-                clearFields();
-                selectedRoom = null;
-                editMode = false;
-                statusLabel.setText("Habitación guardada con éxito.");
-            } else {
-                FXUtility.alertError("Error", res.getMessage()).show();
-            }
-    
-        } catch (Exception e) {
-            FXUtility.alertError("Error", "Error al guardar: " + e.getMessage()).show();
-        }
+private void handleSave() {
+    if (!validateFields()) return;
+
+    if (selectedHotel == null) {
+        FXUtility.alertError("Error", "No hay hotel seleccionado.").show();
+        return;
     }
+
+    try {
+        Room room = new Room(
+            numberTextField.getText(),
+            selectedHotel,
+            typeComboBox.getValue(),
+            statusComboBox.getValue(),
+            Double.parseDouble(priceTextField.getText()),
+            capacitySpinner.getValue(),
+            featuresTextArea.getText(),
+            descriptionTextArea.getText()
+        );
+
+        String jsonResponse = editMode ? roomData.update(room) : roomData.create(room);
+        DataResponse response = parseDataResponse(jsonResponse);
+
+        if (response.isSuccess()) {
+            loadRoomsFromFile();
+            roomTableView.setItems(roomList);
+
+            setFieldsEnabled(false);
+            clearFields();
+            saveButton.setDisable(true);
+            cancelButton.setDisable(true);
+
+            // Seleccionar la habitación recién guardada
+            for (Room r : roomList) {
+                if (r.getRoomNumber().equals(room.getRoomNumber())
+                    && r.getHotel().getHotelId() == room.getHotel().getHotelId()) {
+                    roomTableView.getSelectionModel().select(r);
+                    break;
+                }
+            }
+
+            selectedRoom = null;
+            editMode = false;
+            statusLabel.setText("Habitación guardada con éxito.");
+
+            System.out.println("[handleSave] Habitación guardada: " + room.getRoomNumber() +
+                               " | Hotel ID: " + room.getHotel().getHotelId() +
+                               " | Tipo: " + room.getRoomType() +
+                               " | Estado: " + room.getRoomCondition());
+
+            System.out.println("[handleSave] Lista actual de habitaciones:");
+            for (Room r : roomList) {
+                System.out.println("- " + r.getRoomNumber() + " | hotelId: " +
+                    (r.getHotel() != null ? r.getHotel().getHotelId() : "null"));
+            }
+
+
+        } else {
+            showAlert(Alert.AlertType.ERROR, "Error",
+                "No se pudo guardar la habitación: " + response.getMessage());
+        }
+
+    } catch (Exception e) {
+        showAlert(Alert.AlertType.ERROR, "Error",
+            "Error al guardar la habitación: " + e.getMessage());
+        e.printStackTrace();
+    }
+}
+
     
 
     @FXML
@@ -419,6 +436,34 @@ public class RoomManagementController implements Closeable {
         } catch (Exception e) {
             FXUtility.alertError("Error", "Error al cerrar: " + e.getMessage()).show();
         }
+    }
+
+    private DataResponse parseDataResponse(String jsonResponse) throws Exception {
+        return objectMapper.readValue(jsonResponse, DataResponse.class);
+    }
+
+    private static class DataResponse {
+        private boolean success;
+        private String message;
+        private Object data;
+
+        // Getters y setters
+        public boolean isSuccess() { return success; }
+        public void setSuccess(boolean success) { this.success = success; }
+
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
+
+        public Object getData() { return data; }
+        public void setData(Object data) { this.data = data; }
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String message) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }
 

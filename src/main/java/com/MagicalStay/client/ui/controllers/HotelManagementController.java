@@ -197,7 +197,6 @@ public class HotelManagementController {
                 List<Room> allRooms = objectMapper.convertValue(response.getData(),
                         new TypeReference<List<Room>>() {});
 
-                // Filtrar habitaciones por hotel
                 List<Room> hotelRooms = allRooms.stream()
                         .filter(room -> room.getHotel().getHotelId() == hotel.getHotelId())
                         .collect(java.util.stream.Collectors.toList());
@@ -215,35 +214,33 @@ public class HotelManagementController {
         }
     }
 
-    private void loadGuestsForHotel() {
-        try {
-            String jsonResponse = guestData.readAll();
-            DataResponse response = parseDataResponse(jsonResponse);
+    //private void loadGuestsForHotel() {
+      //    String jsonResponse = guestData.readAll();
+        //    DataResponse response = parseDataResponse(jsonResponse);
 
-            if (response.isSuccess()) {
-                List<Guest> allGuests = objectMapper.convertValue(response.getData(),
-                        new TypeReference<List<Guest>>() {});
+          //  if (response.isSuccess()) {
+            //    List<Guest> allGuests = objectMapper.convertValue(response.getData(),
+              //          new TypeReference<List<Guest>>() {});
 
                 // Filtrar habitaciones por hotel
-                List<Guest> guestRooms = allGuests.stream()
-                        .filter(guest -> room.getHotel().getHotelId() == hotel.getHotelId())
-                        .collect(java.util.stream.Collectors.toList());
+                //List<Guest> guestRooms = allGuests.stream()
+                  //    .collect(java.util.stream.Collectors.toList());
 
-                roomList = FXCollections.observableArrayList(guestRooms);
-                roomsTableView.setItems(roomList);
-            } else {
-                roomList = FXCollections.observableArrayList();
-                roomsTableView.setItems(roomList);
-            }
-        } catch (Exception e) {
-            roomList = FXCollections.observableArrayList();
-            roomsTableView.setItems(roomList);
-            statusLabel.setText("Error al cargar habitaciones: " + e.getMessage());
-        }
-
+                //roomList = FXCollections.observableArrayList(guestRooms);
+                //roomsTableView.setItems(roomList);
+           // } else {
+            //    roomList = FXCollections.observableArrayList();
+              //  roomsTableView.setItems(roomList);
+            //}
+       // } catch (Exception e) {
+         //   roomList = FXCollections.observableArrayList();
+           // roomsTableView.setItems(roomList);
+           // statusLabel.setText("Error al cargar habitaciones: " + e.getMessage());
+        //}
 
 
-    }
+
+    //}
 
 
     @FXML
@@ -369,7 +366,6 @@ public class HotelManagementController {
                             addressTextArea.getText(), new ArrayList<>());
                 }
 
-                // Update the hotel with form data
                 hotel.setName(nameTextField.getText());
                 hotel.setAddress(addressTextArea.getText());
 
@@ -383,16 +379,13 @@ public class HotelManagementController {
                 DataResponse response = parseDataResponse(jsonResponse);
 
                 if (response.isSuccess()) {
-                    // Recargar la lista
                     loadHotelsFromFile();
                     hotelListView.setItems(hotelList);
 
-                    // Reset UI
                     setFieldsEnabled(false);
                     saveButton.setDisable(true);
                     cancelButton.setDisable(true);
 
-                    // Seleccionar el hotel guardado
                     for (Hotel h : hotelList) {
                         if (h.getHotelId() == hotel.getHotelId()) {
                             hotelListView.getSelectionModel().select(h);

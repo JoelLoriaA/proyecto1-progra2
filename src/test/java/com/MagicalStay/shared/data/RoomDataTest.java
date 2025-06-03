@@ -86,7 +86,7 @@ public class RoomDataTest {
         System.out.println("📖 Antes de eliminar: " + readBeforeDelete);
         assertTrue(readBeforeDelete.contains("CCC"), "❌ La habitación no fue creada correctamente");
 
-        String deleteResult = roomData.delete("CCC", 1);
+        String deleteResult = roomData.delete("CCC");
         System.out.println("🗑 Resultado de eliminación: " + deleteResult);
         assertTrue(deleteResult.contains("\"success\":true"), "❌ Eliminación fallida");
 
@@ -114,7 +114,7 @@ public class RoomDataTest {
         roomData.create(room3);
 
         // Eliminar solo una habitación
-        String deleteResult = roomData.delete("102", 1);
+        String deleteResult = roomData.delete("102");
         System.out.println("Resultado eliminación: " + deleteResult);
         assertTrue(deleteResult.contains("\"success\":true"), "Falló al eliminar habitación 102");
 
