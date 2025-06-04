@@ -93,7 +93,7 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
 
     @FXML
     private void handleGuestManagement() {
-        openWindow("/com/MagicalStay/guest-management.fxml", "Gestión de Huéspedes");
+        openWindow("/com/MagicalStay/guest.fxml", "Gestión de Huéspedes");
     }
 
     @FXML
