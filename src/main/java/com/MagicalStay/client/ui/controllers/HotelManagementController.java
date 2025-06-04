@@ -7,8 +7,8 @@ import com.MagicalStay.shared.data.RoomData;
 import com.MagicalStay.shared.domain.Guest;
 import com.MagicalStay.shared.domain.Hotel;
 import com.MagicalStay.shared.domain.Room;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -24,13 +24,12 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.Collections;
 
 public class HotelManagementController {
-
     // FXML elements for hotel list
     @FXML
     private TextField searchTextField;
@@ -56,9 +55,6 @@ public class HotelManagementController {
 
     @FXML
     private TextArea addressTextArea;
-
-    @FXML
-    private TextField phoneTextField;
 
     @FXML
     private Button saveButton;
@@ -175,10 +171,10 @@ public class HotelManagementController {
 
 
             searchTypeComboBox.setItems(FXCollections.observableArrayList(
-                "Por Nombre",
-                "Por Dirección",
-                "Por ID",
-                "Todos"
+                    "Por Nombre",
+                    "Por Dirección",
+                    "Por ID",
+                    "Todos"
             ));
             searchTypeComboBox.setValue("Por Nombre"); // valor por defecto
 
@@ -240,9 +236,10 @@ public class HotelManagementController {
             String jsonResponse = guestData.readAll();
             DataResponse response = parseDataResponse(jsonResponse);
 
-          //  if (response.isSuccess()) {
-            //    List<Guest> allGuests = objectMapper.convertValue(response.getData(),
-              //          new TypeReference<List<Guest>>() {});
+            if (response.isSuccess()) {
+                List<Guest> allGuests = objectMapper.convertValue(response.getData(),
+                        new TypeReference<List<Guest>>() {
+                        });
 
                 // Filtrar huéspedes por hotel usando sus reservas
                 List<Guest> hotelGuests = allGuests.stream()
@@ -273,42 +270,40 @@ public class HotelManagementController {
                 statusLabel.setText("Error al cargar huéspedes: " + response.getMessage());
             }
         } catch (Exception e) {
-            guestsTableView.setItems(FXCollections.observableArrayList());
-            statusLabel.setText("Error al cargar huéspedes: " + e.getMessage());
+                guestsTableView.setItems(FXCollections.observableArrayList());
+                statusLabel.setText("Error al cargar huéspedes: " + e.getMessage());
         }
     }
 
+@FXML
+private void handleHotelSelection(MouseEvent event) {
+    selectedHotel = hotelListView.getSelectionModel().getSelectedItem();
+    if (selectedHotel != null) {
+        // Fill the fields with hotel data
+        codeTextField.setText(String.valueOf(selectedHotel.getHotelId()));
+        nameTextField.setText(selectedHotel.getName());
+        addressTextArea.setText(selectedHotel.getAddress());
 
-    @FXML
-    private void handleHotelSelection(MouseEvent event) {
-        selectedHotel = hotelListView.getSelectionModel().getSelectedItem();
-        if (selectedHotel != null) {
-            // Fill the fields with hotel data
-            codeTextField.setText(String.valueOf(selectedHotel.getHotelId()));
-            nameTextField.setText(selectedHotel.getName());
-            addressTextArea.setText(selectedHotel.getAddress());
-            phoneTextField.setText(""); // Adaptar según tu modelo de Hotel
+        loadRoomsForHotel(selectedHotel);
+        loadGuestsForHotel(selectedHotel);
 
-            loadRoomsForHotel(selectedHotel);
-            loadGuestsForHotel(selectedHotel);
+        // Enable buttons
+        editButton.setDisable(false);
+        deleteButton.setDisable(false);
+        manageRoomsButton.setDisable(false);
+        manageGuestsButton.setDisable(false);
 
-            // Enable buttons
-            editButton.setDisable(false);
-            deleteButton.setDisable(false);
-            manageRoomsButton.setDisable(false);
-            manageGuestsButton.setDisable(false);
-
-        }
     }
+}
 
     @FXML
     private void handleSearch(ActionEvent event) {
         String searchText = searchTextField.getText().trim();
         String searchType = searchTypeComboBox.getValue().toString();
-        
+
         try {
             String jsonResponse;
-            
+
             if (searchText.isEmpty() || searchType.equals("Todos")) {
                 jsonResponse = hotelData.retrieveAll();
             } else {
@@ -335,7 +330,7 @@ public class HotelManagementController {
             }
 
             DataResponse response = parseDataResponse(jsonResponse);
-            
+
             if (response.isSuccess()) {
                 List<Hotel> hotels;
                 if (response.getData() instanceof List) {
@@ -430,9 +425,12 @@ public class HotelManagementController {
         if (validateFields()) {
             try {
                 Hotel hotel;
+                List<Room> existingRooms = new ArrayList<>();
 
                 if (editMode) {
                     hotel = selectedHotel;
+                    // Mantener las habitaciones existentes
+                    existingRooms = selectedHotel.getRooms();
                 } else {
                     hotel = new Hotel(getNextHotelId(), nameTextField.getText(),
                             addressTextArea.getText(), new ArrayList<>());
@@ -440,6 +438,11 @@ public class HotelManagementController {
 
                 hotel.setName(nameTextField.getText());
                 hotel.setAddress(addressTextArea.getText());
+
+                // Asegurar que las habitaciones existentes se mantengan
+                if (!existingRooms.isEmpty()) {
+                    hotel.setRooms(existingRooms);
+                }
 
                 String jsonResponse;
                 if (editMode) {
@@ -458,6 +461,7 @@ public class HotelManagementController {
                     saveButton.setDisable(true);
                     cancelButton.setDisable(true);
 
+                    // Seleccionar el hotel guardado
                     for (Hotel h : hotelList) {
                         if (h.getHotelId() == hotel.getHotelId()) {
                             hotelListView.getSelectionModel().select(h);
@@ -532,14 +536,12 @@ public class HotelManagementController {
         codeTextField.clear();
         nameTextField.clear();
         addressTextArea.clear();
-        phoneTextField.clear();
         roomsTableView.setItems(null);
     }
 
     private void setFieldsEnabled(boolean enabled) {
         nameTextField.setDisable(!enabled);
         addressTextArea.setDisable(!enabled);
-        phoneTextField.setDisable(!enabled);
 
     }
 
@@ -595,10 +597,6 @@ public class HotelManagementController {
                 // Cargar el FXML de gestión de huéspedes
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/guest.fxml"));
                 Parent root = loader.load();
-
-                // Obtener el controlador y pasar el hotel seleccionado
-                GuestManagementController controller = loader.getController();
-                controller.setSelectedHotel(selectedHotel);
 
                 // Crear una nueva ventana para la gestión de huéspedes
                 Stage guestStage = new Stage();

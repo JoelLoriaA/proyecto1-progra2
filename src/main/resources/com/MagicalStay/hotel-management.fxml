@@ -49,7 +49,7 @@
                 <VBox spacing="15.0" style="-fx-background-color: #ffffff; -fx-padding: 20px; -fx-background-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);">
                     <Label style="-fx-font-weight: bold; -fx-font-size: 18px; -fx-text-fill: #333333;" text="🏨 Detalles del Hotel" />
 
-                    <GridPane hgap="15" vgap="12">
+                    <GridPane hgap="15" prefHeight="141.0" prefWidth="726.0" vgap="12">
                         <columnConstraints>
                             <ColumnConstraints hgrow="NEVER" minWidth="120" />
                             <ColumnConstraints hgrow="ALWAYS" />
@@ -61,11 +61,8 @@
                         <Label style="-fx-font-weight: bold;" text="Nombre:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
                         <TextField fx:id="nameTextField" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
-                        <Label style="-fx-font-weight: bold;" text="Dirección:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                        <Label style="-fx-font-weight: bold;" text="Dirección:" GridPane.rowIndex="3" />
                         <TextArea fx:id="addressTextArea" prefRowCount="3" style="-fx-background-radius: 5px;" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-
-                        <Label style="-fx-font-weight: bold;" text="Teléfono:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
-                        <TextField fx:id="phoneTextField" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="4" />
                   <rowConstraints>
                      <RowConstraints />
                      <RowConstraints />
@@ -73,8 +70,8 @@
                      <RowConstraints />
                      <RowConstraints />
                      <RowConstraints />
-                     <RowConstraints />
-                     <RowConstraints />
+                     <RowConstraints maxHeight="0.0" minHeight="0.0" prefHeight="0.0" />
+                     <RowConstraints maxHeight="0.0" minHeight="0.0" prefHeight="0.0" />
                   </rowConstraints>
                     </GridPane>
 
