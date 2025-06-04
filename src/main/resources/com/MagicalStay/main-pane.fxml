@@ -87,10 +87,10 @@
                                     text="👥 Gestión de Huéspedes" />
                         </HBox>
 
-                        <Button fx:id="reportsButton" onAction="#handleReports"
-                                prefWidth="520.0" prefHeight="50.0"
-                                style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"
-                                text="📊 Reportes y Estadísticas" />
+                        <Button fx:id="frontDeskManagementButton" onAction="#handleFrontDeskManagement"
+                                        prefWidth="520.0" prefHeight="50.0"
+                                        style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"
+                                        text="💼 Gestión de Recepcionistas" />
                     </VBox>
 
                     <Separator />

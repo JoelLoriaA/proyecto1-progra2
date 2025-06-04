@@ -29,13 +29,14 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
     @FXML private Button roomManagementButton;
     @FXML private Button bookingManagementButton;
     @FXML private Button guestManagementButton;
-    @FXML private Button reportsButton;
+    @FXML private Button frontDeskManagementButton;
     @FXML private Button disconnectButton;
     @FXML private Label welcomeLabel;
     @FXML private Label connectionStatusLabel;
 
     private SocketCliente socketCliente;
     private boolean isConnected = false;
+    private UserRole currentRole;
     @FXML
     private BorderPane mdiContainer;
 
@@ -56,6 +57,9 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
         if (!isConnected) {
             statusLabel.setText("Conectando al servidor...");
             connectButton.setDisable(true);
+
+            // Mostrar diálogo de rol
+            showRoleDialog();
 
             // Intentar conexión al servidor
             socketCliente.conectar(ConfiguracionApp.HOST_SERVIDOR, ConfiguracionApp.PUERTO_SERVIDOR);
@@ -96,8 +100,8 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
     }
 
     @FXML
-    private void handleReports() {
-        openWindow(ConfiguracionApp.FXML_REPORTS, "Reportes");
+    private void handleFrontDeskManagement() {
+        openWindow(ConfiguracionApp.FXML_FRONTDESK_MANAGEMENT, "Gestión de Recepcionistas");
     }
 
     private void openWindow(String fxmlPath, String title) {
@@ -195,6 +199,37 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
 
         if (connectionStatusLabel != null) {
             connectionStatusLabel.setText("Estado: Desconectado");
+        }
+    }
+
+    private void showRoleDialog() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Selección de Rol");
+        alert.setHeaderText("Por favor, seleccione su rol:");
+        alert.setContentText("¿Es usted administrador?");
+
+        ButtonType buttonTypeAdmin = new ButtonType("Administrador");
+        ButtonType buttonTypeFrontDesk = new ButtonType("Recepcionista");
+
+        alert.getButtonTypes().setAll(buttonTypeAdmin, buttonTypeFrontDesk);
+
+        alert.showAndWait().ifPresent(buttonType -> {
+            if (buttonType == buttonTypeAdmin) {
+                currentRole = UserRole.ADMIN;
+            } else {
+                currentRole = UserRole.FRONTDESK;
+            }
+            updateUIBasedOnRole();
+        });
+    }
+
+    private void updateUIBasedOnRole() {
+        if (currentRole == UserRole.FRONTDESK) {
+            frontDeskManagementButton.setVisible(false);
+            frontDeskManagementButton.setManaged(false);
+        } else {
+            frontDeskManagementButton.setVisible(true);
+            frontDeskManagementButton.setManaged(true);
         }
     }
 }

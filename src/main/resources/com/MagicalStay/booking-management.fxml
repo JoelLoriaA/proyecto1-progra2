@@ -39,8 +39,8 @@
                     <ListView fx:id="bookingListView" VBox.vgrow="ALWAYS" />
                     <HBox spacing="8.0">
                         <Button fx:id="addButton" maxWidth="Infinity" onAction="#handleAddReservation" style="-fx-background-color: #4CAF50; -fx-text-fill: white;" text="➕ Nueva" HBox.hgrow="ALWAYS" />
-                        <Button fx:id="editButton" maxWidth="Infinity" style="-fx-background-color: #FF9800; -fx-text-fill: white;" text="✏️ Editar" HBox.hgrow="ALWAYS" />
-                        <Button fx:id="deleteButton" maxWidth="Infinity" style="-fx-background-color: #f44336; -fx-text-fill: white;" text="🗑️ Eliminar" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="editButton" maxWidth="Infinity" onAction="#handleEditReservation" style="-fx-background-color: #FF9800; -fx-text-fill: white;" text="✏️ Editar" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="deleteButton" maxWidth="Infinity" onAction="#handleDeleteReservation" style="-fx-background-color: #f44336; -fx-text-fill: white;" text="🗑️ Eliminar" HBox.hgrow="ALWAYS" />
                     </HBox>
                 </VBox>
 

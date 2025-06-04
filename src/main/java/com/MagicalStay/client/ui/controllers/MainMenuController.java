@@ -1,6 +1,7 @@
 package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.shared.config.ConfiguracionApp;
+import com.MagicalStay.shared.domain.UserRole;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -8,6 +9,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -46,6 +48,20 @@ public class MainMenuController {
     private MenuItem bookingHistoryMenuItem;
 
     private final SocketCliente socketCliente;
+    private UserRole currentRole;
+    @FXML
+    private Menu adminMenu;
+
+    @FXML
+    private void initialize() {
+        // Por defecto, deshabilitar menús hasta que se establezca el rol
+        habilitarMenusOperacion(false);
+
+        // Asegurarse de que el menú de administración esté oculto para recepcionistas
+        if (currentRole == UserRole.FRONTDESK) {
+            updateMenusBasedOnRole();
+        }
+    }
 
     public MainMenuController() {
         socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
@@ -79,14 +95,66 @@ public class MainMenuController {
         });
     }
 
+    private void updateMenusBasedOnRole() {
+        if (currentRole == UserRole.FRONTDESK) {
+            // Ocultar elementos administrativos para recepcionistas
+            if (hotelManagementMenuItem != null && hotelManagementMenuItem.getParentMenu() != null) {
+                Menu adminMenu = hotelManagementMenuItem.getParentMenu();
+                adminMenu.setVisible(false);
+                adminMenu.setVisible(false);
+            }
+
+            // Deshabilitar ítems específicos
+            hotelManagementMenuItem.setVisible(false);
+            roomManagementMenuItem.setVisible(false);
+            receptionistMenuItem.setVisible(false);
+
+            // Mantener visibles solo los ítems permitidos para recepcionistas
+            guestMenuItem.setVisible(true);
+            newBookingMenuItem.setVisible(true);
+            searchAvailabilityMenuItem.setVisible(true);
+            bookingHistoryMenuItem.setVisible(true);
+        } else {
+            // Para administradores, mostrar todo
+            if (hotelManagementMenuItem != null && hotelManagementMenuItem.getParentMenu() != null) {
+                Menu adminMenu = hotelManagementMenuItem.getParentMenu();
+                adminMenu.setVisible(true);
+                adminMenu.setVisible(true);
+            }
+
+            // Habilitar todos los ítems
+            hotelManagementMenuItem.setVisible(true);
+            roomManagementMenuItem.setVisible(true);
+            receptionistMenuItem.setVisible(true);
+            guestMenuItem.setVisible(true);
+            newBookingMenuItem.setVisible(true);
+            searchAvailabilityMenuItem.setVisible(true);
+            bookingHistoryMenuItem.setVisible(true);
+        }
+    }
+
     private void habilitarMenusOperacion(boolean habilitar) {
-        hotelManagementMenuItem.setDisable(!habilitar);
-        roomManagementMenuItem.setDisable(!habilitar);
-        guestMenuItem.setDisable(!habilitar);
-        receptionistMenuItem.setDisable(!habilitar);
-        newBookingMenuItem.setDisable(!habilitar);
-        searchAvailabilityMenuItem.setDisable(!habilitar);
-        bookingHistoryMenuItem.setDisable(!habilitar);
+        if (currentRole == UserRole.FRONTDESK) {
+            // Para recepcionistas, solo habilitar menús permitidos
+            guestMenuItem.setDisable(!habilitar);
+            newBookingMenuItem.setDisable(!habilitar);
+            searchAvailabilityMenuItem.setDisable(!habilitar);
+            bookingHistoryMenuItem.setDisable(!habilitar);
+
+            // Mantener deshabilitados los menús administrativos
+            hotelManagementMenuItem.setDisable(true);
+            roomManagementMenuItem.setDisable(true);
+            receptionistMenuItem.setDisable(true);
+        } else {
+            // Para administradores, habilitar todos los menús
+            hotelManagementMenuItem.setDisable(!habilitar);
+            roomManagementMenuItem.setDisable(!habilitar);
+            guestMenuItem.setDisable(!habilitar);
+            receptionistMenuItem.setDisable(!habilitar);
+            newBookingMenuItem.setDisable(!habilitar);
+            searchAvailabilityMenuItem.setDisable(!habilitar);
+            bookingHistoryMenuItem.setDisable(!habilitar);
+        }
     }
 
     @FXML

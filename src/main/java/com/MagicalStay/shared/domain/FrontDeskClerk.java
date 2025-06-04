@@ -89,4 +89,22 @@ package com.MagicalStay.shared.domain;
         public void setPassword(String password) {
             this.password = password;
         }
+
+        @JsonProperty("Dni")
+        public long getDni() {
+            return dni;
+        }
+
+        public void setDni(long dni) {
+            this.dni = dni;
+        }
+
+        @JsonProperty("Username")
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
     }

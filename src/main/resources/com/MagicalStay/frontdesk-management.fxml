@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane prefHeight="785.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.client.ui.controllers.FrontDeskClerkController">
+    <top>
+        <VBox style="-fx-background-color: #9C27B0; -fx-padding: 20px;">
+            <Label style="-fx-font-size: 24px; -fx-text-fill: white; -fx-font-weight: bold;" text="👥 Gestión de Recepcionistas" />
+            <Label style="-fx-font-size: 14px; -fx-text-fill: #f3e5f5;" text="Sistema de Administración de Recepcionistas" />
+        </VBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.3" prefHeight="529.0" prefWidth="1100.0">
+            <items>
+                <!-- Lista de Recepcionistas -->
+                <VBox spacing="15.0" style="-fx-background-color: #f5f5f5; -fx-padding: 15px; -fx-background-radius: 8px;">
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 16px;" text="📋 Lista de Recepcionistas" />
+
+                    <HBox alignment="CENTER_LEFT" spacing="8.0">
+                        <ComboBox fx:id="searchTypeComboBox" prefWidth="150.0" promptText="Tipo de búsqueda" />
+                        <TextField fx:id="searchTextField" promptText="🔍 Buscar..." HBox.hgrow="ALWAYS" />
+                    </HBox>
+
+                    <TableView fx:id="clerkTableView" onMouseClicked="#handleClerkSelection" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="employeeIdColumn" text="ID Empleado" />
+                            <TableColumn fx:id="nameColumn" text="Nombre" />
+                            <TableColumn fx:id="lastNamesColumn" text="Apellidos" />
+                            <TableColumn fx:id="phoneColumn" text="Teléfono" />
+                        </columns>
+                    </TableView>
+
+                    <HBox spacing="8.0">
+                        <Button fx:id="addButton" maxWidth="Infinity" onAction="#handleAdd" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px;" text="➕ Nuevo" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="editButton" maxWidth="Infinity" onAction="#handleEdit" style="-fx-background-color: #FF9800; -fx-text-fill: white; -fx-background-radius: 5px;" text="✏️ Editar" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="deleteButton" maxWidth="Infinity" onAction="#handleDelete" style="-fx-background-color: #f44336; -fx-text-fill: white; -fx-background-radius: 5px;" text="🗑️ Eliminar" HBox.hgrow="ALWAYS" />
+                    </HBox>
+                </VBox>
+
+                <!-- Panel Detalles del Recepcionista -->
+                <VBox spacing="15.0" style="-fx-background-color: white; -fx-padding: 20px; -fx-background-radius: 8px;">
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 18px;" text="👤 Información del Recepcionista" />
+
+                    <GridPane hgap="15" vgap="12">
+                        <columnConstraints>
+                            <ColumnConstraints hgrow="NEVER" minWidth="120" />
+                            <ColumnConstraints hgrow="ALWAYS" />
+                            <ColumnConstraints hgrow="NEVER" minWidth="120" />
+                            <ColumnConstraints hgrow="ALWAYS" />
+                        </columnConstraints>
+
+                        <Label text="ID Empleado:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <TextField fx:id="employeeIdField" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                        <Label text="DNI:" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+                        <TextField fx:id="dniField" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+
+                        <Label text="Nombre:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <TextField fx:id="nameField" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                        <Label text="Apellidos:" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+                        <TextField fx:id="lastNamesField" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+
+                        <Label text="Teléfono:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                        <TextField fx:id="phoneNumberField" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                        <Label text="Usuario:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                        <TextField fx:id="userField" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                        <Label text="Contraseña:" GridPane.columnIndex="2" GridPane.rowIndex="3" />
+                        <PasswordField fx:id="passwordField" GridPane.columnIndex="3" GridPane.rowIndex="3" />
+
+                        <rowConstraints>
+                            <RowConstraints />
+                            <RowConstraints />
+                            <RowConstraints />
+                            <RowConstraints />
+                        </rowConstraints>
+                    </GridPane>
+
+                    <!-- Validación -->
+                    <VBox spacing="5.0" style="-fx-background-color: #f9f9f9; -fx-padding: 10px; -fx-background-radius: 5px;">
+                        <Label style="-fx-font-weight: bold; -fx-font-size: 12px;" text="📋 Validación:" />
+                        <Label fx:id="validationLabel" style="-fx-font-size: 12px; -fx-text-fill: #666666;" text="Complete todos los campos requeridos" />
+                    </VBox>
+
+                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                        <Button fx:id="saveButton" onAction="#handleSave" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px;" text="💾 Guardar" />
+                        <Button fx:id="clearButton" onAction="#handleClear" style="-fx-background-color: #9E9E9E; -fx-text-fill: white; -fx-background-radius: 5px;" text="🔄 Limpiar" />
+                    </HBox>
+                </VBox>
+            </items>
+        </SplitPane>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #f3e5f5; -fx-padding: 10px;">
+            <Label style="-fx-font-weight: bold;" text="Estado:" />
+            <Label fx:id="statusLabel" text="Listo" />
+            <Pane HBox.hgrow="ALWAYS" />
+            <Button fx:id="closeButton" onAction="#handleClose" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🚪 Cerrar" />
+        </HBox>
+    </bottom>
+</BorderPane>

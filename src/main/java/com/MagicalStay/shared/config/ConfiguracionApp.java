@@ -24,6 +24,7 @@ public class ConfiguracionApp {
     public static final String FXML_ROOM_MANAGEMENT = "/com/MagicalStay/room-management.fxml";
     public static final String FXML_BOOKING_MANAGEMENT = "/com/MagicalStay/booking-management.fxml";
     public static final String FXML_GUEST_MANAGEMENT = "/com/MagicalStay/guest-management.fxml";
+    public static final String FXML_FRONTDESK_MANAGEMENT = "/com/MagicalStay/frontdesk-management.fxml";
     public static final String FXML_REPORTS = "/com/MagicalStay/reports.fxml";
 
     // Mensajes del sistema

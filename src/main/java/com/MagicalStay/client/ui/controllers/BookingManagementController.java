@@ -188,17 +188,71 @@ public class BookingManagementController {
                 });
                 clerkComboBox.setButtonCell(clerkComboBox.getCellFactory().call(null));
             }
+
+            availableRoomsComboBox.setCellFactory(param -> new ListCell<Room>() {
+                @Override
+                protected void updateItem(Room room, boolean empty) {
+                    super.updateItem(room, empty);
+                    if (empty || room == null) {
+                        setText(null);
+                    } else {
+                        setText(String.format("%s - %s ($%.2f/noche)",
+                                room.getRoomNumber(),
+                                room.getRoomType(),
+                                room.getPrice()));
+                    }
+                }
+            });
+            availableRoomsComboBox.setButtonCell(availableRoomsComboBox.getCellFactory().call(null));
+
+            // Agregar listener para habilitar/deshabilitar el botón añadir
+            availableRoomsComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+                addRoomButton.setDisable(newVal == null);
+            });
+
         } catch (Exception e) {
             showError("Error al cargar datos: " + e.getMessage());
         }
     }
 
     private void setupListView() {
-        bookingListView.setItems(bookings);
+        bookingListView.setCellFactory(lv -> new ListCell<Booking>() {
+            @Override
+            protected void updateItem(Booking booking, boolean empty) {
+                super.updateItem(booking, empty);
+                if (empty || booking == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("📅 #%d - %s (%s → %s) | 🏨 %s | 👤 %s",
+                        booking.getBookingId(),
+                        booking.getGuest().getName(),
+                        booking.getStartDate(),
+                        booking.getLeavingDate(),
+                        booking.getHotel().getName(),
+                        booking.getFrontDeskClerk().getName()
+                    ));
+                }
+            }
+        });
+
+        // Configurar la selección
         bookingListView.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldVal, newVal) -> {
-                    if (newVal != null) loadBookingDetails((Booking) newVal);
-                });
+            (obs, oldVal, newVal) -> {
+                if (newVal != null) {
+                    loadBookingDetails((Booking) newVal);
+                    setFieldsEnabled(false);
+                    editButton.setDisable(false);
+                    deleteButton.setDisable(false);
+                } else {
+                    clearForm();
+                    editButton.setDisable(true);
+                    deleteButton.setDisable(true);
+                }
+            }
+        );
+
+        // Configurar los items
+        bookingListView.setItems(bookings);
     }
 
     private void bindControls() {
@@ -292,11 +346,23 @@ public class BookingManagementController {
 
     @FXML
     public void handleAddRoom(ActionEvent event) {
-        Room selectedRoom = availableRoomsComboBox.getValue();
-        if (selectedRoom != null && !reservedRooms.contains(selectedRoom)) {
-            reservedRooms.add(selectedRoom);
-            updateCalculations();
-        }
+            Room selectedRoom = availableRoomsComboBox.getValue();
+            if (selectedRoom != null) {
+                // Verificar si la habitación ya está en la lista
+                boolean roomAlreadyAdded = reservedRooms.stream()
+                        .anyMatch(room -> room.getRoomNumber().equals(selectedRoom.getRoomNumber()));
+
+                if (!roomAlreadyAdded) {
+                    reservedRooms.add(selectedRoom);
+                    availableRoomsComboBox.setValue(null); // Limpiar la selección
+                    updateCalculations();
+                    showSuccess("Habitación " + selectedRoom.getRoomNumber() + " agregada");
+                } else {
+                    showError("Esta habitación ya está en la lista");
+                }
+            } else {
+                showError("Por favor seleccione una habitación");
+            }
     }
 
     @Deprecated
@@ -335,7 +401,7 @@ public class BookingManagementController {
         return subtotal + tax + SERVICE_FEE;
     }
 
-    @Deprecated
+    @FXML
     public void handleSearch(ActionEvent event) {
         String searchType = searchTypeComboBox.getValue();
         String searchText = searchTextField.getText().trim();
@@ -528,6 +594,56 @@ public class BookingManagementController {
 
     private DataResponse parseDataResponse(String jsonResponse) throws IOException {
         return objectMapper.readValue(jsonResponse, DataResponse.class);
+    }
+
+    @FXML
+    public void handleDeleteReservation(ActionEvent event) {
+        Booking selectedBooking = (Booking) bookingListView.getSelectionModel().getSelectedItem();
+        if (selectedBooking != null) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Confirmar Eliminación");
+            alert.setHeaderText(null);
+            alert.setContentText("¿Está seguro que desea eliminar la reserva #" + selectedBooking.getBookingId() + "?");
+
+            if (alert.showAndWait().get() == ButtonType.OK) {
+                try {
+                    String jsonResponse = bookingData.delete(selectedBooking.getBookingId());
+                    DataResponse response = parseDataResponse(jsonResponse);
+
+                    if (response.isSuccess()) {
+                        loadInitialData();
+                        clearForm();
+                        showSuccess("Reserva eliminada con éxito");
+                    } else {
+                        showError("No se pudo eliminar la reserva: " + response.getMessage());
+                    }
+                } catch (Exception e) {
+                    showError("Error al eliminar la reserva: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    @FXML
+    public void handleEditReservation(ActionEvent event) {
+        Booking selectedBooking = (Booking) bookingListView.getSelectionModel().getSelectedItem();
+        if (selectedBooking != null) {
+            // Cargar los detalles de la reserva
+            loadBookingDetails(selectedBooking);
+
+            // Habilitar campos para edición
+            setFieldsEnabled(true);
+            isEditing = true;
+
+            // Actualizar estado
+            showSuccess("Editando reserva #" + selectedBooking.getBookingId());
+
+            // Actualizar cálculos
+            updateCalculations();
+
+            // Actualizar habitaciones disponibles
+            updateAvailableRooms();
+        }
     }
 
     private static class DataResponse {
