@@ -1,5 +1,6 @@
 package com.MagicalStay.shared.data;
 
+import com.MagicalStay.shared.domain.Guest;
 import com.MagicalStay.shared.domain.Hotel;
 import com.MagicalStay.shared.domain.Room;
 import java.io.IOException;
@@ -9,14 +10,27 @@ import java.util.List;
 
 public class HotelData extends JsonDataResponse {
     private RandomAccessFile raf;
-    private static final int HOTEL_ID_SIZE = 4;
-    private static final int NAME_LENGTH = 50;
-    private static final int ADDRESS_LENGTH = 100;
+    // Constantes para rooms
+    private static final int ROOM_NUMBER_LENGTH = 8;
+    private static final int ROOM_SIZE = ROOM_NUMBER_LENGTH * 2;
+    private static final int MAX_ROOMS = 20; // Reducido de 50 a 20
+    private static final int ROOMS_LIST_SIZE = MAX_ROOMS * ROOM_SIZE;
+
+    // Constantes para guests
+    private static final int GUEST_LENGTH = 30; // Nombre + ID del huésped
+    private static final int GUEST_SIZE = GUEST_LENGTH * 2;
+    private static final int MAX_GUESTS = 20;
+    private static final int GUESTS_LIST_SIZE = MAX_GUESTS * GUEST_SIZE;
+
+    // Constantes básicas del hotel
+    private static final int HOTEL_ID_SIZE = (3 + 1) * 2; // ID + espacio
+    private static final int NAME_LENGTH = 25;
+    private static final int ADDRESS_LENGTH = 40;
     private static final int NAME_SIZE = NAME_LENGTH * 2;
     private static final int ADDRESS_SIZE = ADDRESS_LENGTH * 2;
-    private static final int MAX_ROOMS = 50;
-    private static final int ROOMS_LIST_SIZE = MAX_ROOMS * (12 * 2);
-    private static final int RECORD_SIZE = HOTEL_ID_SIZE + NAME_SIZE + ADDRESS_SIZE + ROOMS_LIST_SIZE;
+
+    // Tamaño total del registro
+    private static final int RECORD_SIZE = HOTEL_ID_SIZE + NAME_SIZE + ADDRESS_SIZE + ROOMS_LIST_SIZE + GUESTS_LIST_SIZE;
 
     public HotelData(String filename) throws IOException {
         this.raf = new RandomAccessFile(filename, "rw");
@@ -27,38 +41,17 @@ public class HotelData extends JsonDataResponse {
 
     public String create(Hotel hotel) throws IOException {
         try {
-            // Validar longitud de campos
-            if (hotel.getName().length() > NAME_LENGTH ||
-                    hotel.getAddress().length() > ADDRESS_LENGTH) {
-                return createJsonResponse(false, "Name or address exceeds maximum length", null);
+            if (hotel.getName() != null && hotel.getName().length() > NAME_LENGTH) {
+                return createJsonResponse(false, "El nombre no puede exceder " + NAME_LENGTH + " caracteres", null);
+            }
+            if (hotel.getAddress() != null && hotel.getAddress().length() > ADDRESS_LENGTH) {
+                return createJsonResponse(false, "La dirección no puede exceder " + ADDRESS_LENGTH + " caracteres", null);
             }
 
-            // Validar que el ID sea válido
-            if (hotel.getHotelId() <= 0) {
-                return createJsonResponse(false, "El ID del hotel debe ser un número positivo", null);
-            }
-
-            // Verificar ID duplicado
-            for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
-                raf.seek(pos);
-                int existingId = raf.readInt();
-                if (existingId == hotel.getHotelId()) {
-                    return createJsonResponse(false, "Ya existe un hotel con el ID " + existingId, null);
-                }
-            }
-
-            // Posicionarse al final del archivo y escribir
             raf.seek(raf.length());
             writeHotel(hotel);
-
-            // Forzar escritura a disco
-            raf.getFD().sync();
-
-            System.out.println("Hotel creado con ID: " + hotel.getHotelId()); // Log para debug
             return createJsonResponse(true, "Hotel creado exitosamente", hotel);
-
         } catch (Exception e) {
-            e.printStackTrace();
             return createJsonResponse(false, "Error al crear hotel: " + e.getMessage(), null);
         }
     }
@@ -67,7 +60,9 @@ public class HotelData extends JsonDataResponse {
         try {
             for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
                 raf.seek(pos);
-                if (raf.readInt() == hotelId) {
+                String idStr = readString(3);
+                int currentId = Integer.parseInt(idStr.trim());
+                if (currentId == hotelId) {
                     raf.seek(pos);
                     Hotel hotel = readHotel();
                     return createJsonResponse(true, "Hotel encontrado", hotel);
@@ -94,22 +89,26 @@ public class HotelData extends JsonDataResponse {
 
     public String update(Hotel hotel) throws IOException {
         try {
-            if (hotel.getName().length() > NAME_LENGTH ||
-                    hotel.getAddress().length() > ADDRESS_LENGTH) {
-                return createJsonResponse(false, "Name or address exceeds maximum length", null);
+            if (hotel.getName() != null && hotel.getName().length() > NAME_LENGTH) {
+                return createJsonResponse(false, "El nombre no puede exceder " + NAME_LENGTH + " caracteres", null);
+            }
+            if (hotel.getAddress() != null && hotel.getAddress().length() > ADDRESS_LENGTH) {
+                return createJsonResponse(false, "La dirección no puede exceder " + ADDRESS_LENGTH + " caracteres", null);
             }
 
             for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
                 raf.seek(pos);
-                if (raf.readInt() == hotel.getHotelId()) {
+                String idStr = readString(3);
+                int currentId = Integer.parseInt(idStr.trim());
+                if (currentId == hotel.getHotelId()) {
                     raf.seek(pos);
                     writeHotel(hotel);
-                    return createJsonResponse(true, "Hotel updated successfully", hotel);
+                    return createJsonResponse(true, "Hotel actualizado exitosamente", hotel);
                 }
             }
-            return createJsonResponse(false, "Hotel not found", null);
+            return createJsonResponse(false, "Hotel no encontrado", null);
         } catch (Exception e) {
-            return createJsonResponse(false, "Error updating hotel: " + e.getMessage(), null);
+            return createJsonResponse(false, "Error al actualizar hotel: " + e.getMessage(), null);
         }
     }
 
@@ -117,59 +116,87 @@ public class HotelData extends JsonDataResponse {
         try {
             for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
                 raf.seek(pos);
-                if (raf.readInt() == hotelId) {
+                String idStr = readString(3); // Leemos los 3 caracteres del ID
+                int currentId = Integer.parseInt(idStr.trim());
+
+                if (currentId == hotelId) {
                     moveRemainingRecords(pos);
                     raf.setLength(raf.length() - RECORD_SIZE);
-                    return createJsonResponse(true, "Hotel deleted successfully", null);
+                    return createJsonResponse(true, "Hotel eliminado exitosamente", null);
                 }
             }
-            return createJsonResponse(false, "Hotel not found", null);
+            return createJsonResponse(false, "Hotel no encontrado", null);
         } catch (Exception e) {
-            return createJsonResponse(false, "Error deleting hotel: " + e.getMessage(), null);
+            return createJsonResponse(false, "Error al eliminar hotel: " + e.getMessage(), null);
         }
     }
 
     private void writeHotel(Hotel hotel) throws IOException {
-        if (hotel.getHotelId() <= 0) {
-            throw new IOException("ID de hotel inválido: " + hotel.getHotelId());
-        }
+        // ID y espacio
+        String hotelIdStr = String.format("%03d", hotel.getHotelId());
+        writeString(hotelIdStr, 3);
+        writeString(" ", 1);
 
-        // Debug
-        System.out.println("Escribiendo hotel -> ID: " + hotel.getHotelId() +
-                          ", Nombre: " + hotel.getName());
+        // Información básica del hotel
+        writeString(padRight(hotel.getName(), NAME_LENGTH), NAME_LENGTH);
+        writeString(padRight(hotel.getAddress(), ADDRESS_LENGTH), ADDRESS_LENGTH);
 
-        // Escribir el ID como int (4 bytes)
-        raf.writeInt(hotel.getHotelId());
-
-        // Escribir el resto de los datos
-        writeString(hotel.getName(), NAME_LENGTH);
-        writeString(hotel.getAddress(), ADDRESS_LENGTH);
-
+        // Lista de habitaciones
         List<Room> rooms = hotel.getRooms() != null ? hotel.getRooms() : new ArrayList<>();
         for (int i = 0; i < MAX_ROOMS; i++) {
-            String roomNumber = i < rooms.size() && rooms.get(i) != null ?
-                    rooms.get(i).getRoomNumber() : "";
-            writeString(roomNumber, 12);
+            String roomInfo = "";
+            if (i < rooms.size() && rooms.get(i) != null) {
+                roomInfo = padRight(rooms.get(i).getRoomNumber(), ROOM_NUMBER_LENGTH);
+            }
+            writeString(roomInfo, ROOM_NUMBER_LENGTH);
         }
 
-        // Asegurar que se escriba a disco
-        raf.getFD().sync();
+        // Lista de huéspedes
+        List<Guest> guests = hotel.getGuests() != null ? hotel.getGuests() : new ArrayList<>();
+        for (int i = 0; i < MAX_GUESTS; i++) {
+            String guestInfo = "";
+            if (i < guests.size() && guests.get(i) != null) {
+                guestInfo = padRight(
+                        guests.get(i).getName() + ";" + guests.get(i).getId(),
+                        GUEST_LENGTH
+                );
+            }
+            writeString(guestInfo, GUEST_LENGTH);
+        }
     }
 
     private Hotel readHotel() throws IOException {
-        int hotelId = raf.readInt();
-        String name = readString(NAME_LENGTH);
-        String address = readString(ADDRESS_LENGTH);
+        // Leer ID
+        String hotelIdStr = readString(3);
+        readString(1); // Saltar espacio
+        int hotelId = Integer.parseInt(hotelIdStr.trim());
 
+        // Leer información básica
+        String name = readString(NAME_LENGTH).trim();
+        String address = readString(ADDRESS_LENGTH).trim();
+
+        // Leer habitaciones
         List<Room> rooms = new ArrayList<>();
         for (int i = 0; i < MAX_ROOMS; i++) {
-            String roomNumber = readString(12);
-            if (!roomNumber.trim().isEmpty()) {
+            String roomNumber = readString(ROOM_NUMBER_LENGTH).trim();
+            if (!roomNumber.isEmpty()) {
                 rooms.add(new Room(roomNumber, null, null, null));
             }
         }
 
-        return new Hotel(hotelId, name, address, rooms);
+        // Leer huéspedes
+        List<Guest> guests = new ArrayList<>();
+        for (int i = 0; i < MAX_GUESTS; i++) {
+            String guestInfo = readString(GUEST_LENGTH).trim();
+            if (!guestInfo.isEmpty()) {
+                String[] parts = guestInfo.split(";");
+                if (parts.length == 2) {
+                    guests.add(new Guest(parts[1], parts[0]));
+                }
+            }
+        }
+
+        return new Hotel(hotelId, name, address, rooms, guests);
     }
 
     private void writeString(String str, int length) throws IOException {
@@ -188,15 +215,20 @@ public class HotelData extends JsonDataResponse {
     }
 
     private void moveRemainingRecords(long pos) throws IOException {
-        long nextPos = pos + RECORD_SIZE;
-        while (nextPos < raf.length()) {
-            raf.seek(nextPos);
-            byte[] nextRecord = new byte[RECORD_SIZE];
-            raf.readFully(nextRecord);
-            raf.seek(nextPos - RECORD_SIZE);
-            raf.write(nextRecord);
-            nextPos += RECORD_SIZE;
-        }
+            byte[] buffer = new byte[RECORD_SIZE];
+            long nextPos = pos + RECORD_SIZE;
+
+            while (nextPos < raf.length()) {
+                // Leer el siguiente registro
+                raf.seek(nextPos);
+                raf.readFully(buffer);
+
+                // Escribir en la posición actual
+                raf.seek(nextPos - RECORD_SIZE);
+                raf.write(buffer);
+
+                nextPos += RECORD_SIZE;
+            }
     }
 
     public void close() throws IOException {
@@ -259,5 +291,14 @@ public class HotelData extends JsonDataResponse {
         } catch (Exception e) {
             return createJsonResponse(false, "Error al buscar hoteles: " + e.getMessage(), null);
         }
+    }
+
+    private String padRight(String str, int length) {
+        if (str == null) {
+            str = "";
+        }
+        str = str.trim();
+        return String.format("%-" + length + "s",
+                str.length() > length ? str.substring(0, length) : str);
     }
 }

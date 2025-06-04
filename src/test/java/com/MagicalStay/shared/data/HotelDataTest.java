@@ -22,6 +22,11 @@ public class HotelDataTest {
     }
 
 
+    @AfterEach
+    public void cleanup() throws IOException {
+        if (hotelData != null) hotelData.close();
+    }
+
 
     @Test
     public void testCreateHotel() throws IOException {

@@ -118,7 +118,7 @@ public class BookingManagementController {
     private void setupComboBoxes() {
         try {
             String hotelResponse = DataFactory.getHotelData().retrieveAll();
-            String guestResponse = DataFactory.getGuestData().readAll();
+            String guestResponse = DataFactory.getGuestData().retrieveAll();
             String clerkResponse = DataFactory.getFrontDeskData().readAll();
 
             DataResponse hotelDataResponse = parseDataResponse(hotelResponse);
@@ -295,45 +295,54 @@ public class BookingManagementController {
         return subtotal + tax + SERVICE_FEE;
     }
 
-    @Deprecated
+    @FXML
     public void handleSearch(ActionEvent event) {
         String searchType = searchTypeComboBox.getValue();
         String searchText = searchTextField.getText().trim();
 
         try {
             String jsonResponse;
-
-            if (searchText.isEmpty()) {
+            if (searchText.isEmpty() || searchType.equals("Todos")) {
                 jsonResponse = bookingData.retrieveAll();
+            } else if (searchType.equals("ID")) {
+                try {
+                    int id = Integer.parseInt(searchText);
+                    jsonResponse = bookingData.retrieveById(id);
+                } catch (NumberFormatException e) {
+                    showError("El ID debe ser un número válido");
+                    return;
+                }
             } else {
-                switch (searchType) {
-                    case "ID":
-                        try {
-                            int id = Integer.parseInt(searchText);
-                            jsonResponse = bookingData.retrieveById(id);
-                        } catch (NumberFormatException e) {
-                            showError("El ID debe ser un número válido");
-                            return;
-                        }
-                        break;
-                    case "Huésped":
-                        jsonResponse = bookingData.retrieveByGuest(searchText);
-                        break;
-                    case "Hotel":
-                        jsonResponse = bookingData.retrieveByHotel(searchText);
-                        break;
-                    default:
-                        jsonResponse = bookingData.retrieveAll();
+                // Obtener todas las reservas y filtrar
+                jsonResponse = bookingData.retrieveAll();
+                DataResponse response = parseDataResponse(jsonResponse);
+
+                if (response.isSuccess() && response.getData() != null) {
+                    List<Booking> allBookings = objectMapper.convertValue(response.getData(),
+                        new TypeReference<List<Booking>>() {});
+
+                    List<Booking> filteredBookings = allBookings.stream()
+                        .filter(booking -> matchesSearch(booking, searchType, searchText))
+                        .collect(Collectors.toList());
+
+                    if (!filteredBookings.isEmpty()) {
+                        bookings.setAll(filteredBookings);
+                        showSuccess("Búsqueda completada con éxito");
+                    } else {
+                        bookings.clear();
+                        showError("No se encontraron resultados");
+                    }
+                    return;
                 }
             }
 
+            // Procesar respuesta JSON
             DataResponse response = parseDataResponse(jsonResponse);
-
-            if (response.isSuccess()) {
+            if (response.isSuccess() && response.getData() != null) {
                 List<Booking> foundBookings;
                 if (response.getData() instanceof List) {
                     foundBookings = objectMapper.convertValue(response.getData(),
-                            new TypeReference<List<Booking>>() {});
+                        new TypeReference<List<Booking>>() {});
                 } else {
                     Booking booking = objectMapper.convertValue(response.getData(), Booking.class);
                     foundBookings = Collections.singletonList(booking);
@@ -342,7 +351,7 @@ public class BookingManagementController {
                 showSuccess("Búsqueda completada con éxito");
             } else {
                 bookings.clear();
-                showError("No se encontraron resultados: " + response.getMessage());
+                showError("No se encontraron resultados");
             }
         } catch (Exception e) {
             showError("Error en la búsqueda: " + e.getMessage());
@@ -351,15 +360,14 @@ public class BookingManagementController {
 
     private boolean matchesSearch(Booking booking, String searchType, String searchText) {
         switch (searchType) {
-            case "ID":
-                return String.valueOf(booking.getBookingId()).contains(searchText);
             case "Huésped":
-                return booking.getGuest().getName().toLowerCase().contains(searchText);
+                return booking.getGuest() != null &&
+                       booking.getGuest().getName().toLowerCase()
+                       .contains(searchText.toLowerCase());
             case "Hotel":
-                return booking.getHotel().getName().toLowerCase().contains(searchText);
-            case "Fecha":
-                return booking.getStartDate().toString().contains(searchText) ||
-                        booking.getLeavingDate().toString().contains(searchText);
+                return booking.getHotel() != null &&
+                       booking.getHotel().getName().toLowerCase()
+                       .contains(searchText.toLowerCase());
             default:
                 return false;
         }

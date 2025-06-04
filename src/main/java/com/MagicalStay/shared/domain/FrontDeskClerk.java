@@ -17,6 +17,10 @@ public class FrontDeskClerk {
         this.password = password;
     }
 
+    public FrontDeskClerk(String employeeId) {
+        this.employeeId = employeeId;
+    }
+
     public String getName() {
         return name;
     }

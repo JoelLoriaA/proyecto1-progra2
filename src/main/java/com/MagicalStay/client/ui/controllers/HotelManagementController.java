@@ -253,7 +253,7 @@ public class HotelManagementController {
 
     private void loadGuestsForHotel(Hotel hotel) {
         try {
-            String jsonResponse = guestData.readAll();
+            String jsonResponse = guestData.retrieveAll();
             DataResponse response = parseDataResponse(jsonResponse);
 
             if (response.isSuccess()) {
@@ -615,7 +615,7 @@ private void handleHotelSelection(MouseEvent event) {
         if (selectedHotel != null) {
             try {
                 // Cargar el FXML de gestión de huéspedes
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/guest.fxml"));
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/guest-management.fxml"));
                 Parent root = loader.load();
 
                 // Crear una nueva ventana para la gestión de huéspedes

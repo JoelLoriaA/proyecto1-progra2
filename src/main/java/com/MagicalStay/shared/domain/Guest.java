@@ -38,6 +38,9 @@ public class Guest {
         this.bookings = bookings;
     }
 
+    public Guest(String name, String lastName) {
+    }
+
     public String getName() {
         return name;
     }

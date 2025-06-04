@@ -27,15 +27,6 @@ package com.MagicalStay.shared.data;
                 objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
             }
 
-            @AfterEach
-            public void cleanup() throws IOException {
-                if (bookingData != null) {
-                    bookingData.close();
-                }
-                if (bookingFile != null && bookingFile.exists()) {
-                    bookingFile.delete();
-                }
-            }
 
             private Booking createTestBooking(int id) {
                 List<Room> rooms = new ArrayList<>();
