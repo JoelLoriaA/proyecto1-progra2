@@ -27,16 +27,39 @@ public class HotelData extends JsonDataResponse {
 
     public String create(Hotel hotel) throws IOException {
         try {
+            // Validar longitud de campos
             if (hotel.getName().length() > NAME_LENGTH ||
                     hotel.getAddress().length() > ADDRESS_LENGTH) {
                 return createJsonResponse(false, "Name or address exceeds maximum length", null);
             }
 
+            // Validar que el ID sea válido
+            if (hotel.getHotelId() <= 0) {
+                return createJsonResponse(false, "El ID del hotel debe ser un número positivo", null);
+            }
+
+            // Verificar ID duplicado
+            for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
+                raf.seek(pos);
+                int existingId = raf.readInt();
+                if (existingId == hotel.getHotelId()) {
+                    return createJsonResponse(false, "Ya existe un hotel con el ID " + existingId, null);
+                }
+            }
+
+            // Posicionarse al final del archivo y escribir
             raf.seek(raf.length());
             writeHotel(hotel);
-            return createJsonResponse(true, "Hotel created successfully", hotel);
+
+            // Forzar escritura a disco
+            raf.getFD().sync();
+
+            System.out.println("Hotel creado con ID: " + hotel.getHotelId()); // Log para debug
+            return createJsonResponse(true, "Hotel creado exitosamente", hotel);
+
         } catch (Exception e) {
-            return createJsonResponse(false, "Error creating hotel: " + e.getMessage(), null);
+            e.printStackTrace();
+            return createJsonResponse(false, "Error al crear hotel: " + e.getMessage(), null);
         }
     }
 
@@ -107,7 +130,18 @@ public class HotelData extends JsonDataResponse {
     }
 
     private void writeHotel(Hotel hotel) throws IOException {
+        if (hotel.getHotelId() <= 0) {
+            throw new IOException("ID de hotel inválido: " + hotel.getHotelId());
+        }
+
+        // Debug
+        System.out.println("Escribiendo hotel -> ID: " + hotel.getHotelId() +
+                          ", Nombre: " + hotel.getName());
+
+        // Escribir el ID como int (4 bytes)
         raf.writeInt(hotel.getHotelId());
+
+        // Escribir el resto de los datos
         writeString(hotel.getName(), NAME_LENGTH);
         writeString(hotel.getAddress(), ADDRESS_LENGTH);
 
@@ -117,6 +151,9 @@ public class HotelData extends JsonDataResponse {
                     rooms.get(i).getRoomNumber() : "";
             writeString(roomNumber, 12);
         }
+
+        // Asegurar que se escriba a disco
+        raf.getFD().sync();
     }
 
     private Hotel readHotel() throws IOException {

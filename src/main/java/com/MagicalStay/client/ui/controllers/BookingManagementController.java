@@ -51,13 +51,14 @@ public class BookingManagementController {
     @FXML private ComboBox<String> searchTypeComboBox;
     @FXML private Button addButton;
     @FXML private Button editButton;
-    @FXML private ListView<Booking> bookingListView;
 
     private BookingData bookingData;
     private final ObservableList<Room> reservedRooms = FXCollections.observableArrayList();
     private final ObservableList<Booking> bookings = FXCollections.observableArrayList();
     private boolean isEditing = false;
     private ObjectMapper objectMapper;
+    @FXML
+    private ListView bookingListView;
 
     @FXML
     public void initialize() {
@@ -150,7 +151,7 @@ public class BookingManagementController {
         bookingListView.setItems(bookings);
         bookingListView.getSelectionModel().selectedItemProperty().addListener(
                 (obs, oldVal, newVal) -> {
-                    if (newVal != null) loadBookingDetails(newVal);
+                    if (newVal != null) loadBookingDetails((Booking) newVal);
                 });
     }
 
@@ -258,7 +259,7 @@ public class BookingManagementController {
         }
     }
 
-    @FXML
+    @Deprecated
     public void handleRemoveRoom(ActionEvent event) {
         Room selectedRoom = reservedRoomsTableView.getSelectionModel().getSelectedItem();
         if (selectedRoom != null) {
@@ -294,7 +295,7 @@ public class BookingManagementController {
         return subtotal + tax + SERVICE_FEE;
     }
 
-    @FXML
+    @Deprecated
     public void handleSearch(ActionEvent event) {
         String searchType = searchTypeComboBox.getValue();
         String searchText = searchTextField.getText().trim();

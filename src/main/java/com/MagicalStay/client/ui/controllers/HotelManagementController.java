@@ -125,10 +125,22 @@ public class HotelManagementController {
     @FXML
     private void initialize() {
         try {
+
+            objectMapper = new ObjectMapper();
+
+
             // Initialize data access objects
             hotelData = DataFactory.getHotelData();
             roomData = DataFactory.getRoomData();
-            objectMapper = new ObjectMapper();
+            guestData = DataFactory.getGuestData();
+
+            loadHotelsFromFile();
+
+            // Agregar log para ver la respuesta JSON
+            String jsonResponse = hotelData.retrieveAll();
+            System.out.println("Respuesta JSON: " + jsonResponse);
+
+            loadHotelsFromFile();
 
             // Setup room table columns
             roomNumberColumn.setCellValueFactory(new PropertyValueFactory<>("roomNumber"));
@@ -139,8 +151,6 @@ public class HotelManagementController {
                     new javafx.beans.property.SimpleStringProperty(
                             cellData.getValue().getRoomCondition().toString()));
 
-            // Load data from files
-            loadHotelsFromFile();
 
             // Set the hotel list view items
             hotelListView.setItems(hotelList);
@@ -194,12 +204,22 @@ public class HotelManagementController {
                 List<Hotel> hotels = objectMapper.convertValue(response.getData(),
                         new TypeReference<List<Hotel>>() {});
                 hotelList = FXCollections.observableArrayList(hotels);
+                // Añadir esta línea:
+                hotelListView.setItems(hotelList);
+
+                // Agregar log para depuración
+                System.out.println("Hoteles cargados: " + hotels.size());
+                for (Hotel h : hotels) {
+                    System.out.println("Hotel: " + h.getName());
+                }
             } else {
                 hotelList = FXCollections.observableArrayList();
+                hotelListView.setItems(hotelList);
                 statusLabel.setText("No se encontraron hoteles: " + response.getMessage());
             }
         } catch (Exception e) {
             hotelList = FXCollections.observableArrayList();
+            hotelListView.setItems(hotelList);
             statusLabel.setText("Error al cargar hoteles: " + e.getMessage());
             e.printStackTrace();
         }

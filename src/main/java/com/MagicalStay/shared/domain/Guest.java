@@ -13,6 +13,9 @@ public class Guest {
     private List<Room> rooms;
     private List<Booking> bookings;
 
+    public Guest() {
+    }
+
     public Guest(String name, String lastName, int id, int phoneNumber, String email, String address, String nationality) {
         this.name = name;
         this.lastName = lastName;

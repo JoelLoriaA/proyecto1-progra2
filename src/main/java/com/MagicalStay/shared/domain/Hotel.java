@@ -37,10 +37,9 @@ public class Hotel {
     public Hotel() {
     }
 
-
-    public Hotel(long hotelId2) {
+    public Hotel(int hotelId) {
+        this.hotelId = hotelId;
     }
-
 
     public int getHotelId() {
         return hotelId;
