@@ -3,7 +3,7 @@ package com.MagicalStay.shared.config;
 public class ConfiguracionApp {
 
     // Configuración del servidor
-    public static final String HOST_SERVIDOR = "192.168.6.79"; // Cambiar por la IP del servidor para conexiones remotas
+    public static final String HOST_SERVIDOR = "192.168.100.139"; // Cambiar por la IP del servidor para conexiones remotas
     public static final int PUERTO_SERVIDOR = 5000;
 
     // Configuración de la aplicación
@@ -45,4 +45,17 @@ public class ConfiguracionApp {
     public static int getPuertoServidor() {
         return Integer.parseInt(System.getProperty("magicalstay.server.port", String.valueOf(PUERTO_SERVIDOR)));
     }
+    // Agregar en ConfiguracionApp.java
+    private static boolean servidorConectado = true;
+
+    public static boolean isServidorConectado() {
+        return servidorConectado;
+    }
+
+    public static void setServidorConectado(boolean estado) {
+        servidorConectado = estado;
+    }
+
+
+
 }

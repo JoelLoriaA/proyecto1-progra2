@@ -38,11 +38,10 @@ public class Hotel {
         // Constructor por defecto para Jackson
     }
 
-    public Hotel(long hotelId) {
-        this.hotelId = (int) hotelId;
+    public Hotel(int hotelId) {
+        this.hotelId = hotelId;
     }
 
-    // Getters y setters
     public int getHotelId() {
         return hotelId;
     }

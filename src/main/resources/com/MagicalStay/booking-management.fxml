@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="785.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.client.ui.controllers.BookingManagementController">
+    <top>
+        <VBox style="-fx-background-color: #2196F3; -fx-padding: 20px;">
+            <Label style="-fx-font-size: 24px; -fx-text-fill: white; -fx-font-weight: bold;" text="🏨 Gestión de Reservas" />
+            <Label style="-fx-font-size: 14px; -fx-text-fill: #e3f2fd;" text="Sistema de Reservas MagicalStay" />
+        </VBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.35" prefHeight="529.0" prefWidth="1100.0">
+            <items>
+                <!-- Panel de Lista de Reservas -->
+                <VBox spacing="15.0" style="-fx-background-color: #f5f5f5; -fx-padding: 15px;">
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 16px;" text="📋 Lista de Reservas" />
+                    <HBox spacing="8.0">
+                        <ComboBox fx:id="searchTypeComboBox" onAction="#handleSearch" prefWidth="150.0" promptText="Tipo de búsqueda" />
+                        <TextField fx:id="searchTextField" promptText="🔍 Buscar..." HBox.hgrow="ALWAYS" />
+                    </HBox>
+                    <ListView fx:id="bookingListView" VBox.vgrow="ALWAYS" />
+                    <HBox spacing="8.0">
+                        <Button fx:id="addButton" maxWidth="Infinity" onAction="#handleAddReservation" style="-fx-background-color: #4CAF50; -fx-text-fill: white;" text="➕ Nueva" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="editButton" maxWidth="Infinity" style="-fx-background-color: #FF9800; -fx-text-fill: white;" text="✏️ Editar" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="deleteButton" maxWidth="Infinity" style="-fx-background-color: #f44336; -fx-text-fill: white;" text="🗑️ Eliminar" HBox.hgrow="ALWAYS" />
+                    </HBox>
+                </VBox>
+
+                <!-- Panel de Detalles de Reserva -->
+                <VBox spacing="15.0" style="-fx-background-color: white; -fx-padding: 20px;">
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 18px;" text="📝 Detalles de la Reserva" />
+
+                    <GridPane hgap="10" vgap="10">
+                        <Label text="Nº Reserva:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <TextField fx:id="bookingIdTextField" editable="false" prefWidth="474.0" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                        <Label text="Hotel:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <ComboBox fx:id="hotelComboBox" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                        <Label text="Fecha Entrada:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                        <DatePicker fx:id="startDatePicker" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                        <Label text="Fecha Salida:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                        <DatePicker fx:id="leavingDatePicker" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                        <Label text="Huésped:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                        <ComboBox fx:id="guestComboBox" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+                        <Label text="Recepcionista:" GridPane.columnIndex="0" GridPane.rowIndex="5" />
+                        <ComboBox fx:id="clerkComboBox" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                        <columnConstraints>
+                            <ColumnConstraints />
+                            <ColumnConstraints />
+                        </columnConstraints>
+                        <rowConstraints>
+                            <RowConstraints />
+                            <RowConstraints />
+                            <RowConstraints />
+                            <RowConstraints />
+                            <RowConstraints />
+                            <RowConstraints />
+                        </rowConstraints>
+                    </GridPane>
+
+                    <Separator />
+
+                    <Label style="-fx-font-weight: bold;" text="🛏️ Habitaciones Disponibles" />
+                    <HBox spacing="10.0">
+                        <ComboBox fx:id="availableRoomsComboBox" prefWidth="200.0" promptText="Seleccionar habitación..." />
+                        <Button fx:id="checkAvailabilityButton" onAction="#handleCheckAvailability" style="-fx-background-color: #4CAF50; -fx-text-fill: white;" text="Verificar disponiblidad" />
+                        <Button fx:id="addRoomButton" onAction="#handleAddRoom" style="-fx-background-color: #2196F3; -fx-text-fill: white;" text="Agregar" />
+                    </HBox>
+
+                    <Label style="-fx-font-weight: bold;" text="🛏️ Habitaciones Reservadas" />
+                    <TableView fx:id="reservedRoomsTableView" prefHeight="84.0" prefWidth="326.0" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="reservedRoomNumberColumn" text="Número" />
+                            <TableColumn fx:id="reservedRoomTypeColumn" prefWidth="219.0" text="Tipo" />
+                            <TableColumn fx:id="reservedRoomConditionColumn" prefWidth="112.0" text="Estado" />
+                            <TableColumn fx:id="reservedRoomPrice" prefWidth="254.0" text="Precio/noche" />
+                        </columns>
+                    </TableView>
+
+                    <GridPane hgap="10" vgap="5">
+                        <Label text="Total Noches:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <TextField fx:id="totalNightsTextField" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                        <Label text="Subtotal:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <TextField fx:id="subtotalTextField" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                        <Label text="Total:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                        <TextField fx:id="totalPriceTextField" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                        <columnConstraints>
+                            <ColumnConstraints />
+                            <ColumnConstraints />
+                        </columnConstraints>
+                        <rowConstraints>
+                            <RowConstraints />
+                            <RowConstraints />
+                            <RowConstraints />
+                        </rowConstraints>
+                    </GridPane>
+
+                    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                        <Button fx:id="saveButton" onAction="#handleSave" style="-fx-background-color: #4CAF50; -fx-text-fill: white;" text="💾 Guardar" />
+                        <Button onAction="#handleClear" style="-fx-background-color: #9E9E9E; -fx-text-fill: white;" text="🔄 Limpiar" />
+                    </HBox>
+                </VBox>
+            </items>
+        </SplitPane>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #e3f2fd; -fx-padding: 10px;">
+            <Label style="-fx-font-weight: bold;" text="Estado:" />
+            <Label fx:id="statusLabel" text="Listo" />
+            <Pane HBox.hgrow="ALWAYS" />
+            <Button fx:id="closeButton" onAction="#handleClose" style="-fx-background-color: #607D8B; -fx-text-fill: white;" text="🚪 Cerrar" />
+        </HBox>
+    </bottom>
+</BorderPane>

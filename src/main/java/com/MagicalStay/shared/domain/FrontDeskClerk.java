@@ -1,79 +1,92 @@
 package com.MagicalStay.shared.domain;
 
-public class FrontDeskClerk {
-    private String name;
-    private String lastNames;
-    private String employeeId;
-    private int phoneNumber;
-    private String user;
-    private String password;
+    import com.fasterxml.jackson.annotation.JsonCreator;
+    import com.fasterxml.jackson.annotation.JsonProperty;
 
-    public FrontDeskClerk(String name, String lastNames, String employeeId, int phoneNumber, String user, String password) {
-        this.name = name;
-        this.lastNames = lastNames;
-        this.employeeId = employeeId;
-        this.phoneNumber = phoneNumber;
-        this.user = user;
-        this.password = password;
-    }
+    public class FrontDeskClerk {
+        private String name;
+        private String lastNames;
+        private String employeeId;
+        private long dni;
+        private String username;
+        private String password;
+        private int phoneNumber;
+        private String user;
 
-    public String getName() {
-        return name;
-    }
+        // Constructor por defecto necesario para Jackson
+        public FrontDeskClerk() {
+        }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+        // Constructor principal con anotaciones JsonCreator
+        @JsonCreator
+        public FrontDeskClerk(
+                @JsonProperty("name") String name,
+                @JsonProperty("lastNames") String lastNames,
+                @JsonProperty("employeeId") String employeeId,
+                @JsonProperty("phoneNumber") int phoneNumber,
+                @JsonProperty("user") String user,
+                @JsonProperty("password") String password) {
+            this.name = name;
+            this.lastNames = lastNames;
+            this.employeeId = employeeId;
+            this.phoneNumber = phoneNumber;
+            this.user = user;
+            this.password = password;
+        }
 
-    public String getLastNames() {
-        return lastNames;
-    }
+        // Getters y setters originales
+        @JsonProperty("name")
+        public String getName() {
+            return name;
+        }
 
-    public void setLastNames(String lastNames) {
-        this.lastNames = lastNames;
-    }
+        public void setName(String name) {
+            this.name = name;
+        }
 
-    public String getEmployeeId() {
-        return employeeId;
-    }
+        @JsonProperty("lastNames")
+        public String getLastNames() {
+            return lastNames;
+        }
 
-    public void setEmployeeId(String employeeId) {
-        this.employeeId = employeeId;
-    }
+        public void setLastNames(String lastNames) {
+            this.lastNames = lastNames;
+        }
 
-    public int getPhoneNumber() {
-        return phoneNumber;
-    }
+        @JsonProperty("employeeId")
+        public String getEmployeeId() {
+            return employeeId;
+        }
 
-    public void setPhoneNumber(int phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
+        public void setEmployeeId(String employeeId) {
+            this.employeeId = employeeId;
+        }
 
-    public String getUser() {
-        return user;
-    }
+        // Getters y setters para los campos faltantes
+        @JsonProperty("phoneNumber")
+        public int getPhoneNumber() {
+            return phoneNumber;
+        }
 
-    public void setUser(String user) {
-        this.user = user;
-    }
+        public void setPhoneNumber(int phoneNumber) {
+            this.phoneNumber = phoneNumber;
+        }
 
-    public String getPassword() {
-        return password;
-    }
+        @JsonProperty("user")
+        public String getUser() {
+            return user;
+        }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
+        public void setUser(String user) {
+            this.user = user;
+        }
 
-    @Override
-    public String toString() {
-        return "FrontDeskClerk{" +
-                "name='" + name + '\'' +
-                ", lastNames='" + lastNames + '\'' +
-                ", employeeId='" + employeeId + '\'' +
-                ", phoneNumber=" + phoneNumber +
-                ", user='" + user + '\'' +
-                ", password='" + password + '\'' +
-                '}';
+        @JsonProperty("password")
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
     }
-}

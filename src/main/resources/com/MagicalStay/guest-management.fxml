@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="663.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.client.ui.controllers.GuestManagementController">
+    <top>
+        <VBox style="-fx-background-color: #4CAF50; -fx-padding: 20px;">
+            <Label style="-fx-font-size: 24px; -fx-text-fill: white; -fx-font-weight: bold;" text="👥 Gestión de Huéspedes" />
+            <Label style="-fx-font-size: 14px; -fx-text-fill: #e8f5e8;" text="Sistema de Administración de Huéspedes" />
+        </VBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.3" prefHeight="529.0" prefWidth="1100.0">
+            <items>
+                <!-- Guest List Panel -->
+                <VBox spacing="15.0" style="-fx-background-color: #f5f5f5; -fx-padding: 15px; -fx-background-radius: 8px;">
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #333333;" text="📋 Lista de Huéspedes" />
+
+                    <!-- Búsqueda Unificada -->
+                    <HBox alignment="CENTER_LEFT" spacing="8.0">
+                        <ComboBox fx:id="searchTypeComboBox" prefHeight="25.0" prefWidth="120.0" promptText="Tipo de búsqueda" style="-fx-background-radius: 5px; -fx-border-radius: 5px;" />
+                        <TextField fx:id="searchTextField" promptText="🔍 Buscar..." style="-fx-background-radius: 5px; -fx-border-radius: 5px;" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="searchButton" onAction="#handleSearch" prefHeight="25.0" prefWidth="80.0" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px;" text="Buscar" />
+                    </HBox>
+
+                    <Separator />
+
+                    <!-- Resultado de búsqueda -->
+                    <Label fx:id="searchResultLabel" style="-fx-font-size: 12px; -fx-text-fill: #666666;" text="" />
+
+                    <!-- Lista de huéspedes -->
+                    <TableView fx:id="guestTableView" onMouseClicked="#handleGuestSelection" style="-fx-background-radius: 5px;" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="tableNameColumn" prefWidth="100.0" text="Nombre" />
+                            <TableColumn fx:id="tableLastNameColumn" prefWidth="120.0" text="Apellido" />
+                            <TableColumn fx:id="tableDniColumn" prefWidth="80.0" text="DNI" />
+                            <TableColumn fx:id="tableEmailColumn" prefWidth="150.0" text="Email" />
+                        </columns>
+                    </TableView>
+
+                    <Label style="-fx-font-size: 11px; -fx-text-fill: #666666;" text="Haga clic en una fila para seleccionar un huésped" />
+
+                    <HBox spacing="8.0">
+                        <Button fx:id="addButton" maxWidth="Infinity" onAction="#handleAdd" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px;" text="➕ Nuevo" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="editButton" disable="true" maxWidth="Infinity" onAction="#handleEdit" style="-fx-background-color: #FF9800; -fx-text-fill: white; -fx-background-radius: 5px;" text="✏ Editar" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="deleteButton" disable="true" maxWidth="Infinity" onAction="#handleDelete" style="-fx-background-color: #f44336; -fx-text-fill: white; -fx-background-radius: 5px;" text="🗑 Eliminar" HBox.hgrow="ALWAYS" />
+                    </HBox>
+                </VBox>
+
+                <!-- Guest Details Panel -->
+                <VBox spacing="15.0" style="-fx-background-color: #ffffff; -fx-padding: 20px; -fx-background-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);">
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 18px; -fx-text-fill: #333333;" text="👤 Información del Huésped" />
+
+                    <GridPane hgap="15" vgap="12">
+                        <columnConstraints>
+                            <ColumnConstraints hgrow="NEVER" minWidth="120" />
+                            <ColumnConstraints hgrow="ALWAYS" />
+                            <ColumnConstraints hgrow="NEVER" minWidth="120" />
+                            <ColumnConstraints hgrow="ALWAYS" />
+                        </columnConstraints>
+                        <rowConstraints>
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                        </rowConstraints>
+
+                        <Label style="-fx-font-weight: bold;" text="Nombre:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <TextField fx:id="nameField" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                        <Label style="-fx-font-weight: bold;" text="Apellido:" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+                        <TextField fx:id="lastNameField" style="-fx-background-radius: 5px;" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+
+                        <Label style="-fx-font-weight: bold;" text="DNI:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <TextField fx:id="dniField" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                        <Label style="-fx-font-weight: bold;" text="Teléfono:" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+                        <TextField fx:id="phoneNumberField" style="-fx-background-radius: 5px;" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+
+                        <Label style="-fx-font-weight: bold;" text="Email:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                        <TextField fx:id="emailField" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                        <Label style="-fx-font-weight: bold;" text="Nacionalidad:" GridPane.columnIndex="2" GridPane.rowIndex="2" />
+                        <ComboBox fx:id="nationalityComboBox" prefWidth="200.0" promptText="Seleccionar país..." style="-fx-background-radius: 5px;" GridPane.columnIndex="3" GridPane.rowIndex="2" />
+
+                        <Label style="-fx-font-weight: bold;" text="Dirección:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                        <TextField fx:id="addressField" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.columnSpan="3" GridPane.rowIndex="3" />
+                    </GridPane>
+
+                    <!-- Validación -->
+                    <VBox spacing="5.0" style="-fx-background-color: #f9f9f9; -fx-padding: 10px; -fx-background-radius: 5px;">
+                        <Label style="-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #555555;" text="📋 Validación:" />
+                        <Label fx:id="validationLabel" style="-fx-font-size: 12px; -fx-text-fill: #666666;" text="Complete todos los campos requeridos" />
+                    </VBox>
+
+                    <Separator />
+
+                    <HBox alignment="CENTER_RIGHT" spacing="15.0">
+                        <Button fx:id="saveButton" onAction="#handleSave" prefWidth="120" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px; -fx-font-weight: bold;" text="💾 Guardar" />
+                        <Button fx:id="updateButton" onAction="#handleUpdate" prefWidth="120" style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 5px;" text="🔄 Actualizar" />
+                        <Button fx:id="clearButton" onAction="#handleClear" prefWidth="120" style="-fx-background-color: #9E9E9E; -fx-text-fill: white; -fx-background-radius: 5px;" text="🧹 Limpiar" />
+                    </HBox>
+                </VBox>
+            </items>
+        </SplitPane>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER_LEFT" prefHeight="54.0" prefWidth="1100.0" spacing="10.0" style="-fx-background-color: #e8f5e8; -fx-padding: 10px;">
+            <Label style="-fx-font-weight: bold;" text="Estado:" />
+            <Label fx:id="statusLabel" text="Listo" />
+            <Pane prefWidth="926.0" HBox.hgrow="ALWAYS" />
+            <Button fx:id="closeButton" onAction="#handleClose" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🚪 Cerrar" />
+        </HBox>
+    </bottom>
+</BorderPane>

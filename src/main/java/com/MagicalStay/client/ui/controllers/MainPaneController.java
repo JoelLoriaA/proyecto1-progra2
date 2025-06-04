@@ -10,7 +10,6 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.application.Platform;
@@ -78,27 +77,27 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
 
     @FXML
     private void handleHotelManagement() {
-        openWindow("/com/MagicalStay/hotel-management.fxml", "Gestión de Hoteles");
+        openWindow(ConfiguracionApp.FXML_HOTEL_MANAGEMENT, "Gestión de Hoteles");
     }
 
     @FXML
     private void handleRoomManagement() {
-        openWindow("/com/MagicalStay/room-management.fxml", "Gestión de Habitaciones");
+        openWindow(ConfiguracionApp.FXML_ROOM_MANAGEMENT, "Gestión de Habitaciones");
     }
 
     @FXML
     private void handleBookingManagement() {
-        openWindow("/com/MagicalStay/booking-management.fxml", "Gestión de Reservas");
+        openWindow(ConfiguracionApp.FXML_BOOKING_MANAGEMENT, "Gestión de Reservas");
     }
 
     @FXML
     private void handleGuestManagement() {
-        openWindow("/com/MagicalStay/guest-management.fxml", "Gestión de Huéspedes");
+        openWindow(ConfiguracionApp.FXML_GUEST_MANAGEMENT, "Gestión de Huéspedes");
     }
 
     @FXML
     private void handleReports() {
-        openWindow("/com/MagicalStay/reports.fxml", "Reportes");
+        openWindow(ConfiguracionApp.FXML_REPORTS, "Reportes");
     }
 
     private void openWindow(String fxmlPath, String title) {

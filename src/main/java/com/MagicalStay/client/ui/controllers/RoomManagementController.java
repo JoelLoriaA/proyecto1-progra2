@@ -87,6 +87,13 @@ public class RoomManagementController implements Closeable {
     public Hotel selectedHotel;
     public boolean editMode = false;
     private final SocketCliente socketCliente;
+    @FXML
+    private TableView imagesTableView;
+    @FXML
+    private TableColumn imagePathColumn;
+    @FXML
+    private TableColumn imageNameColumn;
+  
 
     public RoomManagementController() {
         socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
@@ -520,13 +527,12 @@ public class RoomManagementController implements Closeable {
         socketCliente.enviarMensaje("OBTENER_HABITACIONES|" + selectedHotel.getHotelId());
     }
 
+    @FXML
     public void handleClose(ActionEvent e) throws IOException {
-
         DataFactory.closeAll();
 
         Stage stage = (Stage) closeButton.getScene().getWindow();
         stage.close();
-
     }
 
     @Override

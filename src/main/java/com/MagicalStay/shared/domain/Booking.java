@@ -2,17 +2,28 @@ package com.MagicalStay.shared.domain;
 
 import java.time.LocalDate;
 import java.util.List;
-
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 public class Booking {
     private int bookingId;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate leavingDate;
     private List<Room> reservedRooms;
     private FrontDeskClerk frontDeskClerk;
     private Guest guest;
     private Hotel hotel;
 
-    public Booking(int bookingId, LocalDate startDate, LocalDate leavingDate, List<Room> reservedRooms) {
+    @JsonCreator
+    public Booking(
+            @JsonProperty("bookingId") int bookingId,
+            @JsonProperty("startDate") LocalDate startDate,
+            @JsonProperty("leavingDate") LocalDate leavingDate,
+            @JsonProperty("reservedRooms") List<Room> reservedRooms) {
         this.bookingId = bookingId;
         this.startDate = startDate;
         this.leavingDate = leavingDate;

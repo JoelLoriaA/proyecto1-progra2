@@ -1,13 +1,12 @@
 package com.MagicalStay.client.data;
 
-import com.MagicalStay.shared.data.GuestData;
-import com.MagicalStay.shared.data.HotelData;
-import com.MagicalStay.shared.data.ImageStorage;
-import com.MagicalStay.shared.data.RoomData;
+import com.MagicalStay.shared.data.*;
 
 import java.io.IOException;
 
 public class DataFactory {
+    private static BookingData bookingData;
+    private static FrontDeskData frontDeskData;
     private static GuestData guestData;
     private static HotelData hotelData;
     private static RoomData roomData;
@@ -21,6 +20,20 @@ public class DataFactory {
         } catch (IOException e) {
             System.err.println("Error al crear directorio de datos: " + e.getMessage());
         }
+    }
+
+    public static BookingData getBookingData() throws IOException {
+        if (bookingData == null) {
+            bookingData = new BookingData(DATA_DIRECTORY + "bookings.dat");
+        }
+        return bookingData;
+    }
+
+    public static FrontDeskData getFrontDeskData() throws IOException {
+        if (frontDeskData == null) {
+            frontDeskData = new FrontDeskData(DATA_DIRECTORY + "frontdesk.dat");
+        }
+        return frontDeskData;
     }
 
     public static GuestData getGuestData() throws IOException {
@@ -52,6 +65,16 @@ public class DataFactory {
     }
 
     public static void closeAll() throws IOException {
+        if(bookingData != null) {
+            bookingData.close();
+            bookingData = null;
+        }
+
+        if (frontDeskData != null) {
+            frontDeskData.close();
+            frontDeskData = null;
+        }
+
         if (guestData != null) {
             guestData.close();
             guestData = null;

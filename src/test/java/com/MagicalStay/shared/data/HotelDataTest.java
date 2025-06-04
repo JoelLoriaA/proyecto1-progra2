@@ -21,15 +21,12 @@ public class HotelDataTest {
         objectMapper = new ObjectMapper();
     }
 
+
     @AfterEach
     public void cleanup() throws IOException {
-        if (hotelData != null) {
-            hotelData.close();
-        }
-        if (hotelFile != null && hotelFile.exists()) {
-            hotelFile.delete();
-        }
+        if (hotelData != null) hotelData.close();
     }
+
 
     @Test
     public void testCreateHotel() throws IOException {

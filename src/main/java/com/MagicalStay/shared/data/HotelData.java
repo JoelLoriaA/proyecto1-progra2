@@ -1,24 +1,37 @@
 package com.MagicalStay.shared.data;
 
+import com.MagicalStay.shared.domain.Guest;
 import com.MagicalStay.shared.domain.Hotel;
 import com.MagicalStay.shared.domain.Room;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class HotelData extends JsonDataResponse {
     private RandomAccessFile raf;
-    private static final int HOTEL_ID_SIZE = 3 * 2; // String de 3 caracteres (6 bytes)
-    private static final int NAME_LENGTH = 50;
-    private static final int ADDRESS_LENGTH = 100;
+    // Constantes para rooms
+    private static final int ROOM_NUMBER_LENGTH = 8;
+    private static final int ROOM_SIZE = ROOM_NUMBER_LENGTH * 2;
+    private static final int MAX_ROOMS = 20; // Reducido de 50 a 20
+    private static final int ROOMS_LIST_SIZE = MAX_ROOMS * ROOM_SIZE;
+
+    // Constantes para guests
+    private static final int GUEST_LENGTH = 30; // Nombre + ID del huésped
+    private static final int GUEST_SIZE = GUEST_LENGTH * 2;
+    private static final int MAX_GUESTS = 20;
+    private static final int GUESTS_LIST_SIZE = MAX_GUESTS * GUEST_SIZE;
+
+    // Constantes básicas del hotel
+    private static final int HOTEL_ID_SIZE = (3 + 1) * 2; // ID + espacio
+    private static final int NAME_LENGTH = 25;
+    private static final int ADDRESS_LENGTH = 40;
     private static final int NAME_SIZE = NAME_LENGTH * 2;
     private static final int ADDRESS_SIZE = ADDRESS_LENGTH * 2;
-    private static final int MAX_ROOMS = 50;
-    private static final int ROOMS_LIST_SIZE = MAX_ROOMS * (12 * 2); // 12 chars por número de habitación
-    private static final int RECORD_SIZE = HOTEL_ID_SIZE + NAME_SIZE + ADDRESS_SIZE + ROOMS_LIST_SIZE;
 
+    // Tamaño total del registro
+    private static final int RECORD_SIZE = HOTEL_ID_SIZE + NAME_SIZE + ADDRESS_SIZE + ROOMS_LIST_SIZE + GUESTS_LIST_SIZE;
 
     public HotelData(String filename) throws IOException {
         this.raf = new RandomAccessFile(filename, "rw");
@@ -27,62 +40,32 @@ public class HotelData extends JsonDataResponse {
     public HotelData() {
     }
 
-    
-public String create(Hotel hotel) throws IOException {
-    try {
-        if (hotel.getName().length() > NAME_LENGTH ||
-            hotel.getAddress().length() > ADDRESS_LENGTH) {
-            return createJsonResponse(false, "Name or address exceeds maximum length", null);
+    public String create(Hotel hotel) throws IOException {
+        try {
+            if (hotel.getName() != null && hotel.getName().length() > NAME_LENGTH) {
+                return createJsonResponse(false, "El nombre no puede exceder " + NAME_LENGTH + " caracteres", null);
+            }
+            if (hotel.getAddress() != null && hotel.getAddress().length() > ADDRESS_LENGTH) {
+                return createJsonResponse(false, "La dirección no puede exceder " + ADDRESS_LENGTH + " caracteres", null);
+            }
+
+            raf.seek(raf.length());
+            writeHotel(hotel);
+            return createJsonResponse(true, "Hotel creado exitosamente", hotel);
+        } catch (Exception e) {
+            return createJsonResponse(false, "Error al crear hotel: " + e.getMessage(), null);
         }
-
-        ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
-        buffer.putInt(hotel.getHotelId());
-        writeString(buffer, hotel.getName(), NAME_LENGTH);
-        writeString(buffer, hotel.getAddress(), ADDRESS_LENGTH);
-
-        // Inicializar lista de rooms si es null
-        List<Room> rooms = hotel.getRooms() != null ? hotel.getRooms() : new ArrayList<>();
-        
-        // Escribir las habitaciones
-        for (int i = 0; i < MAX_ROOMS; i++) {
-            String roomNumber = i < rooms.size() ? rooms.get(i).getRoomNumber() : "";
-            writeString(buffer, roomNumber, 10);
-        }
-
-        raf.seek(raf.length());
-        raf.write(buffer.array());
-
-        return createJsonResponse(true, "Hotel created successfully", hotel);
-    } catch (Exception e) {
-        return createJsonResponse(false, "Error creating hotel: " + e.getMessage(), null);
     }
-}
 
-        // Métodos públicos de retrieveById (antes read/retrieveById)
     public String retrieveById(int hotelId) throws IOException {
         try {
-            // Buscar el hotel en el archivo
             for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
                 raf.seek(pos);
-                ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
-                raf.readFully(buffer.array());
-                buffer.rewind();
-
-                int currentHotelId = buffer.getInt();
-                if (currentHotelId == hotelId) {
-                    // Si encuentra el hotel, lee sus datos
-                    String name = readString(buffer, NAME_LENGTH);
-                    String address = readString(buffer, ADDRESS_LENGTH);
-
-                    List<Room> rooms = new ArrayList<>();
-                    for (int i = 0; i < MAX_ROOMS; i++) {
-                        String roomNumber = readString(buffer, 10);
-                        if (!roomNumber.isEmpty()) {
-                            rooms.add(new Room(roomNumber, null, null, null));
-                        }
-                    }
-
-                    Hotel hotel = new Hotel(hotelId, name, address, rooms);
+                String idStr = readString(3);
+                int currentId = Integer.parseInt(idStr.trim());
+                if (currentId == hotelId) {
+                    raf.seek(pos);
+                    Hotel hotel = readHotel();
                     return createJsonResponse(true, "Hotel encontrado", hotel);
                 }
             }
@@ -97,23 +80,7 @@ public String create(Hotel hotel) throws IOException {
             List<Hotel> hotels = new ArrayList<>();
             for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
                 raf.seek(pos);
-                ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
-                raf.readFully(buffer.array());
-                buffer.rewind();
-
-                int hotelId = buffer.getInt();
-                String name = readString(buffer, NAME_LENGTH);
-                String address = readString(buffer, ADDRESS_LENGTH);
-
-                List<Room> rooms = new ArrayList<>();
-                for (int i = 0; i < MAX_ROOMS; i++) {
-                    String roomNumber = readString(buffer, 10);
-                    if (!roomNumber.isEmpty()) {
-                        rooms.add(new Room(roomNumber, null, null, null));
-                    }
-                }
-
-                hotels.add(new Hotel(hotelId, name, address, rooms));
+                hotels.add(readHotel());
             }
             return createJsonResponse(true, "Hoteles recuperados exitosamente", hotels);
         } catch (Exception e) {
@@ -121,210 +88,149 @@ public String create(Hotel hotel) throws IOException {
         }
     }
 
-    // Read All
-    public List<Hotel> getAllHotels() throws IOException {
-        List<Hotel> hotels = new ArrayList<>();
-        for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
-            raf.seek(pos);
-            ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
-            raf.readFully(buffer.array());
-            buffer.rewind();
-
-            int hotelId = buffer.getInt();
-            String name = readString(buffer, NAME_LENGTH);
-            String address = readString(buffer, ADDRESS_LENGTH);
-
-            List<Room> rooms = new ArrayList<>();
-            for (int i = 0; i < MAX_ROOMS; i++) {
-                String roomNumber = readString(buffer, 10);
-                if (!roomNumber.isEmpty()) {
-                    rooms.add(new Room(roomNumber, null, null, null));
-                }
-            }
-
-            hotels.add(new Hotel(hotelId, name, address, rooms));
-        }
-        return hotels;
-    }
-
-    public String retrieveByName(String searchName) throws IOException {  // nombre se mantiene
-    try {
-        List<Hotel> matchingHotels = retrieveHotelsByName(searchName); // antes findHotelsByName
-        if (!matchingHotels.isEmpty()) {
-            return createJsonResponse(true, "Hoteles encontrados", matchingHotels);
-        }
-        return createJsonResponse(false, "No se encontraron hoteles con ese nombre", null);
-    } catch (Exception e) {
-        return createJsonResponse(false, "Error al buscar hoteles: " + e.getMessage(), null);
-    }
-}
-
-private List<Hotel> retrieveHotelsByName(String searchName) throws IOException {  // antes findHotelsByName
-        List<Hotel> matchingHotels = new ArrayList<>();
-        searchName = searchName.toLowerCase();
-
-        for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
-            raf.seek(pos);
-            ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
-            raf.readFully(buffer.array());
-            buffer.rewind();
-
-            int hotelId = buffer.getInt();
-            String name = readString(buffer, NAME_LENGTH);
-
-            if (name.toLowerCase().contains(searchName)) {
-                // Si encuentra coincidencia, lee el registro completo
-                String address = readString(buffer, ADDRESS_LENGTH);
-                List<Room> rooms = new ArrayList<>();
-                for (int i = 0; i < MAX_ROOMS; i++) {
-                    String roomNumber = readString(buffer, 10);
-                    if (!roomNumber.isEmpty()) {
-                        rooms.add(new Room(roomNumber, null, null, null));
-                    }
-                }
-                matchingHotels.add(new Hotel(hotelId, name, address, rooms));
-            }
-        }
-        return matchingHotels;
-}
-
-public String retrieveByAddress(String searchAddress) throws IOException {  // nombre se mantiene
-    try {
-        List<Hotel> matchingHotels = retrieveHotelsByAddress(searchAddress);
-        if (!matchingHotels.isEmpty()) {
-            return createJsonResponse(true, "Hoteles encontrados", matchingHotels);
-        }
-        return createJsonResponse(false, "No se encontraron hoteles en esa dirección", null);
-    } catch (Exception e) {
-        return createJsonResponse(false, "Error al buscar hoteles: " + e.getMessage(), null);
-    }
-}
-    // Update
     public String update(Hotel hotel) throws IOException {
         try {
-            if (hotel.getName().length() > NAME_LENGTH ||
-                hotel.getAddress().length() > ADDRESS_LENGTH) {
-                return createJsonResponse(false, "Name or address exceeds maximum length", null);
+            if (hotel.getName() != null && hotel.getName().length() > NAME_LENGTH) {
+                return createJsonResponse(false, "El nombre no puede exceder " + NAME_LENGTH + " caracteres", null);
+            }
+            if (hotel.getAddress() != null && hotel.getAddress().length() > ADDRESS_LENGTH) {
+                return createJsonResponse(false, "La dirección no puede exceder " + ADDRESS_LENGTH + " caracteres", null);
             }
 
-            if (updateHotelInFile(hotel)) {
-                return createJsonResponse(true, "Hotel updated successfully", hotel);
+            for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
+                raf.seek(pos);
+                String idStr = readString(3);
+                int currentId = Integer.parseInt(idStr.trim());
+                if (currentId == hotel.getHotelId()) {
+                    raf.seek(pos);
+                    writeHotel(hotel);
+                    return createJsonResponse(true, "Hotel actualizado exitosamente", hotel);
+                }
             }
-            return createJsonResponse(false, "Hotel not found", null);
+            return createJsonResponse(false, "Hotel no encontrado", null);
         } catch (Exception e) {
-            return createJsonResponse(false, "Error updating hotel: " + e.getMessage(), null);
+            return createJsonResponse(false, "Error al actualizar hotel: " + e.getMessage(), null);
         }
     }
 
     public String delete(int hotelId) throws IOException {
         try {
-            if (deleteHotelFromFile(hotelId)) {
-                return createJsonResponse(true, "Hotel deleted successfully", null);
+            for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
+                raf.seek(pos);
+                String idStr = readString(3); // Leemos los 3 caracteres del ID
+                int currentId = Integer.parseInt(idStr.trim());
+
+                if (currentId == hotelId) {
+                    moveRemainingRecords(pos);
+                    raf.setLength(raf.length() - RECORD_SIZE);
+                    return createJsonResponse(true, "Hotel eliminado exitosamente", null);
+                }
             }
-            return createJsonResponse(false, "Hotel not found", null);
+            return createJsonResponse(false, "Hotel no encontrado", null);
         } catch (Exception e) {
-            return createJsonResponse(false, "Error deleting hotel: " + e.getMessage(), null);
+            return createJsonResponse(false, "Error al eliminar hotel: " + e.getMessage(), null);
         }
     }
 
-    
+    private void writeHotel(Hotel hotel) throws IOException {
+        // ID y espacio
+        String hotelIdStr = String.format("%03d", hotel.getHotelId());
+        writeString(hotelIdStr, 3);
+        writeString(" ", 1);
 
-    // Update
-    private boolean updateHotelInFile(Hotel hotel) throws IOException {
-        // Validación de campos básicos
-        if (hotel.getName() == null || hotel.getAddress() == null) {
-            throw new IllegalArgumentException("Nombre y dirección son requeridos");
+        // Información básica del hotel
+        writeString(padRight(hotel.getName(), NAME_LENGTH), NAME_LENGTH);
+        writeString(padRight(hotel.getAddress(), ADDRESS_LENGTH), ADDRESS_LENGTH);
+
+        // Lista de habitaciones
+        List<Room> rooms = hotel.getRooms() != null ? hotel.getRooms() : new ArrayList<>();
+        for (int i = 0; i < MAX_ROOMS; i++) {
+            String roomInfo = "";
+            if (i < rooms.size() && rooms.get(i) != null) {
+                roomInfo = padRight(rooms.get(i).getRoomNumber(), ROOM_NUMBER_LENGTH);
+            }
+            writeString(roomInfo, ROOM_NUMBER_LENGTH);
         }
 
-        if (hotel.getName().length() > NAME_LENGTH ||
-            hotel.getAddress().length() > ADDRESS_LENGTH) {
-            throw new IllegalArgumentException("Nombre o dirección exceden el largo máximo");
+        // Lista de huéspedes
+        List<Guest> guests = hotel.getGuests() != null ? hotel.getGuests() : new ArrayList<>();
+        for (int i = 0; i < MAX_GUESTS; i++) {
+            String guestInfo = "";
+            if (i < guests.size() && guests.get(i) != null) {
+                guestInfo = padRight(
+                        guests.get(i).getName() + ";" + guests.get(i).getId(),
+                        GUEST_LENGTH
+                );
+            }
+            writeString(guestInfo, GUEST_LENGTH);
         }
+    }
 
-        // Buscar y actualizar el hotel
-        for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
-            raf.seek(pos);
-            if (raf.readInt() == hotel.getHotelId()) {
-                raf.seek(pos);
-                ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
+    private Hotel readHotel() throws IOException {
+        // Leer ID
+        String hotelIdStr = readString(3);
+        readString(1); // Saltar espacio
+        int hotelId = Integer.parseInt(hotelIdStr.trim());
 
-                // Escribir datos básicos
-                buffer.putInt(hotel.getHotelId());
-                writeString(buffer, hotel.getName(), NAME_LENGTH);
-                writeString(buffer, hotel.getAddress(), ADDRESS_LENGTH);
+        // Leer información básica
+        String name = readString(NAME_LENGTH).trim();
+        String address = readString(ADDRESS_LENGTH).trim();
 
-                // Validar y escribir habitaciones
-                List<Room> rooms = hotel.getRooms();
-                if (rooms == null) {
-                    // Si las habitaciones son nulas, mantener las habitaciones existentes
-                    raf.seek(pos + 4 + NAME_SIZE + ADDRESS_SIZE); // Posicionarse después de los datos básicos
-                    byte[] existingRooms = new byte[ROOMS_LIST_SIZE];
-                    raf.readFully(existingRooms);
-                    buffer.put(existingRooms);
-                } else {
-                    // Escribir las nuevas habitaciones
-                    for (int i = 0; i < MAX_ROOMS; i++) {
-                        String roomNumber = "";
-                        if (i < rooms.size() && rooms.get(i) != null) {
-                            roomNumber = rooms.get(i).getRoomNumber();
-                        }
-                        writeString(buffer, roomNumber != null ? roomNumber : "", 10);
-                    }
-                }
-
-                // Escribir el buffer actualizado
-                raf.seek(pos);
-                raf.write(buffer.array());
-                raf.getFD().sync(); // Asegurar que los cambios se escriban en disco
-                
-                return true;
+        // Leer habitaciones
+        List<Room> rooms = new ArrayList<>();
+        for (int i = 0; i < MAX_ROOMS; i++) {
+            String roomNumber = readString(ROOM_NUMBER_LENGTH).trim();
+            if (!roomNumber.isEmpty()) {
+                rooms.add(new Room(roomNumber, null, null, null));
             }
         }
-        return false;
-    }
 
-    // Delete
-    private boolean deleteHotelFromFile(int hotelId) throws IOException {
-        for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
-            raf.seek(pos);
-            if (raf.readInt() == hotelId) {
-                // Mover todos los registros siguientes una posición hacia arriba
-                long nextPos = pos + RECORD_SIZE;
-                while (nextPos < raf.length()) {
-                    raf.seek(nextPos);
-                    byte[] nextRecord = new byte[RECORD_SIZE];
-                    raf.readFully(nextRecord);
-                    raf.seek(nextPos - RECORD_SIZE);
-                    raf.write(nextRecord);
-                    nextPos += RECORD_SIZE;
+        // Leer huéspedes
+        List<Guest> guests = new ArrayList<>();
+        for (int i = 0; i < MAX_GUESTS; i++) {
+            String guestInfo = readString(GUEST_LENGTH).trim();
+            if (!guestInfo.isEmpty()) {
+                String[] parts = guestInfo.split(";");
+                if (parts.length == 2) {
+                    guests.add(new Guest(parts[1], parts[0]));
                 }
-                raf.setLength(raf.length() - RECORD_SIZE);
-                return true;
             }
         }
-        return false;
+
+        return new Hotel(hotelId, name, address, rooms, guests);
     }
 
-    // Métodos auxiliares para manejo de strings
-    private void writeString(ByteBuffer buffer, String str, int length) {
+    private void writeString(String str, int length) throws IOException {
         for (int i = 0; i < length; i++) {
-            buffer.putChar(i < str.length() ? str.charAt(i) : '\0');
+            raf.writeChar(i < str.length() ? str.charAt(i) : '\0');
         }
     }
 
-    private String readString(ByteBuffer buffer, int length) {
+    private String readString(int length) throws IOException {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {
-            char c = buffer.getChar();
-            if (c != '\0') {
-                sb.append(c);
-            }
+            char c = raf.readChar();
+            if (c != '\0') sb.append(c);
         }
-        return sb.toString();
+        return sb.toString().trim();
     }
 
-    // Método para buscar por nombre (búsqueda parcial)
-    
+    private void moveRemainingRecords(long pos) throws IOException {
+            byte[] buffer = new byte[RECORD_SIZE];
+            long nextPos = pos + RECORD_SIZE;
+
+            while (nextPos < raf.length()) {
+                // Leer el siguiente registro
+                raf.seek(nextPos);
+                raf.readFully(buffer);
+
+                // Escribir en la posición actual
+                raf.seek(nextPos - RECORD_SIZE);
+                raf.write(buffer);
+
+                nextPos += RECORD_SIZE;
+            }
+    }
 
     public void close() throws IOException {
         if (raf != null) {
@@ -333,59 +239,113 @@ public String retrieveByAddress(String searchAddress) throws IOException {  // n
     }
 
     public Hotel findById(int id) throws IOException {
-        for (int pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
+        for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
             raf.seek(pos);
-            ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
-            raf.readFully(buffer.array());
-            buffer.rewind();
-    
-            int hotelId = buffer.getInt();
-            String name = readString(buffer, NAME_LENGTH);
-            String address = readString(buffer, ADDRESS_LENGTH);
-    
-            List<Room> rooms = new ArrayList<>();
-            for (int i = 0; i < MAX_ROOMS; i++) {
-                String roomNumber = readString(buffer, 10);
-                if (!roomNumber.isEmpty()) {
-                    rooms.add(new Room(roomNumber, null, null, null));
-                }
-            }
-    
+            int hotelId = raf.readInt();
             if (hotelId == id) {
-                return new Hotel(hotelId, name, address, rooms);
+                raf.seek(pos);
+                return readHotel();
             }
         }
         return null;
     }
-    
-    
 
-    private List<Hotel> retrieveHotelsByAddress(String searchAddress) throws IOException {
-        List<Hotel> matchingHotels = new ArrayList<>();
-        searchAddress = searchAddress.toLowerCase();
+    public String retrieveByName(String searchName) throws IOException {
+        try {
+            List<Hotel> matchingHotels = new ArrayList<>();
+            searchName = searchName.toLowerCase();
 
-        for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
-            raf.seek(pos);
-            ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
-            raf.readFully(buffer.array());
-            buffer.rewind();
-
-            int hotelId = buffer.getInt();
-            String name = readString(buffer, NAME_LENGTH);
-            String address = readString(buffer, ADDRESS_LENGTH);
-
-            if (address.toLowerCase().contains(searchAddress)) {
-                List<Room> rooms = new ArrayList<>();
-                for (int i = 0; i < MAX_ROOMS; i++) {
-                    String roomNumber = readString(buffer, 10);
-                    if (!roomNumber.isEmpty()) {
-                        rooms.add(new Room(roomNumber, null, null, null));
-                    }
+            for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
+                raf.seek(pos);
+                Hotel hotel = readHotel();
+                if (hotel.getName().toLowerCase().contains(searchName)) {
+                    matchingHotels.add(hotel);
                 }
-                matchingHotels.add(new Hotel(hotelId, name, address, rooms));
             }
+
+            if (!matchingHotels.isEmpty()) {
+                return createJsonResponse(true, "Hoteles encontrados", matchingHotels);
+            }
+            return createJsonResponse(false, "No se encontraron hoteles con ese nombre", null);
+        } catch (Exception e) {
+            return createJsonResponse(false, "Error al buscar hoteles: " + e.getMessage(), null);
         }
-        return matchingHotels;
+    }
+
+    public String retrieveByAddress(String searchAddress) throws IOException {
+        try {
+            List<Hotel> matchingHotels = new ArrayList<>();
+            searchAddress = searchAddress.toLowerCase();
+
+            for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
+                raf.seek(pos);
+                Hotel hotel = readHotel();
+                if (hotel.getAddress().toLowerCase().contains(searchAddress)) {
+                    matchingHotels.add(hotel);
+                }
+            }
+
+            if (!matchingHotels.isEmpty()) {
+                return createJsonResponse(true, "Hoteles encontrados", matchingHotels);
+            }
+            return createJsonResponse(false, "No se encontraron hoteles en esa dirección", null);
+        } catch (Exception e) {
+            return createJsonResponse(false, "Error al buscar hoteles: " + e.getMessage(), null);
+        }
+    }
+
+    private String padRight(String str, int length) {
+        if (str == null) {
+            str = "";
+        }
+        str = str.trim();
+        return String.format("%-" + length + "s",
+                str.length() > length ? str.substring(0, length) : str);
+    }
+
+    public List<Hotel> getAllHotels() {
+        List<Hotel> hotels = new ArrayList<>();
+        try {
+            raf.seek(0);
+            long numRecords = raf.length() / RECORD_SIZE;
+    
+            for (int i = 0; i < numRecords; i++) {
+                raf.seek(i * RECORD_SIZE);
+    
+                // Leer ID del hotel
+                StringBuilder idBuilder = new StringBuilder();
+                for (int j = 0; j < 3; j++) {
+                    idBuilder.append(raf.readChar());
+                }
+                raf.readChar(); // espacio
+                int hotelId = Integer.parseInt(idBuilder.toString().trim());
+    
+                // Leer nombre
+                StringBuilder nameBuilder = new StringBuilder();
+                for (int j = 0; j < NAME_LENGTH; j++) {
+                    nameBuilder.append(raf.readChar());
+                }
+                String name = nameBuilder.toString().trim();
+    
+                // Leer dirección
+                StringBuilder addressBuilder = new StringBuilder();
+                for (int j = 0; j < ADDRESS_LENGTH; j++) {
+                    addressBuilder.append(raf.readChar());
+                }
+                String address = addressBuilder.toString().trim();
+    
+                // Omitir las habitaciones y huéspedes, si no los necesitas
+                raf.skipBytes(ROOMS_LIST_SIZE + GUESTS_LIST_SIZE);
+    
+                hotels.add(new Hotel(hotelId, name, address));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    
+        return hotels;
     }
     
+
+
 }
