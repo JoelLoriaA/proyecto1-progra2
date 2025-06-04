@@ -24,14 +24,11 @@ package com.MagicalStay.client.ui.controllers;
                     @FXML private TableColumn<FrontDeskClerk, String> nameColumn;
                     @FXML private TableColumn<FrontDeskClerk, String> lastNamesColumn;
                     @FXML private TableColumn<FrontDeskClerk, String> employeeIdColumn;
-                    @FXML private TableColumn<FrontDeskClerk, Integer> dniColumn;
-                    @FXML private TableColumn<FrontDeskClerk, String> usernameColumn;
 
                     @FXML private TextField nameField;
                     @FXML private TextField lastNamesField;
                     @FXML private TextField employeeIdField;
                     @FXML private TextField dniField;
-                    @FXML private TextField usernameField;
                     @FXML private PasswordField passwordField;
 
                     @FXML private TextField searchTextField;
@@ -50,6 +47,16 @@ package com.MagicalStay.client.ui.controllers;
                     private ObservableList<FrontDeskClerk> clerkList;
                     private FrontDeskClerk selectedClerk;
                     private boolean editMode = false;
+                    @FXML
+                    private TextField usernameField;
+                    @FXML
+                    private TableColumn usernameColumn;
+                    @FXML
+                    private Button cancelButton;
+                    @FXML
+                    private TableColumn dniColumn;
+                    @FXML private TextField phoneNumberField;
+                    @FXML private TableColumn<FrontDeskClerk, Integer> phoneColumn;
 
                     @FXML
                     private void initialize() {
@@ -59,7 +66,6 @@ package com.MagicalStay.client.ui.controllers;
 
                             setupTable();
                             setupSearchControls();
-                            loadClerksFromFile();
                             setFieldsEnabled(false);
 
                             editButton.setDisable(true);
@@ -71,13 +77,21 @@ package com.MagicalStay.client.ui.controllers;
                         }
                     }
 
+
                     private void setupTable() {
+                        // Especificar tipos genéricos para todas las columnas
                         nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
                         lastNamesColumn.setCellValueFactory(new PropertyValueFactory<>("lastNames"));
                         employeeIdColumn.setCellValueFactory(new PropertyValueFactory<>("employeeId"));
-                        dniColumn.setCellValueFactory(new PropertyValueFactory<>("dni"));
-                        usernameColumn.setCellValueFactory(new PropertyValueFactory<>("username"));
+                        dniColumn.setCellValueFactory(new PropertyValueFactory<FrontDeskClerk, Long>("dni"));
+                        usernameColumn.setCellValueFactory(new PropertyValueFactory<FrontDeskClerk, String>("username"));
+                        phoneColumn.setCellValueFactory(new PropertyValueFactory<>("phoneNumber"));
+
+                        // Agregar debug
+                        System.out.println("Configurando tabla...");
+                        loadClerksFromFile();
                     }
+
 
                     private void setupSearchControls() {
                         searchTypeComboBox.setItems(FXCollections.observableArrayList(
@@ -92,6 +106,8 @@ package com.MagicalStay.client.ui.controllers;
                     private void loadClerksFromFile() {
                         try {
                             String jsonResponse = frontDeskData.retrieveAll();
+                            System.out.println("JSON Response: " + jsonResponse); // Debug
+                            
                             DataResponse response = parseDataResponse(jsonResponse);
 
                             if (response.isSuccess()) {
@@ -101,6 +117,7 @@ package com.MagicalStay.client.ui.controllers;
                                 );
                                 clerkList = FXCollections.observableArrayList(clerks);
                                 clerkTableView.setItems(clerkList);
+                                System.out.println("Clerks loaded: " + clerks.size()); // Debug
                                 showSuccess("Se cargaron " + clerks.size() + " recepcionistas");
                             } else {
                                 clerkList = FXCollections.observableArrayList();
@@ -108,11 +125,12 @@ package com.MagicalStay.client.ui.controllers;
                                 showError("No se encontraron recepcionistas: " + response.getMessage());
                             }
                         } catch (Exception e) {
+                            e.printStackTrace(); // Añadir stack trace completo
                             showError("Error al cargar recepcionistas: " + e.getMessage());
                         }
                     }
 
-                    @FXML
+                   @FXML
                     private void handleClerkSelection(MouseEvent event) {
                         selectedClerk = clerkTableView.getSelectionModel().getSelectedItem();
                         if (selectedClerk != null) {
@@ -121,59 +139,12 @@ package com.MagicalStay.client.ui.controllers;
                             employeeIdField.setText(selectedClerk.getEmployeeId());
                             dniField.setText(String.valueOf(selectedClerk.getDni()));
                             usernameField.setText(selectedClerk.getUsername());
+                            phoneNumberField.setText(String.valueOf(selectedClerk.getPhoneNumber()));
                             passwordField.clear();
 
                             editButton.setDisable(false);
                             deleteButton.setDisable(false);
                             setFieldsEnabled(false);
-                        }
-                    }
-
-                    @FXML
-                    private void handleSearch(ActionEvent event) {
-                        String searchText = searchTextField.getText().trim();
-                        String searchType = searchTypeComboBox.getValue();
-
-                        try {
-                            String jsonResponse;
-                            if (searchText.isEmpty() || searchType.equals("Todos")) {
-                                jsonResponse = frontDeskData.retrieveAll();
-                            } else {
-                                switch (searchType) {
-                                    case "Por Nombre":
-                                        jsonResponse = frontDeskData.retrieveByName(searchText);
-                                        break;
-                                    case "Por ID Empleado":
-                                        jsonResponse = frontDeskData.retrieveById(searchText);
-                                        break;
-                                    case "Por DNI":
-                                        try {
-                                            long dni = Integer.parseInt(searchText);
-                                            jsonResponse = frontDeskData.retrieveByDni(dni);
-                                        } catch (NumberFormatException e) {
-                                            showError("El DNI debe ser un número válido");
-                                            return;
-                                        }
-                                        break;
-                                    default:
-                                        jsonResponse = frontDeskData.retrieveAll();
-                                }
-                            }
-
-                            DataResponse response = parseDataResponse(jsonResponse);
-                            if (response.isSuccess()) {
-                                List<FrontDeskClerk> clerks = objectMapper.convertValue(
-                                    response.getData(),
-                                    new TypeReference<List<FrontDeskClerk>>() {}
-                                );
-                                clerkTableView.setItems(FXCollections.observableArrayList(clerks));
-                                showSuccess("Búsqueda completada con éxito");
-                            } else {
-                                clerkTableView.setItems(FXCollections.observableArrayList());
-                                showError("No se encontraron resultados");
-                            }
-                        } catch (Exception e) {
-                            showError("Error en la búsqueda: " + e.getMessage());
                         }
                     }
 
@@ -233,7 +204,8 @@ package com.MagicalStay.client.ui.controllers;
                                 nameField.getText(),
                                 lastNamesField.getText(),
                                 employeeIdField.getText(),
-                                Integer.parseInt(dniField.getText()),
+                                Integer.parseInt(phoneNumberField.getText()),
+                                Long.parseLong(dniField.getText()),
                                 usernameField.getText(),
                                 passwordField.getText()
                             );
@@ -282,6 +254,7 @@ package com.MagicalStay.client.ui.controllers;
                         dniField.clear();
                         usernameField.clear();
                         passwordField.clear();
+                        phoneNumberField.clear();
                         selectedClerk = null;
                     }
 
@@ -289,6 +262,7 @@ package com.MagicalStay.client.ui.controllers;
                         nameField.setDisable(!enabled);
                         lastNamesField.setDisable(!enabled);
                         employeeIdField.setDisable(!enabled);
+                        phoneNumberField.setDisable(!enabled);
                         dniField.setDisable(!enabled);
                         usernameField.setDisable(!enabled);
                         passwordField.setDisable(!enabled);
@@ -322,6 +296,16 @@ package com.MagicalStay.client.ui.controllers;
                             errorMessage += "La contraseña es requerida\n";
                         }
 
+                        if (phoneNumberField.getText().trim().isEmpty()) {
+                            errorMessage += "El teléfono es requerido\n";
+                        } else {
+                            try {
+                                Integer.parseInt(phoneNumberField.getText().trim());
+                            } catch (NumberFormatException e) {
+                                errorMessage += "El teléfono debe ser un número válido\n";
+                            }
+                        }
+
                         if (!errorMessage.isEmpty()) {
                             showError(errorMessage);
                             return false;
@@ -342,6 +326,82 @@ package com.MagicalStay.client.ui.controllers;
 
                     private DataResponse parseDataResponse(String jsonResponse) throws IOException {
                         return objectMapper.readValue(jsonResponse, DataResponse.class);
+                    }
+
+                   @FXML
+                    private void handleCancel() {
+                        clearFields();
+                        setFieldsEnabled(false);
+                        saveButton.setDisable(true);
+                        cancelButton.setDisable(true);
+                        editButton.setDisable(true);
+                        deleteButton.setDisable(true);
+                        selectedClerk = null;
+                        editMode = false;
+                        statusLabel.setText("Operación cancelada");
+                    }
+
+                    @FXML
+                    private void handleSearch() {
+                        try {
+                            String searchText = searchTextField.getText().trim();
+                            String searchType = searchTypeComboBox.getValue();
+                            String jsonResponse;
+
+                            if (searchText.isEmpty() || searchType == null) {
+                                loadClerksFromFile();
+                                return;
+                            }
+
+                            switch (searchType) {
+                                case "Por Nombre":
+                                    jsonResponse = frontDeskData.retrieveByName(searchText);
+                                    break;
+                                case "Por ID Empleado":
+                                    jsonResponse = frontDeskData.retrieveById(searchText);
+                                    break;
+                                case "Por DNI":
+                                    try {
+                                        long dni = Long.parseLong(searchText);
+                                        jsonResponse = frontDeskData.retrieveByDni(dni);
+                                    } catch (NumberFormatException e) {
+                                        showError("El DNI debe ser un número válido");
+                                        return;
+                                    }
+                                    break;
+                                case "Todos":
+                                    loadClerksFromFile();
+                                    return;
+                                default:
+                                    showError("Tipo de búsqueda no válido");
+                                    return;
+                            }
+
+                            DataResponse response = parseDataResponse(jsonResponse);
+                            if (response.isSuccess()) {
+                                if (response.getData() instanceof List) {
+                                    List<FrontDeskClerk> clerks = objectMapper.convertValue(
+                                        response.getData(),
+                                        new TypeReference<List<FrontDeskClerk>>() {}
+                                    );
+                                    clerkTableView.setItems(FXCollections.observableArrayList(clerks));
+                                    showSuccess("Se encontraron " + clerks.size() + " resultados");
+                                } else {
+                                    FrontDeskClerk clerk = objectMapper.convertValue(
+                                        response.getData(),
+                                        FrontDeskClerk.class
+                                    );
+                                    clerkTableView.setItems(FXCollections.observableArrayList(clerk));
+                                    showSuccess("Se encontró 1 resultado");
+                                }
+                            } else {
+                                clerkTableView.setItems(FXCollections.observableArrayList());
+                                showError("No se encontraron resultados: " + response.getMessage());
+                            }
+
+                        } catch (Exception e) {
+                            showError("Error al realizar la búsqueda: " + e.getMessage());
+                        }
                     }
 
                     private static class DataResponse {

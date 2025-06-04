@@ -11,7 +11,6 @@ package com.MagicalStay.shared.domain;
         private String username;
         private String password;
         private int phoneNumber;
-        private String user;
 
         // Constructor por defecto necesario para Jackson
         public FrontDeskClerk() {
@@ -24,13 +23,16 @@ package com.MagicalStay.shared.domain;
                 @JsonProperty("lastNames") String lastNames,
                 @JsonProperty("employeeId") String employeeId,
                 @JsonProperty("phoneNumber") int phoneNumber,
-                @JsonProperty("user") String user,
-                @JsonProperty("password") String password) {
+                @JsonProperty("dni") long dni,
+                @JsonProperty("username") String username,
+                @JsonProperty("password") String password)
+                                    {
             this.name = name;
             this.lastNames = lastNames;
             this.employeeId = employeeId;
+            this.dni = dni;
+            this.username = username;
             this.phoneNumber = phoneNumber;
-            this.user = user;
             this.password = password;
         }
 
@@ -72,15 +74,6 @@ package com.MagicalStay.shared.domain;
             this.phoneNumber = phoneNumber;
         }
 
-        @JsonProperty("user")
-        public String getUser() {
-            return user;
-        }
-
-        public void setUser(String user) {
-            this.user = user;
-        }
-
         @JsonProperty("password")
         public String getPassword() {
             return password;
@@ -90,7 +83,7 @@ package com.MagicalStay.shared.domain;
             this.password = password;
         }
 
-        @JsonProperty("Dni")
+        @JsonProperty("dni")
         public long getDni() {
             return dni;
         }
@@ -99,7 +92,7 @@ package com.MagicalStay.shared.domain;
             this.dni = dni;
         }
 
-        @JsonProperty("Username")
+        @JsonProperty("username")
         public String getUsername() {
             return username;
         }

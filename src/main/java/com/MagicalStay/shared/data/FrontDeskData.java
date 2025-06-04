@@ -154,12 +154,20 @@ package com.MagicalStay.shared.data;
                 String name = readString(NAME_LENGTH);
                 String lastNames = readString(LAST_NAMES_LENGTH);
                 String employeeId = readString(EMPLOYEE_ID_LENGTH);
-                int dni = raf.readInt();
+                long dni = raf.readInt();
                 String username = readString(USERNAME_LENGTH);
                 String password = readString(PASSWORD_LENGTH);
                 int phoneNumber = raf.readInt();
 
-                return new FrontDeskClerk(name, lastNames, employeeId, phoneNumber, username, password);
+                return new FrontDeskClerk(
+                    name.trim(),
+                    lastNames.trim(),
+                    employeeId.trim(),
+                    phoneNumber,
+                    dni,
+                    username.trim(),
+                    password.trim()
+                );
             }
 
             private void writeString(String str, int length) throws IOException {

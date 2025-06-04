@@ -135,12 +135,13 @@ public class BookingData extends JsonDataResponse {
                     String[] clerkParts = clerkInfo.split(";");
                     if (clerkParts.length == 2) {
                         clerk = new FrontDeskClerk(
-                                clerkParts[0],     // nombre
-                                "",                // apellidos (vacío ya que no lo tenemos)
-                                clerkParts[1],     // ID empleado
-                                0,                 // dni (0 como valor por defecto)
-                                "",               // username (vacío)
-                                ""                // password (vacío)
+                            clerkParts[0],     // nombre
+                            "Sin Apellidos",   // apellidos
+                            clerkParts[1],     // ID empleado
+                            0,                 // phoneNumber (por defecto)
+                            0L,               // dni (por defecto)
+                            "user",           // username (por defecto)
+                            "pass"           // password (por defecto)
                         );
                     }
                 }

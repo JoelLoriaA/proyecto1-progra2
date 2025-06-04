@@ -129,7 +129,7 @@ public class BookingManagementController {
         try {
             String hotelResponse = DataFactory.getHotelData().retrieveAll();
             String guestResponse = DataFactory.getGuestData().retrieveAll();
-            String clerkResponse = DataFactory.getFrontDeskData().readAll();
+            String clerkResponse = DataFactory.getFrontDeskData().retrieveAll();
 
             DataResponse hotelDataResponse = parseDataResponse(hotelResponse);
             DataResponse guestDataResponse = parseDataResponse(guestResponse);
@@ -138,28 +138,31 @@ public class BookingManagementController {
             // Configurar ComboBox de hoteles
             if (hotelDataResponse.isSuccess()) {
                 List<Hotel> hotels = objectMapper.convertValue(hotelDataResponse.getData(),
-                        new TypeReference<List<Hotel>>() {
-                        });
-
-                // Asignar habitaciones ficticias a cada hotel
-                for (Hotel hotel : hotels) {
-                    hotel.setRooms(createDummyRooms());
-                }
+                        new TypeReference<List<Hotel>>() {});
 
                 hotelComboBox.setItems(FXCollections.observableArrayList(hotels));
                 hotelComboBox.setCellFactory(param -> new ListCell<Hotel>() {
                     @Override
                     protected void updateItem(Hotel hotel, boolean empty) {
                         super.updateItem(hotel, empty);
-                        setText(empty || hotel == null ? "" : hotel.getName());
+                        if (empty || hotel == null) {
+                            setText(null);
+                        } else {
+                            setText(hotel.getName());
+                        }
                     }
                 });
                 hotelComboBox.setButtonCell(hotelComboBox.getCellFactory().call(null));
+
+                // Actualizar habitaciones cuando se selecciona un hotel
+                hotelComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+                    if (newVal != null) {
+                        updateAvailableRooms();
+                    }
+                });
             }
 
-
-
-            // Configurar ComboBox de huéspedes (nombre y apellidos)
+            // Configurar ComboBox de huéspedes
             if (guestDataResponse.isSuccess()) {
                 List<Guest> guests = objectMapper.convertValue(guestDataResponse.getData(),
                         new TypeReference<List<Guest>>() {});
@@ -168,27 +171,36 @@ public class BookingManagementController {
                     @Override
                     protected void updateItem(Guest guest, boolean empty) {
                         super.updateItem(guest, empty);
-                        setText(empty || guest == null ? "" : guest.getName() + " " + guest.getLastName());
+                        if (empty || guest == null) {
+                            setText(null);
+                        } else {
+                            setText(guest.getName() + " " + guest.getLastName());
+                        }
                     }
                 });
                 guestComboBox.setButtonCell(guestComboBox.getCellFactory().call(null));
             }
 
-           // En el bloque de configuración del ComboBox de empleados dentro de setupComboBoxes()
+            // Configurar ComboBox de recepcionistas
             if (clerkDataResponse.isSuccess()) {
-                // Usar datos ficticios en lugar de los datos del servidor
-                List<FrontDeskClerk> clerks = createDummyFrontDeskClerks();
+                List<FrontDeskClerk> clerks = objectMapper.convertValue(clerkDataResponse.getData(),
+                        new TypeReference<List<FrontDeskClerk>>() {});
                 clerkComboBox.setItems(FXCollections.observableArrayList(clerks));
                 clerkComboBox.setCellFactory(param -> new ListCell<FrontDeskClerk>() {
                     @Override
                     protected void updateItem(FrontDeskClerk clerk, boolean empty) {
                         super.updateItem(clerk, empty);
-                        setText(empty || clerk == null ? "" : clerk.getName() + " " + clerk.getLastNames());
+                        if (empty || clerk == null) {
+                            setText(null);
+                        } else {
+                            setText(clerk.getName() + " " + clerk.getLastNames());
+                        }
                     }
                 });
                 clerkComboBox.setButtonCell(clerkComboBox.getCellFactory().call(null));
             }
 
+            // Configurar ComboBox de habitaciones disponibles
             availableRoomsComboBox.setCellFactory(param -> new ListCell<Room>() {
                 @Override
                 protected void updateItem(Room room, boolean empty) {
@@ -196,7 +208,7 @@ public class BookingManagementController {
                     if (empty || room == null) {
                         setText(null);
                     } else {
-                        setText(String.format("%s - %s ($%.2f/noche)",
+                        setText(String.format("Hab. %s - %s ($%.2f)",
                                 room.getRoomNumber(),
                                 room.getRoomType(),
                                 room.getPrice()));
@@ -205,10 +217,9 @@ public class BookingManagementController {
             });
             availableRoomsComboBox.setButtonCell(availableRoomsComboBox.getCellFactory().call(null));
 
-            // Agregar listener para habilitar/deshabilitar el botón añadir
-            availableRoomsComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-                addRoomButton.setDisable(newVal == null);
-            });
+            // Habilitar/deshabilitar botón añadir según selección
+            availableRoomsComboBox.valueProperty().addListener((obs, oldVal, newVal) ->
+                    addRoomButton.setDisable(newVal == null));
 
         } catch (Exception e) {
             showError("Error al cargar datos: " + e.getMessage());
@@ -305,13 +316,20 @@ public class BookingManagementController {
     private void updateAvailableRooms() {
         if (hotelComboBox.getValue() == null) return;
 
-        LocalDate startDate = startDatePicker.getValue();
-        LocalDate leavingDate = leavingDatePicker.getValue();
+        try {
+            // Obtener habitaciones del hotel seleccionado
+            List<Room> hotelRooms = DataFactory.getRoomData()
+                    .getRoomsByHotelId(hotelComboBox.getValue().getHotelId());
 
-        List<Room> allRooms = hotelComboBox.getValue().getRooms();
-        List<Room> availableRooms = findAvailableRooms(allRooms, startDate, leavingDate);
-
-        availableRoomsComboBox.setItems(FXCollections.observableArrayList(availableRooms));
+            if (validateDates()) {
+                LocalDate startDate = startDatePicker.getValue();
+                LocalDate leavingDate = leavingDatePicker.getValue();
+                List<Room> availableRooms = findAvailableRooms(hotelRooms, startDate, leavingDate);
+                availableRoomsComboBox.setItems(FXCollections.observableArrayList(availableRooms));
+            }
+        } catch (Exception e) {
+            showError("Error al actualizar habitaciones disponibles: " + e.getMessage());
+        }
     }
 
     private List<Room> findAvailableRooms(List<Room> allRooms, LocalDate startDate, LocalDate leavingDate) {
@@ -657,67 +675,6 @@ public class BookingManagementController {
         public void setMessage(String message) { this.message = message; }
         public Object getData() { return data; }
         public void setData(Object data) { this.data = data; }
-    }
-
-    private List<Room> createDummyRooms() {
-        List<Room> dummyRooms = new ArrayList<>();
-        Hotel hotel = hotelComboBox.getValue();
-
-        // Si no hay hotel seleccionado, crear uno temporal
-        if (hotel == null) {
-            hotel = new Hotel(1, "Hotel Temporal", "Dirección Temporal", new ArrayList<>());
-        }
-
-        String roomPath = "data/images/1.jpeg"; 
-
-        // Habitaciones Estándar (más económicas)
-        dummyRooms.add(new Room("101", hotel, RoomType.ESTANDAR, RoomCondition.DISPONIBLE, 50.0, 2,
-            "WiFi, TV", "Habitación estándar confortable",roomPath));
-        dummyRooms.add(new Room("102", hotel, RoomType.ESTANDAR, RoomCondition.DISPONIBLE, 50.0, 2,
-            "WiFi, TV", "Habitación estándar confortable", roomPath));
-
-        // Habitaciones Deluxe (precio intermedio)
-        dummyRooms.add(new Room("201", hotel, RoomType.DELUXE, RoomCondition.DISPONIBLE, 100.0, 3,
-            "WiFi, TV, Minibar, Vista", "Habitación deluxe con vista", roomPath));
-        dummyRooms.add(new Room("202", hotel, RoomType.DELUXE, RoomCondition.DISPONIBLE, 100.0, 3,
-            "WiFi, TV, Minibar, Vista", "Habitación deluxe con vista", roomPath));
-
-        // Habitaciones Familiares
-        dummyRooms.add(new Room("301", hotel, RoomType.FAMILIAR, RoomCondition.DISPONIBLE, 150.0, 4,
-            "WiFi, TV, Cocina, Sala", "Habitación familiar espaciosa", roomPath));
-        dummyRooms.add(new Room("302", hotel, RoomType.FAMILIAR, RoomCondition.DISPONIBLE, 150.0, 4,
-            "WiFi, TV, Cocina, Sala", "Habitación familiar espaciosa", roomPath));
-
-        // Suites (más lujosas)
-        dummyRooms.add(new Room("401", hotel, RoomType.SUITE, RoomCondition.DISPONIBLE, 200.0, 2,
-            "WiFi, TV, Jacuzzi, Minibar, Vista Premium", "Suite de lujo", roomPath));
-        dummyRooms.add(new Room("402", hotel, RoomType.SUITE, RoomCondition.DISPONIBLE, 200.0, 2,
-            "WiFi, TV, Jacuzzi, Minibar, Vista Premium", "Suite de lujo", roomPath));
-
-        return dummyRooms;
-    }
-
-    private List<FrontDeskClerk> createDummyFrontDeskClerks() {
-        List<FrontDeskClerk> dummyClerks = new ArrayList<>();
-
-        // Recepcionistas ficticios con datos completos
-        dummyClerks.add(new FrontDeskClerk(
-            "Ana", "Martínez López", "EMP001",
-            123456789, "amartinez", "pass123"));
-
-        dummyClerks.add(new FrontDeskClerk(
-            "Carlos", "Rodríguez Sánchez", "EMP002",
-            987654321, "crodriguez", "pass123"));
-
-        dummyClerks.add(new FrontDeskClerk(
-            "María", "García Torres", "EMP003",
-            456789123, "mgarcia", "pass123"));
-
-        dummyClerks.add(new FrontDeskClerk(
-            "Juan", "López Ramírez", "EMP004",
-            789123456, "jlopez", "pass123"));
-
-        return dummyClerks;
     }
 
     private void setFieldsEnabled(boolean enabled) {
