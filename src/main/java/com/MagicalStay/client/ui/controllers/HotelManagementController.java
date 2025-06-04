@@ -48,7 +48,7 @@ public class HotelManagementController {
 
     // FXML elements for hotel details
     @FXML
-    private TextField codeTextField;
+    private TextField hotelIdTextField;
 
     @FXML
     private TextField nameTextField;
@@ -163,7 +163,10 @@ public class HotelManagementController {
                     if (empty || hotel == null) {
                         setText(null);
                     } else {
-                        setText(hotel.getName() + " (" + hotel.getAddress() + ")");
+                        setText(String.format("🏨 #%d - %s 📍 %s",
+                                hotel.getHotelId(),
+                                hotel.getName(),
+                                hotel.getAddress()));
                     }
                 }
             });
@@ -300,7 +303,7 @@ private void handleHotelSelection(MouseEvent event) {
     selectedHotel = hotelListView.getSelectionModel().getSelectedItem();
     if (selectedHotel != null) {
         // Fill the fields with hotel data
-        codeTextField.setText(String.valueOf(selectedHotel.getHotelId()));
+        hotelIdTextField.setText(String.valueOf(selectedHotel.getHotelId()));
         nameTextField.setText(selectedHotel.getName());
         addressTextArea.setText(selectedHotel.getAddress());
 
@@ -381,7 +384,7 @@ private void handleHotelSelection(MouseEvent event) {
         editMode = false;
 
         // Set default values
-        codeTextField.setText("[Automático]");
+        hotelIdTextField.setText("[Automático]");
 
         saveButton.setDisable(false);
         cancelButton.setDisable(false);
@@ -553,7 +556,7 @@ private void handleHotelSelection(MouseEvent event) {
     }
 
     private void clearFields() {
-        codeTextField.clear();
+        hotelIdTextField.clear();
         nameTextField.clear();
         addressTextArea.clear();
         roomsTableView.setItems(null);

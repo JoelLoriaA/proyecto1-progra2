@@ -20,4 +20,5 @@ module com.magicalstay.progra2 {
     opens com.MagicalStay.client.data to javafx.fxml, com.fasterxml.jackson.databind;
     opens com.MagicalStay.shared.data to com.fasterxml.jackson.databind;
     opens com.MagicalStay.shared.domain to com.fasterxml.jackson.databind;
+
 }

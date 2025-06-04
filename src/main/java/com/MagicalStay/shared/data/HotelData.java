@@ -301,4 +301,6 @@ public class HotelData extends JsonDataResponse {
         return String.format("%-" + length + "s",
                 str.length() > length ? str.substring(0, length) : str);
     }
+
+
 }

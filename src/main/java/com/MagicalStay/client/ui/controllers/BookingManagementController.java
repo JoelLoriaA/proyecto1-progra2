@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 public class BookingManagementController {
     private static final double TAX_RATE = 0.12;
@@ -60,15 +62,23 @@ public class BookingManagementController {
     @FXML
     private ListView bookingListView;
 
-    @FXML
+
+   @FXML
     public void initialize() {
         try {
             bookingData = DataFactory.getBookingData();
             objectMapper = new ObjectMapper();
+
+            // Agregar soporte para LocalDate
+            objectMapper.registerModule(new JavaTimeModule());
+            objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
             setupControls();
             loadInitialData();
-        } catch (IOException e) {
+            setFieldsEnabled(false);
+        } catch (Exception e) {
             showError("Error al inicializar: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -125,22 +135,58 @@ public class BookingManagementController {
             DataResponse guestDataResponse = parseDataResponse(guestResponse);
             DataResponse clerkDataResponse = parseDataResponse(clerkResponse);
 
+            // Configurar ComboBox de hoteles
             if (hotelDataResponse.isSuccess()) {
                 List<Hotel> hotels = objectMapper.convertValue(hotelDataResponse.getData(),
-                        new TypeReference<List<Hotel>>() {});
+                        new TypeReference<List<Hotel>>() {
+                        });
+
+                // Asignar habitaciones ficticias a cada hotel
+                for (Hotel hotel : hotels) {
+                    hotel.setRooms(createDummyRooms());
+                }
+
                 hotelComboBox.setItems(FXCollections.observableArrayList(hotels));
+                hotelComboBox.setCellFactory(param -> new ListCell<Hotel>() {
+                    @Override
+                    protected void updateItem(Hotel hotel, boolean empty) {
+                        super.updateItem(hotel, empty);
+                        setText(empty || hotel == null ? "" : hotel.getName());
+                    }
+                });
+                hotelComboBox.setButtonCell(hotelComboBox.getCellFactory().call(null));
             }
 
+
+
+            // Configurar ComboBox de huéspedes (nombre y apellidos)
             if (guestDataResponse.isSuccess()) {
                 List<Guest> guests = objectMapper.convertValue(guestDataResponse.getData(),
                         new TypeReference<List<Guest>>() {});
                 guestComboBox.setItems(FXCollections.observableArrayList(guests));
+                guestComboBox.setCellFactory(param -> new ListCell<Guest>() {
+                    @Override
+                    protected void updateItem(Guest guest, boolean empty) {
+                        super.updateItem(guest, empty);
+                        setText(empty || guest == null ? "" : guest.getName() + " " + guest.getLastName());
+                    }
+                });
+                guestComboBox.setButtonCell(guestComboBox.getCellFactory().call(null));
             }
 
+           // En el bloque de configuración del ComboBox de empleados dentro de setupComboBoxes()
             if (clerkDataResponse.isSuccess()) {
-                List<FrontDeskClerk> clerks = objectMapper.convertValue(clerkDataResponse.getData(),
-                        new TypeReference<List<FrontDeskClerk>>() {});
+                // Usar datos ficticios en lugar de los datos del servidor
+                List<FrontDeskClerk> clerks = createDummyFrontDeskClerks();
                 clerkComboBox.setItems(FXCollections.observableArrayList(clerks));
+                clerkComboBox.setCellFactory(param -> new ListCell<FrontDeskClerk>() {
+                    @Override
+                    protected void updateItem(FrontDeskClerk clerk, boolean empty) {
+                        super.updateItem(clerk, empty);
+                        setText(empty || clerk == null ? "" : clerk.getName() + " " + clerk.getLastNames());
+                    }
+                });
+                clerkComboBox.setButtonCell(clerkComboBox.getCellFactory().call(null));
             }
         } catch (Exception e) {
             showError("Error al cargar datos: " + e.getMessage());
@@ -156,14 +202,8 @@ public class BookingManagementController {
     }
 
     private void bindControls() {
-        editButton.disableProperty().bind(bookingListView.getSelectionModel().selectedItemProperty().isNull());
-        deleteButton.disableProperty().bind(bookingListView.getSelectionModel().selectedItemProperty().isNull());
-        addRoomButton.disableProperty().bind(availableRoomsComboBox.valueProperty().isNull());
-        saveButton.disableProperty().bind(
-                hotelComboBox.valueProperty().isNull()
-                        .or(guestComboBox.valueProperty().isNull())
-                        .or(clerkComboBox.valueProperty().isNull())
-        );
+            editButton.disableProperty().bind(bookingListView.getSelectionModel().selectedItemProperty().isNull());
+            deleteButton.disableProperty().bind(bookingListView.getSelectionModel().selectedItemProperty().isNull());
     }
 
     private void loadInitialData() {
@@ -295,7 +335,7 @@ public class BookingManagementController {
         return subtotal + tax + SERVICE_FEE;
     }
 
-    @FXML
+    @Deprecated
     public void handleSearch(ActionEvent event) {
         String searchType = searchTypeComboBox.getValue();
         String searchText = searchTextField.getText().trim();
@@ -374,25 +414,18 @@ public class BookingManagementController {
     }
 
     @FXML
-    public void handleAddReservation(ActionEvent event){
-            clearForm();
-            isEditing = false;
-            try {
-                String jsonResponse = bookingData.retrieveAll();
-                DataResponse response = parseDataResponse(jsonResponse);
-
-                if (response.isSuccess()) {
-                    List<Booking> bookingList = objectMapper.convertValue(response.getData(),
-                            new TypeReference<List<Booking>>() {});
-                    int newId = bookingList.size() + 1;
-                    bookingIdTextField.setText(String.valueOf(newId));
-                } else {
-                    bookingIdTextField.setText("1");
-                }
-            } catch (Exception e) {
-                showError("Error al generar nuevo ID: " + e.getMessage());
-                bookingIdTextField.setText("1");
-            }
+    public void handleAddReservation(ActionEvent event) {
+        clearForm();
+        isEditing = false;
+        setFieldsEnabled(true); // Habilitar campos
+        try {
+            int nextId = DataFactory.getBookingData().getNextBookingId();
+            bookingIdTextField.setText("[Automático]");
+            bookingIdTextField.setDisable(true);
+            saveButton.setDisable(false);
+        } catch (IOException e) {
+            showError("Error al generar ID de reserva: " + e.getMessage());
+        }
     }
 
     @FXML
@@ -431,8 +464,8 @@ public class BookingManagementController {
         return validateDates();
     }
 
-    private Booking createBooking() {
-        int bookingId = Integer.parseInt(bookingIdTextField.getText());
+    private Booking createBooking() throws IOException {
+        int bookingId = DataFactory.getBookingData().getNextBookingId();
         Booking booking = new Booking(
                 bookingId,
                 startDatePicker.getValue(),
@@ -475,6 +508,7 @@ public class BookingManagementController {
         availableRoomsComboBox.setValue(null);
         reservedRooms.clear();
         updateCalculations();
+        setFieldsEnabled(false); // Deshabilitar campos al limpiar
     }
 
     @FXML
@@ -507,5 +541,84 @@ public class BookingManagementController {
         public void setMessage(String message) { this.message = message; }
         public Object getData() { return data; }
         public void setData(Object data) { this.data = data; }
+    }
+
+    private List<Room> createDummyRooms() {
+        List<Room> dummyRooms = new ArrayList<>();
+        Hotel hotel = hotelComboBox.getValue();
+
+        // Si no hay hotel seleccionado, crear uno temporal
+        if (hotel == null) {
+            hotel = new Hotel(1, "Hotel Temporal", "Dirección Temporal", new ArrayList<>());
+        }
+
+        // Habitaciones Estándar (más económicas)
+        dummyRooms.add(new Room("101", hotel, RoomType.ESTANDAR, RoomCondition.DISPONIBLE, 50.0, 2,
+            "WiFi, TV", "Habitación estándar confortable"));
+        dummyRooms.add(new Room("102", hotel, RoomType.ESTANDAR, RoomCondition.DISPONIBLE, 50.0, 2,
+            "WiFi, TV", "Habitación estándar confortable"));
+
+        // Habitaciones Deluxe (precio intermedio)
+        dummyRooms.add(new Room("201", hotel, RoomType.DELUXE, RoomCondition.DISPONIBLE, 100.0, 3,
+            "WiFi, TV, Minibar, Vista", "Habitación deluxe con vista"));
+        dummyRooms.add(new Room("202", hotel, RoomType.DELUXE, RoomCondition.DISPONIBLE, 100.0, 3,
+            "WiFi, TV, Minibar, Vista", "Habitación deluxe con vista"));
+
+        // Habitaciones Familiares
+        dummyRooms.add(new Room("301", hotel, RoomType.FAMILIAR, RoomCondition.DISPONIBLE, 150.0, 4,
+            "WiFi, TV, Cocina, Sala", "Habitación familiar espaciosa"));
+        dummyRooms.add(new Room("302", hotel, RoomType.FAMILIAR, RoomCondition.DISPONIBLE, 150.0, 4,
+            "WiFi, TV, Cocina, Sala", "Habitación familiar espaciosa"));
+
+        // Suites (más lujosas)
+        dummyRooms.add(new Room("401", hotel, RoomType.SUITE, RoomCondition.DISPONIBLE, 200.0, 2,
+            "WiFi, TV, Jacuzzi, Minibar, Vista Premium", "Suite de lujo"));
+        dummyRooms.add(new Room("402", hotel, RoomType.SUITE, RoomCondition.DISPONIBLE, 200.0, 2,
+            "WiFi, TV, Jacuzzi, Minibar, Vista Premium", "Suite de lujo"));
+
+        return dummyRooms;
+    }
+
+    private List<FrontDeskClerk> createDummyFrontDeskClerks() {
+        List<FrontDeskClerk> dummyClerks = new ArrayList<>();
+
+        // Recepcionistas ficticios con datos completos
+        dummyClerks.add(new FrontDeskClerk(
+            "Ana", "Martínez López", "EMP001",
+            123456789, "amartinez", "pass123"));
+
+        dummyClerks.add(new FrontDeskClerk(
+            "Carlos", "Rodríguez Sánchez", "EMP002",
+            987654321, "crodriguez", "pass123"));
+
+        dummyClerks.add(new FrontDeskClerk(
+            "María", "García Torres", "EMP003",
+            456789123, "mgarcia", "pass123"));
+
+        dummyClerks.add(new FrontDeskClerk(
+            "Juan", "López Ramírez", "EMP004",
+            789123456, "jlopez", "pass123"));
+
+        return dummyClerks;
+    }
+
+    private void setFieldsEnabled(boolean enabled) {
+        startDatePicker.setDisable(!enabled);
+        leavingDatePicker.setDisable(!enabled);
+        hotelComboBox.setDisable(!enabled);
+        guestComboBox.setDisable(!enabled);
+        clerkComboBox.setDisable(!enabled);
+        availableRoomsComboBox.setDisable(!enabled);
+        addRoomButton.setDisable(!enabled);
+        checkAvailabilityButton.setDisable(!enabled);
+        saveButton.setDisable(!enabled);
+
+        // Validar campos cuando se habilitan
+        if (enabled) {
+            addRoomButton.setDisable(availableRoomsComboBox.getValue() == null);
+            saveButton.setDisable(hotelComboBox.getValue() == null ||
+                                guestComboBox.getValue() == null ||
+                                clerkComboBox.getValue() == null);
+        }
     }
 }

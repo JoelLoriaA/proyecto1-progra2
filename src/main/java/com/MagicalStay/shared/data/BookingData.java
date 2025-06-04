@@ -134,8 +134,14 @@ public class BookingData extends JsonDataResponse {
                 if (!clerkInfo.isEmpty()) {
                     String[] clerkParts = clerkInfo.split(";");
                     if (clerkParts.length == 2) {
-                        clerk = new FrontDeskClerk(clerkParts[1]); // ID solo para referencia
-                        clerk.setName(clerkParts[0]);
+                        clerk = new FrontDeskClerk(
+                                clerkParts[0],     // nombre
+                                "",                // apellidos (vacío ya que no lo tenemos)
+                                clerkParts[1],     // ID empleado
+                                0,                 // dni (0 como valor por defecto)
+                                "",               // username (vacío)
+                                ""                // password (vacío)
+                        );
                     }
                 }
 
@@ -326,4 +332,23 @@ public class BookingData extends JsonDataResponse {
                 raf.close();
             }
         }
+
+        public int getNextBookingId() throws IOException {
+            int maxId = 0;
+            for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
+                raf.seek(pos);
+                String idStr = readString(BOOKING_ID_LENGTH);
+                try {
+                    int currentId = Integer.parseInt(idStr.trim());
+                    if (currentId > maxId) {
+                        maxId = currentId;
+                    }
+                } catch (NumberFormatException e) {
+                    continue;
+                }
+            }
+            return maxId + 1;
+        }
+
+
 }

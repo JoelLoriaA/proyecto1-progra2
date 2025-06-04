@@ -15,12 +15,51 @@ import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 public class GuestManagementController {
 
-    // FXML elements for guest information
+    // FXML elements for guest search and list
+    @FXML
+    private ComboBox<String> searchTypeComboBox;
+
+    @FXML
+    private TextField searchTextField;
+
+    @FXML
+    private Button searchButton;
+
+    @FXML
+    private Label searchResultLabel;
+
+    @FXML
+    private TableView<Guest> guestTableView;
+
+    @FXML
+    private TableColumn<Guest, String> tableNameColumn;
+
+    @FXML
+    private TableColumn<Guest, String> tableLastNameColumn;
+
+    @FXML
+    private TableColumn<Guest, Integer> tableDniColumn;
+
+    @FXML
+    private TableColumn<Guest, String> tableEmailColumn;
+
+    @FXML
+    private Button addButton;
+
+    @FXML
+    private Button editButton;
+
+    @FXML
+    private Button deleteButton;
+
+    // FXML elements for guest details
     @FXML
     private TextField nameField;
 
@@ -42,51 +81,9 @@ public class GuestManagementController {
     @FXML
     private TextField addressField;
 
-    // FXML elements for search
     @FXML
-    private TextField searchDniField;
+    private Label validationLabel;
 
-    @FXML
-    private TextField searchNameField;
-
-    @FXML
-    private TextField searchEmailField;
-
-    @FXML
-    private Button searchButton;
-
-    @FXML
-    private Button searchByNameButton;
-
-    @FXML
-    private Button searchByEmailButton;
-
-    @FXML
-    private Label searchResultLabel;
-
-    // FXML elements for table
-    @FXML
-    private TableView<Guest> guestTableView;
-
-    @FXML
-    private TableColumn<Guest, String> tableNameColumn;
-
-    @FXML
-    private TableColumn<Guest, String> tableLastNameColumn;
-
-    @FXML
-    private TableColumn<Guest, Integer> tableDniColumn;
-
-    @FXML
-    private TableColumn<Guest, String> tableEmailColumn;
-
-    @FXML
-    private TableColumn<Guest, Integer> tablePhoneColumn;
-
-    @FXML
-    private TableColumn<Guest, String> tableNationalityColumn;
-
-    // FXML elements for actions
     @FXML
     private Button saveButton;
 
@@ -94,20 +91,14 @@ public class GuestManagementController {
     private Button updateButton;
 
     @FXML
-    private Button deleteButton;
-
-    @FXML
     private Button clearButton;
+
+    // Status and close buttons
+    @FXML
+    private Label statusLabel;
 
     @FXML
     private Button closeButton;
-
-    // FXML elements for validation and status
-    @FXML
-    private Label validationLabel;
-
-    @FXML
-    private Label statusLabel;
 
     // Data
     private ObservableList<Guest> guestList;
@@ -130,20 +121,32 @@ public class GuestManagementController {
             tableLastNameColumn.setCellValueFactory(new PropertyValueFactory<>("lastName"));
             tableDniColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
             tableEmailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
-            tablePhoneColumn.setCellValueFactory(new PropertyValueFactory<>("phoneNumber"));
-            tableNationalityColumn.setCellValueFactory(new PropertyValueFactory<>("nationality"));
 
-            // Initialize nationality ComboBox
+            // Setup search type combo box
+            searchTypeComboBox.setItems(FXCollections.observableArrayList(
+                    "Por Nombre",
+                    "Por Email",
+                    "Por DNI",
+                    "Todos"
+            ));
+            searchTypeComboBox.setValue("Por Nombre");
+
+            // Setup nationality combo box
             setupNationalityComboBox();
 
-            // Load all guests initially
-            loadAllGuests();
+            // Load data from files
+            loadGuestsFromFile();
 
-            // Set initial button states
-            updateButton.setDisable(true);
+            // Set the guest table items
+            guestTableView.setItems(guestList);
+
+            // Disable edit and delete buttons initially
+            editButton.setDisable(true);
             deleteButton.setDisable(true);
+            updateButton.setDisable(true);
 
-            statusLabel.setText("Sistema listo");
+            // Set initial status
+            statusLabel.setText("Listo");
             validationLabel.setText("Complete todos los campos requeridos");
 
         } catch (IOException e) {
@@ -154,235 +157,56 @@ public class GuestManagementController {
     }
 
     private void setupNationalityComboBox() {
-        nationalityComboBox.setItems(FXCollections.observableArrayList(
-                "Costa Rica", "Estados Unidos", "México", "Guatemala", "El Salvador",
-                "Honduras", "Nicaragua", "Panamá", "Colombia", "Venezuela",
-                "Argentina", "Brasil", "Chile", "Perú", "Ecuador", "Uruguay",
-                "Paraguay", "Bolivia", "España", "Francia", "Italia", "Alemania",
-                "Reino Unido", "Canadá", "Australia", "Japón", "China", "India",
-                "Rusia", "Otros"
-        ));
+        ObservableList<String> countries = FXCollections.observableArrayList();
+
+        // Get all available locales and extract countries
+        Locale[] locales = Locale.getAvailableLocales();
+        for (Locale locale : locales) {
+            String country = locale.getDisplayCountry();
+            if (!country.isEmpty() && !countries.contains(country)) {
+                countries.add(country);
+            }
+        }
+
+        // Sort countries alphabetically
+        FXCollections.sort(countries);
+
+        // Add some common countries at the top
+        ObservableList<String> commonCountries = FXCollections.observableArrayList(
+                "Costa Rica", "Estados Unidos", "México", "España", "Colombia", "Argentina"
+        );
+
+        // Remove common countries from the main list to avoid duplicates
+        countries.removeAll(commonCountries);
+
+        // Combine lists
+        ObservableList<String> finalList = FXCollections.observableArrayList();
+        finalList.addAll(commonCountries);
+        finalList.add("---");
+        finalList.addAll(countries);
+
+        nationalityComboBox.setItems(finalList);
+        nationalityComboBox.setValue("Costa Rica");
     }
 
-    private void loadAllGuests() {
+    private void loadGuestsFromFile() {
         try {
             String jsonResponse = guestData.retrieveAll();
-            System.out.println("JSON Response loadAllGuests: " + jsonResponse); // Debug
-
             DataResponse response = parseDataResponse(jsonResponse);
 
             if (response.isSuccess()) {
-                try {
-                    List<Guest> guests = objectMapper.convertValue(response.getData(),
-                            new TypeReference<List<Guest>>() {});
-                    guestList = FXCollections.observableArrayList(guests);
-                    guestTableView.setItems(guestList);
-                    statusLabel.setText("Se cargaron " + guests.size() + " huéspedes");
-                } catch (IllegalArgumentException e) {
-                    System.out.println("Error deserializando lista completa: " + e.getMessage());
-                    List<Guest> guests = deserializeGuestListManually(response.getData());
-                    if (guests != null) {
-                        guestList = FXCollections.observableArrayList(guests);
-                        guestTableView.setItems(guestList);
-                        statusLabel.setText("Se cargaron " + guests.size() + " huéspedes");
-                    } else {
-                        guestList = FXCollections.observableArrayList();
-                        guestTableView.setItems(guestList);
-                        statusLabel.setText("Error deserializando huéspedes");
-                    }
-                }
+                List<Guest> guests = objectMapper.convertValue(response.getData(),
+                        new TypeReference<List<Guest>>() {});
+                guestList = FXCollections.observableArrayList(guests);
+                searchResultLabel.setText("Se encontraron " + guests.size() + " huéspedes");
             } else {
                 guestList = FXCollections.observableArrayList();
-                guestTableView.setItems(guestList);
-                statusLabel.setText("No se encontraron huéspedes: " + response.getMessage());
+                searchResultLabel.setText("No se encontraron huéspedes: " + response.getMessage());
             }
         } catch (Exception e) {
             guestList = FXCollections.observableArrayList();
-            guestTableView.setItems(guestList);
-            statusLabel.setText("Error al cargar huéspedes: " + e.getMessage());
+            searchResultLabel.setText("Error al cargar huéspedes: " + e.getMessage());
             e.printStackTrace();
-        }
-    }
-
-    @FXML
-    private void handleSearch(ActionEvent event) {
-        String dniText = searchDniField.getText().trim();
-
-        if (dniText.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Advertencia", "Por favor ingrese un DNI para buscar");
-            return;
-        }
-
-        try {
-            int dni = Integer.parseInt(dniText);
-            System.out.println("Buscando DNI: " + dni); // Debug
-
-            // Primero intentamos usar el método retrieveById
-            String jsonResponse = guestData.retrieveById(dni);
-            System.out.println("JSON Response retrieveById: " + jsonResponse); // Debug
-
-            Guest foundGuest = null;
-
-            // Si el retrieveById no funciona, intentamos con findById
-            if (jsonResponse == null || jsonResponse.trim().isEmpty() || jsonResponse.equals("null")) {
-                System.out.println("retrieveById falló, intentando con findById"); // Debug
-                foundGuest = guestData.findById(dni);
-
-                if (foundGuest != null) {
-                    // Crear respuesta exitosa manualmente
-                    ObservableList<Guest> searchResults = FXCollections.observableArrayList();
-                    searchResults.add(foundGuest);
-                    guestTableView.setItems(searchResults);
-                    searchResultLabel.setText("Se encontró el huésped con DNI: " + dni);
-                    statusLabel.setText("Búsqueda completada (findById)");
-                    return;
-                }
-            } else {
-                // Procesar respuesta normal de retrieveById
-                DataResponse response = parseDataResponse(jsonResponse);
-
-                if (response.isSuccess() && response.getData() != null) {
-                    foundGuest = objectMapper.convertValue(response.getData(), Guest.class);
-
-                    if (foundGuest != null) {
-                        ObservableList<Guest> searchResults = FXCollections.observableArrayList();
-                        searchResults.add(foundGuest);
-                        guestTableView.setItems(searchResults);
-                        searchResultLabel.setText("Se encontró el huésped con DNI: " + dni);
-                        statusLabel.setText("Búsqueda completada (retrieveById)");
-                        return;
-                    }
-                }
-            }
-
-            // Si llegamos aquí, no se encontró el huésped
-            guestTableView.setItems(FXCollections.observableArrayList());
-            searchResultLabel.setText("No se encontró huésped con DNI: " + dni);
-            statusLabel.setText("No se encontraron resultados");
-
-        } catch (NumberFormatException e) {
-            showAlert(Alert.AlertType.ERROR, "Error", "El DNI debe ser un número válido");
-        } catch (Exception e) {
-            System.out.println("Error en búsqueda: " + e.getMessage()); // Debug
-            e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Error", "Error en la búsqueda: " + e.getMessage());
-            statusLabel.setText("Error en la búsqueda");
-        }
-    }
-
-    @FXML
-    private void handleSearchByName(ActionEvent event) {
-        String name = searchNameField.getText().trim();
-
-        if (name.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Advertencia", "Por favor ingrese un nombre para buscar");
-            return;
-        }
-
-        try {
-            System.out.println("Buscando por nombre: " + name); // Debug
-            String jsonResponse = guestData.retrieveByName(name);
-            System.out.println("JSON Response retrieveByName: " + jsonResponse); // Debug
-
-            DataResponse response = parseDataResponse(jsonResponse);
-
-            if (response.isSuccess() && response.getData() != null) {
-                try {
-                    List<Guest> guests = objectMapper.convertValue(response.getData(),
-                            new TypeReference<List<Guest>>() {});
-
-                    if (guests != null && !guests.isEmpty()) {
-                        ObservableList<Guest> searchResults = FXCollections.observableArrayList(guests);
-                        guestTableView.setItems(searchResults);
-                        searchResultLabel.setText("Se encontraron " + guests.size() + " huésped(es) con nombre: " + name);
-                        statusLabel.setText("Búsqueda por nombre completada");
-                    } else {
-                        guestTableView.setItems(FXCollections.observableArrayList());
-                        searchResultLabel.setText("No se encontraron huéspedes con nombre: " + name);
-                        statusLabel.setText("No se encontraron resultados");
-                    }
-                } catch (IllegalArgumentException e) {
-                    System.out.println("Error deserializando lista por nombre: " + e.getMessage());
-                    List<Guest> guests = deserializeGuestListManually(response.getData());
-                    if (guests != null && !guests.isEmpty()) {
-                        ObservableList<Guest> searchResults = FXCollections.observableArrayList(guests);
-                        guestTableView.setItems(searchResults);
-                        searchResultLabel.setText("Se encontraron " + guests.size() + " huésped(es) con nombre: " + name);
-                        statusLabel.setText("Búsqueda por nombre completada");
-                    } else {
-                        guestTableView.setItems(FXCollections.observableArrayList());
-                        searchResultLabel.setText("No se encontraron huéspedes con nombre: " + name);
-                        statusLabel.setText("No se encontraron resultados");
-                    }
-                }
-            } else {
-                guestTableView.setItems(FXCollections.observableArrayList());
-                searchResultLabel.setText("No se encontraron huéspedes con nombre: " + name);
-                statusLabel.setText("No se encontraron resultados");
-            }
-        } catch (Exception e) {
-            System.out.println("Error en búsqueda por nombre: " + e.getMessage()); // Debug
-            e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Error", "Error en la búsqueda: " + e.getMessage());
-            statusLabel.setText("Error en la búsqueda");
-        }
-    }
-
-    @FXML
-    private void handleSearchByEmail(ActionEvent event) {
-        String email = searchEmailField.getText().trim();
-
-        if (email.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Advertencia", "Por favor ingrese un email para buscar");
-            return;
-        }
-
-        try {
-            System.out.println("Buscando por email: " + email); // Debug
-            String jsonResponse = guestData.retrieveByEmail(email);
-            System.out.println("JSON Response retrieveByEmail: " + jsonResponse); // Debug
-
-            DataResponse response = parseDataResponse(jsonResponse);
-
-            if (response.isSuccess() && response.getData() != null) {
-                try {
-                    List<Guest> guests = objectMapper.convertValue(response.getData(),
-                            new TypeReference<List<Guest>>() {});
-
-                    if (guests != null && !guests.isEmpty()) {
-                        ObservableList<Guest> searchResults = FXCollections.observableArrayList(guests);
-                        guestTableView.setItems(searchResults);
-                        searchResultLabel.setText("Se encontraron " + guests.size() + " huésped(es) con email: " + email);
-                        statusLabel.setText("Búsqueda por email completada");
-                    } else {
-                        guestTableView.setItems(FXCollections.observableArrayList());
-                        searchResultLabel.setText("No se encontraron huéspedes con email: " + email);
-                        statusLabel.setText("No se encontraron resultados");
-                    }
-                } catch (IllegalArgumentException e) {
-                    System.out.println("Error deserializando lista por email: " + e.getMessage());
-                    List<Guest> guests = deserializeGuestListManually(response.getData());
-                    if (guests != null && !guests.isEmpty()) {
-                        ObservableList<Guest> searchResults = FXCollections.observableArrayList(guests);
-                        guestTableView.setItems(searchResults);
-                        searchResultLabel.setText("Se encontraron " + guests.size() + " huésped(es) con email: " + email);
-                        statusLabel.setText("Búsqueda por email completada");
-                    } else {
-                        guestTableView.setItems(FXCollections.observableArrayList());
-                        searchResultLabel.setText("No se encontraron huéspedes con email: " + email);
-                        statusLabel.setText("No se encontraron resultados");
-                    }
-                }
-            } else {
-                guestTableView.setItems(FXCollections.observableArrayList());
-                searchResultLabel.setText("No se encontraron huéspedes con email: " + email);
-                statusLabel.setText("No se encontraron resultados");
-            }
-        } catch (Exception e) {
-            System.out.println("Error en búsqueda por email: " + e.getMessage()); // Debug
-            e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Error", "Error en la búsqueda: " + e.getMessage());
-            statusLabel.setText("Error en la búsqueda");
         }
     }
 
@@ -390,7 +214,7 @@ public class GuestManagementController {
     private void handleGuestSelection(MouseEvent event) {
         selectedGuest = guestTableView.getSelectionModel().getSelectedItem();
         if (selectedGuest != null) {
-            // Fill fields with selected guest data
+            // Fill the fields with guest data
             nameField.setText(selectedGuest.getName());
             lastNameField.setText(selectedGuest.getLastName());
             dniField.setText(String.valueOf(selectedGuest.getId()));
@@ -399,9 +223,12 @@ public class GuestManagementController {
             addressField.setText(selectedGuest.getAddress());
             nationalityComboBox.setValue(selectedGuest.getNationality());
 
-            // Enable update and delete buttons
-            updateButton.setDisable(false);
+            // Enable buttons
+            editButton.setDisable(false);
             deleteButton.setDisable(false);
+
+            // Disable fields
+            setFieldsEnabled(false);
 
             statusLabel.setText("Huésped seleccionado: " + selectedGuest.getName() + " " + selectedGuest.getLastName());
             validationLabel.setText("Huésped cargado correctamente");
@@ -409,85 +236,99 @@ public class GuestManagementController {
     }
 
     @FXML
-    private void handleSave(ActionEvent event) {
-        if (validateFields()) {
-            try {
-                // Check if DNI already exists (for new guests)
-                int dni = Integer.parseInt(dniField.getText().trim());
+    private void handleSearch(ActionEvent event) {
+        String searchText = searchTextField.getText().trim();
+        String searchType = searchTypeComboBox.getValue();
 
-                // Verificar si existe usando ambos métodos
-                Guest existingGuest = null;
-                try {
-                    existingGuest = guestData.findById(dni);
-                } catch (Exception e) {
-                    System.out.println("Error verificando existencia: " + e.getMessage());
+        try {
+            String jsonResponse;
+
+            if (searchText.isEmpty() || searchType.equals("Todos")) {
+                jsonResponse = guestData.retrieveAll();
+            } else {
+                switch (searchType) {
+                    case "Por Nombre":
+                        jsonResponse = guestData.retrieveByName(searchText);
+                        break;
+                    case "Por Email":
+                        jsonResponse = guestData.retrieveByEmail(searchText);
+                        break;
+                    case "Por DNI":
+                        try {
+                            int dni = Integer.parseInt(searchText);
+                            jsonResponse = guestData.retrieveById(dni);
+                        } catch (NumberFormatException e) {
+                            showAlert(Alert.AlertType.ERROR, "Error",
+                                    "El DNI debe ser un número válido");
+                            return;
+                        }
+                        break;
+                    default:
+                        jsonResponse = guestData.retrieveAll();
                 }
-
-                if (existingGuest != null) {
-                    showAlert(Alert.AlertType.ERROR, "Error",
-                            "Ya existe un huésped con el DNI: " + dni);
-                    return;
-                }
-
-                Guest newGuest = createGuestFromFields();
-                String jsonResponse = guestData.create(newGuest);
-                System.out.println("JSON Response create: " + jsonResponse); // Debug
-
-                DataResponse response = parseDataResponse(jsonResponse);
-
-                if (response.isSuccess()) {
-                    loadAllGuests();
-                    clearFields();
-                    statusLabel.setText("Huésped guardado exitosamente");
-                    validationLabel.setText("Huésped creado correctamente");
-                } else {
-                    showAlert(Alert.AlertType.ERROR, "Error",
-                            "No se pudo guardar el huésped: " + response.getMessage());
-                }
-            } catch (NumberFormatException e) {
-                showAlert(Alert.AlertType.ERROR, "Error", "DNI y teléfono deben ser números válidos");
-            } catch (Exception e) {
-                System.out.println("Error guardando huésped: " + e.getMessage()); // Debug
-                e.printStackTrace();
-                showAlert(Alert.AlertType.ERROR, "Error",
-                        "Error al guardar el huésped: " + e.getMessage());
             }
+
+            DataResponse response = parseDataResponse(jsonResponse);
+
+            if (response.isSuccess()) {
+                List<Guest> guests;
+                if (response.getData() instanceof List) {
+                    guests = objectMapper.convertValue(response.getData(),
+                            new TypeReference<List<Guest>>() {});
+                } else {
+                    // Si es búsqueda por DNI, convertimos el huésped único a una lista
+                    Guest guest = objectMapper.convertValue(response.getData(), Guest.class);
+                    guests = Collections.singletonList(guest);
+                }
+                guestTableView.setItems(FXCollections.observableArrayList(guests));
+                searchResultLabel.setText("Se encontraron " + guests.size() + " resultado(s)");
+                statusLabel.setText("Búsqueda completada con éxito");
+            } else {
+                guestTableView.setItems(FXCollections.observableArrayList());
+                searchResultLabel.setText("No se encontraron resultados");
+                statusLabel.setText("No se encontraron resultados: " + response.getMessage());
+            }
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Error",
+                    "Error en la búsqueda: " + e.getMessage());
+            statusLabel.setText("Error en la búsqueda: " + e.getMessage());
         }
     }
 
     @FXML
-    private void handleUpdate(ActionEvent event) {
-        if (selectedGuest != null && validateFields()) {
-            try {
-                Guest updatedGuest = createGuestFromFields();
-                String jsonResponse = guestData.update(updatedGuest);
-                System.out.println("JSON Response update: " + jsonResponse); // Debug
+    private void handleAdd(ActionEvent event) {
+        clearFields();
+        setFieldsEnabled(true);
+        editMode = false;
 
-                DataResponse response = parseDataResponse(jsonResponse);
+        // Clear selection
+        guestTableView.getSelectionModel().clearSelection();
+        selectedGuest = null;
 
-                if (response.isSuccess()) {
-                    loadAllGuests();
-                    clearFields();
-                    selectedGuest = null;
-                    updateButton.setDisable(true);
-                    deleteButton.setDisable(true);
-                    statusLabel.setText("Huésped actualizado exitosamente");
-                    validationLabel.setText("Actualización completada");
-                } else {
-                    showAlert(Alert.AlertType.ERROR, "Error",
-                            "No se pudo actualizar el huésped: " + response.getMessage());
-                }
-            } catch (NumberFormatException e) {
-                showAlert(Alert.AlertType.ERROR, "Error", "DNI y teléfono deben ser números válidos");
-            } catch (Exception e) {
-                System.out.println("Error actualizando huésped: " + e.getMessage()); // Debug
-                e.printStackTrace();
-                showAlert(Alert.AlertType.ERROR, "Error",
-                        "Error al actualizar el huésped: " + e.getMessage());
-            }
-        } else if (selectedGuest == null) {
-            showAlert(Alert.AlertType.WARNING, "Advertencia",
-                    "Por favor seleccione un huésped de la tabla para actualizar");
+        // Enable save button, disable update button
+        saveButton.setDisable(false);
+        updateButton.setDisable(true);
+
+        // Disable edit and delete buttons
+        editButton.setDisable(true);
+        deleteButton.setDisable(true);
+
+        statusLabel.setText("Agregando nuevo huésped...");
+        validationLabel.setText("Complete todos los campos requeridos");
+    }
+
+    @FXML
+    private void handleEdit(ActionEvent event) {
+        if (selectedGuest != null) {
+            setFieldsEnabled(true);
+            editMode = true;
+
+            // Enable update button, disable save button
+            saveButton.setDisable(true);
+            updateButton.setDisable(false);
+
+            statusLabel.setText("Editando huésped: " + selectedGuest.getName() + " " + selectedGuest.getLastName());
+            validationLabel.setText("Modifique los campos necesarios");
         }
     }
 
@@ -504,80 +345,184 @@ public class GuestManagementController {
             if (result.isPresent() && result.get() == ButtonType.OK) {
                 try {
                     String jsonResponse = guestData.delete(selectedGuest.getId());
-                    System.out.println("JSON Response delete: " + jsonResponse); // Debug
-
                     DataResponse response = parseDataResponse(jsonResponse);
 
                     if (response.isSuccess()) {
-                        loadAllGuests();
+                        // Recargar la lista
+                        loadGuestsFromFile();
+                        guestTableView.setItems(guestList);
                         clearFields();
+
+                        // Clear selection
                         selectedGuest = null;
-                        updateButton.setDisable(true);
+
+                        // Disable buttons
+                        editButton.setDisable(true);
                         deleteButton.setDisable(true);
-                        statusLabel.setText("Huésped eliminado exitosamente");
-                        validationLabel.setText("Eliminación completada");
+                        updateButton.setDisable(true);
+
+                        statusLabel.setText("Huésped eliminado con éxito");
+                        validationLabel.setText("Complete todos los campos requeridos");
                     } else {
                         showAlert(Alert.AlertType.ERROR, "Error",
                                 "No se pudo eliminar el huésped: " + response.getMessage());
                     }
                 } catch (Exception e) {
-                    System.out.println("Error eliminando huésped: " + e.getMessage()); // Debug
-                    e.printStackTrace();
                     showAlert(Alert.AlertType.ERROR, "Error",
                             "Error al eliminar el huésped: " + e.getMessage());
                 }
             }
-        } else {
-            showAlert(Alert.AlertType.WARNING, "Advertencia",
-                    "Por favor seleccione un huésped de la tabla para eliminar");
+        }
+    }
+
+    @FXML
+    private void handleSave(ActionEvent event) {
+        if (validateFields()) {
+            try {
+                int dni = Integer.parseInt(dniField.getText().trim());
+                int phoneNumber = Integer.parseInt(phoneNumberField.getText().trim());
+
+                Guest guest = new Guest(
+                        nameField.getText().trim(),
+                        lastNameField.getText().trim(),
+                        dni,
+                        phoneNumber,
+                        emailField.getText().trim(),
+                        addressField.getText().trim(),
+                        nationalityComboBox.getValue()
+                );
+
+                String jsonResponse = guestData.create(guest);
+                DataResponse response = parseDataResponse(jsonResponse);
+
+                if (response.isSuccess()) {
+                    loadGuestsFromFile();
+                    guestTableView.setItems(guestList);
+
+                    setFieldsEnabled(false);
+                    saveButton.setDisable(true);
+
+                    // Select the saved guest
+                    for (Guest g : guestList) {
+                        if (g.getId() == guest.getId()) {
+                            guestTableView.getSelectionModel().select(g);
+                            break;
+                        }
+                    }
+
+                    statusLabel.setText("Huésped guardado con éxito");
+                    validationLabel.setText("Huésped creado correctamente");
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error",
+                            "No se pudo guardar el huésped: " + response.getMessage());
+                }
+            } catch (NumberFormatException e) {
+                showAlert(Alert.AlertType.ERROR, "Error de Validación",
+                        "DNI y Teléfono deben ser números válidos");
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Error",
+                        "Error al guardar el huésped: " + e.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    private void handleUpdate(ActionEvent event) {
+        if (selectedGuest != null && validateFields()) {
+            try {
+                int dni = Integer.parseInt(dniField.getText().trim());
+                int phoneNumber = Integer.parseInt(phoneNumberField.getText().trim());
+
+                // Create updated guest object
+                Guest updatedGuest = new Guest(
+                        nameField.getText().trim(),
+                        lastNameField.getText().trim(),
+                        dni,
+                        phoneNumber,
+                        emailField.getText().trim(),
+                        addressField.getText().trim(),
+                        nationalityComboBox.getValue()
+                );
+
+                String jsonResponse = guestData.update(updatedGuest);
+                DataResponse response = parseDataResponse(jsonResponse);
+
+                if (response.isSuccess()) {
+                    loadGuestsFromFile();
+                    guestTableView.setItems(guestList);
+
+                    setFieldsEnabled(false);
+                    updateButton.setDisable(true);
+
+                    // Update selected guest reference
+                    selectedGuest = updatedGuest;
+
+                    // Select the updated guest
+                    for (Guest g : guestList) {
+                        if (g.getId() == updatedGuest.getId()) {
+                            guestTableView.getSelectionModel().select(g);
+                            break;
+                        }
+                    }
+
+                    statusLabel.setText("Huésped actualizado con éxito");
+                    validationLabel.setText("Huésped actualizado correctamente");
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error",
+                            "No se pudo actualizar el huésped: " + response.getMessage());
+                }
+            } catch (NumberFormatException e) {
+                showAlert(Alert.AlertType.ERROR, "Error de Validación",
+                        "DNI y Teléfono deben ser números válidos");
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Error",
+                        "Error al actualizar el huésped: " + e.getMessage());
+            }
         }
     }
 
     @FXML
     private void handleClear(ActionEvent event) {
         clearFields();
+        guestTableView.getSelectionModel().clearSelection();
         selectedGuest = null;
+
+        setFieldsEnabled(false);
+        saveButton.setDisable(true);
         updateButton.setDisable(true);
+        editButton.setDisable(true);
         deleteButton.setDisable(true);
-
-        // Clear search fields
-        searchDniField.clear();
-        searchNameField.clear();
-        searchEmailField.clear();
-        searchResultLabel.setText("");
-
-        // Reload all guests
-        loadAllGuests();
 
         statusLabel.setText("Campos limpiados");
         validationLabel.setText("Complete todos los campos requeridos");
     }
 
     @FXML
-    private void handleClose(ActionEvent event) {
-        try {
-            if (guestData != null) {
-                guestData.close();
-            }
+    private void handleClose(ActionEvent event) throws IOException {
+        DataFactory.closeAll();
 
-            Stage stage = (Stage) closeButton.getScene().getWindow();
-            stage.close();
-        } catch (IOException e) {
-            showAlert(Alert.AlertType.ERROR, "Error",
-                    "Error al cerrar la aplicación: " + e.getMessage());
-        }
+        Stage stage = (Stage) closeButton.getScene().getWindow();
+        stage.close();
     }
 
-    private Guest createGuestFromFields() {
-        String name = nameField.getText().trim();
-        String lastName = lastNameField.getText().trim();
-        int dni = Integer.parseInt(dniField.getText().trim());
-        int phoneNumber = Integer.parseInt(phoneNumberField.getText().trim());
-        String email = emailField.getText().trim();
-        String address = addressField.getText().trim();
-        String nationality = nationalityComboBox.getValue();
+    private void clearFields() {
+        nameField.clear();
+        lastNameField.clear();
+        dniField.clear();
+        phoneNumberField.clear();
+        emailField.clear();
+        addressField.clear();
+        nationalityComboBox.setValue("Costa Rica");
+    }
 
-        return new Guest(name, lastName, dni, phoneNumber, email, address, nationality);
+    private void setFieldsEnabled(boolean enabled) {
+        nameField.setDisable(!enabled);
+        lastNameField.setDisable(!enabled);
+        dniField.setDisable(!enabled);
+        phoneNumberField.setDisable(!enabled);
+        emailField.setDisable(!enabled);
+        addressField.setDisable(!enabled);
+        nationalityComboBox.setDisable(!enabled);
     }
 
     private boolean validateFields() {
@@ -614,40 +559,29 @@ public class GuestManagementController {
         if (emailField.getText().trim().isEmpty()) {
             errorMessage.append("El email no puede estar vacío.\n");
         } else if (!isValidEmail(emailField.getText().trim())) {
-            errorMessage.append("El formato del email no es válido.\n");
+            errorMessage.append("El email no tiene un formato válido.\n");
         }
 
         if (addressField.getText().trim().isEmpty()) {
             errorMessage.append("La dirección no puede estar vacía.\n");
         }
 
-        if (nationalityComboBox.getValue() == null || nationalityComboBox.getValue().isEmpty()) {
+        if (nationalityComboBox.getValue() == null || nationalityComboBox.getValue().equals("---")) {
             errorMessage.append("Debe seleccionar una nacionalidad.\n");
         }
 
         if (errorMessage.length() > 0) {
+            validationLabel.setText("❌ " + errorMessage.toString().replace("\n", " "));
             showAlert(Alert.AlertType.ERROR, "Error de Validación", errorMessage.toString());
-            validationLabel.setText("Corrija los errores en los campos");
             return false;
         }
 
-        validationLabel.setText("Todos los campos son válidos");
+        validationLabel.setText("✅ Todos los campos son válidos");
         return true;
     }
 
     private boolean isValidEmail(String email) {
-        return email.contains("@") && email.contains(".") &&
-                email.indexOf("@") < email.lastIndexOf(".");
-    }
-
-    private void clearFields() {
-        nameField.clear();
-        lastNameField.clear();
-        dniField.clear();
-        phoneNumberField.clear();
-        emailField.clear();
-        addressField.clear();
-        nationalityComboBox.setValue(null);
+        return email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     }
 
     private void showAlert(Alert.AlertType type, String title, String message) {
@@ -659,88 +593,15 @@ public class GuestManagementController {
     }
 
     private DataResponse parseDataResponse(String jsonResponse) throws Exception {
-        if (jsonResponse == null || jsonResponse.trim().isEmpty() || jsonResponse.equals("null")) {
-            // Crear una respuesta de error si no hay datos
-            DataResponse response = new DataResponse();
-            response.setSuccess(false);
-            response.setMessage("No se recibió respuesta del servidor");
-            response.setData(null);
-            return response;
-        }
         return objectMapper.readValue(jsonResponse, DataResponse.class);
     }
 
-    // Método auxiliar para deserialización manual de un Guest
-    private Guest deserializeGuestManually(Object data) {
-        try {
-            if (data instanceof java.util.Map) {
-                @SuppressWarnings("unchecked")
-                java.util.Map<String, Object> map = (java.util.Map<String, Object>) data;
-
-                String name = (String) map.get("name");
-                String lastName = (String) map.get("lastName");
-                Object idObj = map.get("id");
-                Object phoneObj = map.get("phoneNumber");
-                String email = (String) map.get("email");
-                String address = (String) map.get("address");
-                String nationality = (String) map.get("nationality");
-
-                // Convertir números de manera segura
-                int id = convertToInt(idObj);
-                int phoneNumber = convertToInt(phoneObj);
-
-                return new Guest(name, lastName, id, phoneNumber, email, address, nationality);
-            }
-        } catch (Exception e) {
-            System.out.println("Error en deserialización manual: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    // Método auxiliar para deserialización manual de lista de Guests
-    @SuppressWarnings("unchecked")
-    private java.util.List<Guest> deserializeGuestListManually(Object data) {
-        java.util.List<Guest> guests = new java.util.ArrayList<>();
-        try {
-            if (data instanceof java.util.List) {
-                java.util.List<Object> list = (java.util.List<Object>) data;
-                for (Object item : list) {
-                    Guest guest = deserializeGuestManually(item);
-                    if (guest != null) {
-                        guests.add(guest);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Error en deserialización manual de lista: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return guests;
-    }
-
-    // Método auxiliar para convertir objetos a int de manera segura
-    private int convertToInt(Object obj) {
-        if (obj == null) return 0;
-        if (obj instanceof Integer) return (Integer) obj;
-        if (obj instanceof String) {
-            try {
-                return Integer.parseInt((String) obj);
-            } catch (NumberFormatException e) {
-                return 0;
-            }
-        }
-        if (obj instanceof Number) return ((Number) obj).intValue();
-        return 0;
-    }
-
-    // Inner class for JSON response parsing
     private static class DataResponse {
         private boolean success;
         private String message;
         private Object data;
 
-        // Getters and setters
+        // Getters y setters
         public boolean isSuccess() { return success; }
         public void setSuccess(boolean success) { this.success = success; }
 
@@ -748,6 +609,6 @@ public class GuestManagementController {
         public void setMessage(String message) { this.message = message; }
 
         public Object getData() { return data; }
-        public void setData(Object data) { this.data =  data;}
+        public void setData(Object data) { this.data =data;}
     }
 }

@@ -45,4 +45,17 @@ public class ConfiguracionApp {
     public static int getPuertoServidor() {
         return Integer.parseInt(System.getProperty("magicalstay.server.port", String.valueOf(PUERTO_SERVIDOR)));
     }
+    // Agregar en ConfiguracionApp.java
+    private static boolean servidorConectado = true;
+
+    public static boolean isServidorConectado() {
+        return servidorConectado;
+    }
+
+    public static void setServidorConectado(boolean estado) {
+        servidorConectado = estado;
+    }
+
+
+
 }

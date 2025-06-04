@@ -202,4 +202,6 @@ public class FrontDeskData extends JsonDataResponse {
             return createJsonResponse(false, "Error en la autenticación: " + e.getMessage(), null);
         }
     }
+
+
 }

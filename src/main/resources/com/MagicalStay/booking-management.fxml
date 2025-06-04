@@ -33,7 +33,7 @@
                 <VBox spacing="15.0" style="-fx-background-color: #f5f5f5; -fx-padding: 15px;">
                     <Label style="-fx-font-weight: bold; -fx-font-size: 16px;" text="📋 Lista de Reservas" />
                     <HBox spacing="8.0">
-                        <ComboBox fx:id="searchTypeComboBox" prefWidth="150.0" promptText="Tipo de búsqueda" />
+                        <ComboBox fx:id="searchTypeComboBox" onAction="#handleSearch" prefWidth="150.0" promptText="Tipo de búsqueda" />
                         <TextField fx:id="searchTextField" promptText="🔍 Buscar..." HBox.hgrow="ALWAYS" />
                     </HBox>
                     <ListView fx:id="bookingListView" VBox.vgrow="ALWAYS" />
