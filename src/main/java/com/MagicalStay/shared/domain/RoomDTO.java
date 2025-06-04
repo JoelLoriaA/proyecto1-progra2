@@ -9,6 +9,7 @@ public class RoomDTO {
     private String features;
     private String description;
     private String hotelName;
+    private String imagePath;
 
     public RoomDTO(Room room) {
         this.roomNumber = room.getRoomNumber();
@@ -19,6 +20,7 @@ public class RoomDTO {
         this.features = room.getFeatures();
         this.description = room.getDescription();
         this.hotelName = room.getHotel() != null ? room.getHotel().getName() : null;
+        this.imagePath = room.getImagePath();
     }
 
     public RoomDTO() {}
@@ -85,6 +87,14 @@ public class RoomDTO {
 
     public void setHotelName(String hotelName) {
         this.hotelName = hotelName;
+    }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath() {
+        this.imagePath = imagePath;
     }
 }
 

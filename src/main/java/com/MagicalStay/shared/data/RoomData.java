@@ -23,14 +23,15 @@ public class RoomData extends JsonDataResponse {
     private static final int ROOM_NUMBER_SIZE = 20;    // 10 caracteres
     private static final int ROOM_TYPE_SIZE = 4;       // int para enum ordinal
     private static final int ROOM_CONDITION_SIZE = 4;  // int para enum ordinal
-    private static final int HOTEL_ID_SIZE = 3*2;// 3 chars × 2 bytes = 6 bytes
+    private static final int HOTEL_ID_SIZE = 4;      // 3 chars × 2 bytes = 6 bytes
     private static final int PRICE_SIZE = 8;             // double
     private static final int CAPACITY_SIZE = 4;          // int
     private static final int FEATURES_SIZE = 100;        // caracteres (ajustable)
     private static final int DESCRIPTION_SIZE = 200;         // long para Hotel ID
+    private static final int IMAGE_SIZE = 200; 
     private static final int RECORD_SIZE = ROOM_NUMBER_SIZE + ROOM_TYPE_SIZE +
         ROOM_CONDITION_SIZE + HOTEL_ID_SIZE + PRICE_SIZE +
-        CAPACITY_SIZE + FEATURES_SIZE + DESCRIPTION_SIZE;
+        CAPACITY_SIZE + FEATURES_SIZE + DESCRIPTION_SIZE + IMAGE_SIZE;
 
 
     // Dependencia para obtener objetos Hotel
@@ -44,39 +45,46 @@ public class RoomData extends JsonDataResponse {
     public RoomData(String filename, HotelData hotelData) throws IOException {
         this.raf = new RandomAccessFile(filename, "rw");
         this.hotelData = hotelData;
+        
     }
     
 
-    public String create(Room room) {
+public String create(Room room) {
         try {
-            // Validar campos necesarios
             if (room.getRoomNumber() == null || room.getHotel() == null) {
                 return createJsonResponse(false, "Faltan datos obligatorios para crear la habitación", null);
             }
     
-            // Crear buffer
             ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
     
             writeString(buffer, room.getRoomNumber(), ROOM_NUMBER_SIZE);
             buffer.putInt(room.getRoomType().ordinal());
             buffer.putInt(room.getRoomCondition().ordinal());
-            buffer.putInt(room.getHotel().getHotelId());  // ✅
+            buffer.putInt(room.getHotel().getHotelId());
             buffer.putDouble(room.getPrice());
             buffer.putInt(room.getCapacity());
             writeString(buffer, room.getFeatures(), FEATURES_SIZE);
             writeString(buffer, room.getDescription(), DESCRIPTION_SIZE);
+            writeString(buffer, room.getImagePath(), IMAGE_SIZE);
     
-            // Mover al final del archivo
             raf.seek(raf.length());
             raf.write(buffer.array());
+    
+            if (hotelData != null) {
+                Hotel hotelCompleto = hotelData.findById(room.getHotel().getHotelId());
+                if (hotelCompleto != null) {
+                    room.setHotel(hotelCompleto);
+                }
+            }
     
             return createJsonResponse(true, "Habitación creada exitosamente", room);
     
         } catch (Exception e) {
-            e.printStackTrace(); // Para depurar en consola
+            e.printStackTrace();
             return createJsonResponse(false, "Error al crear la habitación: " + e.getMessage(), null);
         }
     }
+    
      
 
     public String read(String roomNumber) throws IOException {
@@ -97,13 +105,14 @@ public class RoomData extends JsonDataResponse {
                     int capacity = buffer.getInt();
                     String features = readString(buffer, FEATURES_SIZE).trim();
                     String description = readString(buffer, DESCRIPTION_SIZE).trim();
+                    String image = readString(buffer, IMAGE_SIZE).trim();
     
                     RoomType roomType = RoomType.values()[roomTypeOrdinal];
                     RoomCondition roomCondition = RoomCondition.values()[roomConditionOrdinal];
                     Hotel hotel = getHotelById((int) hotelId);
     
                     if (hotel != null) {
-                        Room room = new Room(currentRoomNumber, hotel, roomType, roomCondition, price, capacity, features, description);
+                        Room room = new Room(currentRoomNumber, hotel, roomType, roomCondition, price, capacity, features, description, image);
                         return createJsonResponse(true, "Habitación encontrada", new RoomDTO(room));
                     } else {
                         return createJsonResponse(false, "Error: Hotel no encontrado para la habitación", null);
@@ -141,16 +150,26 @@ public class RoomData extends JsonDataResponse {
                 raf.readFully(buffer.array());
                 buffer.rewind();
     
-                String roomNumber = readString(buffer, 10); // ROOM_NUMBER_SIZE en chars
-                int typeOrdinal = buffer.getInt(); // ROOM_TYPE_SIZE
-                int conditionOrdinal = buffer.getInt(); // ROOM_CONDITION_SIZE
-                int hotelId = buffer.getInt(); // HOTEL_ID_SIZE
-                double price = buffer.getDouble(); // PRICE_SIZE
-                int capacity = buffer.getInt(); // CAPACITY_SIZE
-                String features = readString(buffer, 100); // FEATURES_SIZE
-                String description = readString(buffer, 200); // DESCRIPTION_SIZE
+                String roomNumber = readString(buffer, ROOM_NUMBER_SIZE).trim();
+
+                if (roomNumber.isEmpty()) {
+                    continue; // Ignorar registros vacíos
+                }
+    
+                int typeOrdinal = buffer.getInt();
+                int conditionOrdinal = buffer.getInt();
+                int hotelId = buffer.getInt();
+                double price = buffer.getDouble();
+                int capacity = buffer.getInt();
+                String features = readString(buffer, 100);
+                String description = readString(buffer, 200);
+                String image = readString(buffer, 200);
     
                 Hotel hotel = hotelData.findById(hotelId);
+                if (hotel == null) {
+                    System.err.println("⚠️ Hotel no encontrado para ID: " + hotelId);
+                    continue; // Saltar esta habitación si el hotel no existe
+                }
     
                 Room room = new Room(
                     roomNumber,
@@ -162,15 +181,18 @@ public class RoomData extends JsonDataResponse {
                 room.setCapacity(capacity);
                 room.setFeatures(features);
                 room.setDescription(description);
+                room.setImagePath(image);
     
                 rooms.add(room);
             }
     
             return createJsonResponse(true, "Habitaciones recuperadas exitosamente", rooms);
         } catch (Exception e) {
+            e.printStackTrace(); // Ayuda en depuración
             return createJsonResponse(false, "Error al recuperar habitaciones: " + e.getMessage(), null);
         }
     }
+    
     
     
     public String update(Room room) throws IOException {
@@ -200,6 +222,7 @@ public class RoomData extends JsonDataResponse {
                     buffer.putInt(room.getCapacity());
                     writeString(buffer, room.getFeatures(), FEATURES_SIZE);
                     writeString(buffer, room.getDescription(), DESCRIPTION_SIZE);
+                    writeString(buffer, room.getImagePath(), IMAGE_SIZE);
                     raf.write(buffer.array());
                     raf.getFD().sync();
     
@@ -242,23 +265,25 @@ public class RoomData extends JsonDataResponse {
     
             for (Room room : updatedRooms) {
                 ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
-                writeString(buffer, room.getRoomNumber(), ROOM_NUMBER_SIZE);
-                buffer.putInt(room.getRoomType().ordinal());
+                writeString(buffer, room.getRoomNumber() != null ? room.getRoomNumber() : "", ROOM_NUMBER_SIZE);                buffer.putInt(room.getRoomType().ordinal());
                 buffer.putInt(room.getRoomCondition().ordinal());
-                buffer.putLong(room.getHotel().getHotelId());
+                buffer.putInt(room.getHotel().getHotelId()); 
                 buffer.putDouble(room.getPrice());
                 buffer.putInt(room.getCapacity());
-                writeString(buffer, room.getFeatures(), FEATURES_SIZE);
-                writeString(buffer, room.getDescription(), DESCRIPTION_SIZE);
+                writeString(buffer, room.getFeatures() != null ? room.getFeatures() : "", FEATURES_SIZE);       
+                writeString(buffer, room.getDescription() != null ? room.getDescription() : "", DESCRIPTION_SIZE);
+                writeString(buffer, room.getImagePath() != null ? room.getImagePath() : "", IMAGE_SIZE);
                 raf.write(buffer.array());
             }
     
             return createJsonResponse(true, "Habitación eliminada exitosamente", null);
     
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("[ERROR] Excepción al eliminar habitación:");
+            e.printStackTrace();  // Esto es importante
             return createJsonResponse(false, "Error al eliminar la habitación: " + e.getMessage(), null);
         }
+        
     }
     
 
@@ -281,13 +306,14 @@ public class RoomData extends JsonDataResponse {
                 int capacity = buffer.getInt();
                 String features = readString(buffer, FEATURES_SIZE).trim();
                 String description = readString(buffer, DESCRIPTION_SIZE).trim();
+                String image = readString(buffer, IMAGE_SIZE).trim();
     
                 if (roomTypeOrdinal == roomType.ordinal()) {
                     RoomCondition condition = RoomCondition.values()[roomConditionOrdinal];
                     Hotel hotel = getHotelById((int) hotelId);
     
                     if (hotel != null) {
-                        rooms.add(new Room(roomNumber, hotel, roomType, condition, price, capacity, features, description));
+                        rooms.add(new Room(roomNumber, hotel, roomType, condition, price, capacity, features, description, image));
                     }
                 }
             }
@@ -314,6 +340,7 @@ public class RoomData extends JsonDataResponse {
                 int capacity = buffer.getInt();
                 String features = readString(buffer, FEATURES_SIZE).trim();
                 String description = readString(buffer, DESCRIPTION_SIZE).trim();
+                String image = readString(buffer, IMAGE_SIZE).trim();
     
                 if (roomConditionOrdinal == roomCondition.ordinal()) {
                     try {
@@ -321,7 +348,7 @@ public class RoomData extends JsonDataResponse {
                         Hotel hotel = getHotelById((int) hotelId);
     
                         if (hotel != null) {
-                            rooms.add(new Room(roomNumber, hotel, roomType, roomCondition, price, capacity, features, description));
+                            rooms.add(new Room(roomNumber, hotel, roomType, roomCondition, price, capacity, features, description, image));
                         }
                     } catch (ArrayIndexOutOfBoundsException e) {
                         continue;
@@ -359,18 +386,30 @@ public class RoomData extends JsonDataResponse {
     }
 
 
-    private void writeString(ByteBuffer buffer, String value, int length) {
-        byte[] bytes = new byte[length];
-        byte[] strBytes = value != null ? value.getBytes(StandardCharsets.UTF_8) : new byte[0];
-        System.arraycopy(strBytes, 0, bytes, 0, Math.min(strBytes.length, length));
-        buffer.put(bytes);
+    private void writeString(ByteBuffer buffer, String value, int size) {
+        byte[] bytes = (value != null ? value : "").getBytes(StandardCharsets.UTF_8);
+        if (bytes.length > size) {
+            buffer.put(bytes, 0, size);
+        } else {
+            buffer.put(bytes);
+            buffer.put(new byte[size - bytes.length]); 
+        }
     }
+    
     
     private String readString(ByteBuffer buffer, int length) {
         byte[] bytes = new byte[length];
         buffer.get(bytes);
-        return new String(bytes, StandardCharsets.UTF_8).trim();
+    
+        // Filtra caracteres nulos (\0) para mayor seguridad
+        int actualLength = 0;
+        while (actualLength < length && bytes[actualLength] != 0) {
+            actualLength++;
+        }
+    
+        return new String(bytes, 0, actualLength, StandardCharsets.UTF_8).trim();
     }
+    
     
     
     public void close() throws IOException {
@@ -396,16 +435,21 @@ public class RoomData extends JsonDataResponse {
             int capacity = buffer.getInt();
             String features = readString(buffer, FEATURES_SIZE);
             String description = readString(buffer, DESCRIPTION_SIZE);
+            String image = readString(buffer, IMAGE_SIZE);
+    
+            
+            Hotel hotel = hotelData.findById(hotelId);
     
             Room room = new Room(
                 roomNumber,
-                new Hotel(hotelId), 
+                hotel,  
                 RoomType.values()[typeOrdinal],
                 RoomCondition.values()[statusOrdinal],
                 price,
                 capacity,
                 features,
-                description
+                description,
+                image
             );
     
             rooms.add(room);
@@ -426,21 +470,20 @@ public class RoomData extends JsonDataResponse {
             buffer.putInt(room.getCapacity());
             writeString(buffer, room.getFeatures(), FEATURES_SIZE);
             writeString(buffer, room.getDescription(), DESCRIPTION_SIZE);
+            writeString(buffer, room.getImagePath(), IMAGE_SIZE);
             raf.write(buffer.array());
         }
     }
 
-    public List<Room> readAllByHotel(long hotelId) {
-    try {
-        return loadRooms().stream()
-                .filter(r -> r.getHotel().getHotelId() == hotelId)
-                .collect(Collectors.toList());
-    } catch (Exception e) {
-        e.printStackTrace();
-        return new ArrayList<>();
+    public void clearDataFile() throws IOException {
+        raf.setLength(0);
+        raf.seek(0);
     }
-}
 
-    
+    public List<Room> getRoomsByHotelId(int hotelId) throws IOException {
+        return loadRooms().stream()
+            .filter(r -> r.getHotel() != null && r.getHotel().getHotelId() == hotelId)
+            .collect(Collectors.toList());
+    }
     
 }

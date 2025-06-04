@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="750.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.client.ui.controllers.RoomManagementController">
+<AnchorPane prefHeight="707.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.client.ui.controllers.RoomManagementController">
     <children>
         <BorderPane AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
             <top>
@@ -13,26 +28,27 @@
                 </VBox>
             </top>
 
-            <center>
-                <HBox spacing="20.0" style="-fx-padding: 20px;">
-                    <VBox prefWidth="380.0" spacing="15.0" style="-fx-background-color: #f5f5f5; -fx-padding: 15px; -fx-background-radius: 8px;">
+            <bottom>
+                <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #fff3e0; -fx-padding: 10px;">
+                    <Label style="-fx-font-weight: bold;" text="Estado:" />
+                    <Label fx:id="statusLabel" text="Sistema inicializado correctamente" />
+                    <HBox HBox.hgrow="ALWAYS" />
+                    <Button fx:id="closeButton" onAction="#handleClose" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🚪 Cerrar" />
+               <Separator />
+                </HBox>
+            </bottom>
+         <right>
+                <HBox spacing="20.0" style="-fx-padding: 20px;" BorderPane.alignment="CENTER">
+                    <VBox prefHeight="589.0" prefWidth="290.0" spacing="15.0" style="-fx-background-color: #f5f5f5; -fx-padding: 15px; -fx-background-radius: 8px;">
                         <Label style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #333333;" text="📋 Lista de Habitaciones" />
                         <VBox spacing="8.0">
                             <HBox alignment="CENTER_LEFT" spacing="8.0">
                                 <TextField fx:id="searchTextField" promptText="🔍 Buscar habitación por número o tipo..." style="-fx-background-radius: 5px; -fx-border-radius: 5px;" HBox.hgrow="ALWAYS" />
-                                <Button fx:id="searchButton" onAction="#handleSearch" style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 5px;" text="Buscar" />
+                                <Button fx:id="searchButton" disable="true" onAction="#handleSearch" style="-fx-background-color: #2196F3; -fx-text-fill: white; -fx-background-radius: 5px;" text="Buscar" />
                             </HBox>
                         </VBox>
 
-                        <TableView fx:id="roomTableView" onMouseClicked="#handleRoomSelection" style="-fx-background-radius: 5px; -fx-border-radius: 5px;" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="roomNumberColumn" text="Número" prefWidth="150" />
-                                <TableColumn fx:id="roomTypeColumn" text="Tipo" prefWidth="150" />
-                                <TableColumn fx:id="roomCapacityColumn" text="Capacidad" prefWidth="150" />
-                                <TableColumn fx:id="roomPriceColumn" text="Precio" prefWidth="150" />
-                                <TableColumn fx:id="roomStatusColumn" text="Estado" prefWidth="150" />
-                            </columns>
-                        </TableView>
+                        <ListView fx:id="roomListView" onMouseClicked="#handleRoomSelection" prefHeight="378.0" prefWidth="145.0" VBox.vgrow="ALWAYS" />
 
                         <VBox spacing="8.0">
                             <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #555555;" text="Acciones:" />
@@ -45,7 +61,7 @@
                     </VBox>
 
                     <!-- RIGHT PANEL -->
-                    <VBox spacing="15.0" style="-fx-background-color: #ffffff; -fx-padding: 20px; -fx-background-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);" HBox.hgrow="ALWAYS">
+                    <VBox prefHeight="589.0" prefWidth="449.0" spacing="15.0" style="-fx-background-color: #ffffff; -fx-padding: 20px; -fx-background-radius: 8px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);" HBox.hgrow="ALWAYS">
                         <Label style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #333333;" text="🛏️ Detalles de la Habitación" />
 
                         <GridPane hgap="15" vgap="12">
@@ -53,10 +69,19 @@
                                 <ColumnConstraints hgrow="NEVER" minWidth="120" />
                                 <ColumnConstraints hgrow="ALWAYS" />
                             </columnConstraints>
+                            <rowConstraints>
+                                <RowConstraints />
+                                <RowConstraints />
+                                <RowConstraints />
+                                <RowConstraints />
+                                <RowConstraints />
+                                <RowConstraints />
+                                <RowConstraints />
+                                <RowConstraints />
+                            </rowConstraints>
 
-                            <!-- NUEVO COMBOBOX DE HOTEL -->
                             <Label style="-fx-font-weight: bold;" text="Hotel:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                            <ComboBox fx:id="hotelComboBox" promptText="Selecciona un hotel" style="-fx-background-radius: 5px;" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                            <ComboBox fx:id="hotelComboBox" maxWidth="Infinity" promptText="Selecciona un hotel" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
                             <Label style="-fx-font-weight: bold;" text="Número:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
                             <TextField fx:id="numberTextField" promptText="Número de habitación" style="-fx-background-radius: 5px;" GridPane.columnIndex="1" GridPane.rowIndex="1" />
@@ -78,46 +103,34 @@
 
                             <Label style="-fx-font-weight: bold;" text="Descripción:" GridPane.columnIndex="0" GridPane.rowIndex="7" GridPane.valignment="TOP" />
                             <TextArea fx:id="descriptionTextArea" prefRowCount="3" promptText="Descripción detallada de la habitación" style="-fx-background-radius: 5px;" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="7" />
-
-                            <rowConstraints>
-                                <RowConstraints />
-                                <RowConstraints />
-                                <RowConstraints />
-                                <RowConstraints />
-                                <RowConstraints />
-                                <RowConstraints />
-                                <RowConstraints />
-                                <RowConstraints />
-                            </rowConstraints>
                         </GridPane>
+                         <Button fx:id="selectImageButton" disable="true" onAction="#handleSelectImage" style="-fx-background-color: #03A9F4; -fx-text-fill: white; -fx-background-radius: 5px;" text="🖼️ Seleccionar Imagen" />
 
-                        <HBox alignment="CENTER" spacing="15.0">
+                        <Separator />
+
+                           <HBox alignment="CENTER_LEFT" prefHeight="26.0" prefWidth="324.0" spacing="10">
+   
+                              <HBox alignment="CENTER" spacing="15.0" />
                             <Button fx:id="saveButton" disable="true" onAction="#handleSave" prefWidth="120" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5px;" text="💾 Guardar" />
                             <Button fx:id="cancelButton" disable="true" onAction="#handleCancel" prefWidth="120" style="-fx-background-color: #9E9E9E; -fx-text-fill: white; -fx-background-radius: 5px;" text="❌ Cancelar" />
                         </HBox>
 
-                        <Separator />
-
-                        <VBox spacing="10.0">
-                            <TableView fx:id="imagesTableView" prefHeight="150" style="-fx-background-radius: 5px;">
-                                <columns>
-                                    <TableColumn fx:id="imageNameColumn" prefWidth="200" text="Nombre" />
-                                    <TableColumn fx:id="imagePathColumn" prefWidth="300" text="Ruta" />
-                                </columns>
-                            </TableView>
-                        </VBox>
+                        <VBox spacing="10.0" />
                     </VBox>
+               <VBox prefHeight="589.0" prefWidth="261.0" style="-fx-background-color: #ffffff; -fx-padding: 20 px; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);">
+                  <children>
+                     <Pane prefHeight="537.0" prefWidth="174.0">
+                        <children>
+                           <ImageView fx:id="roomImageView" fitHeight="165.0" fitWidth="247.0" layoutX="7.0" layoutY="167.0" preserveRatio="true" style="-fx-border-color: #ccc; -fx-border-width: 1; -fx-background-radius: 5px; -fx-padding: 20;" />
+                           <Label layoutX="5.0" layoutY="18.0" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #333333;" text="🛏️  Preview de la habitación" />
+                           <Separator layoutY="321.0" prefHeight="40.0" prefWidth="261.0" />
+                           <Separator layoutY="139.0" prefHeight="40.0" prefWidth="261.0" />
+                        </children>
+                     </Pane>
+                  </children>
+               </VBox>
                 </HBox>
-            </center>
-
-            <bottom>
-                <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #fff3e0; -fx-padding: 10px;">
-                    <Label style="-fx-font-weight: bold;" text="Estado:" />
-                    <Label fx:id="statusLabel" text="Sistema inicializado correctamente" />
-                    <HBox HBox.hgrow="ALWAYS" />
-                    <Button fx:id="closeButton" onAction="#handleClose" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🚪 Cerrar" />
-                </HBox>
-            </bottom>
+         </right>
         </BorderPane>
     </children>
 </AnchorPane>

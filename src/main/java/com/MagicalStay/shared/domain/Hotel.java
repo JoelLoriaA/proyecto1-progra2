@@ -1,23 +1,24 @@
 package com.MagicalStay.shared.domain;
 
 import java.util.List;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Hotel {
+
     private int hotelId;
     private String name;
     private String address;
-    @JsonManagedReference
-    private List<Room> rooms;  // Lista de habitaciones
+    private List<Room> rooms;
     private List<Guest> guests;
 
+    //
     public Hotel(int hotelId, String name, String address, List<Room> rooms) {
         this.hotelId = hotelId;
         this.name = name;
         this.address = address;
         this.rooms = rooms;
     }
-
 
     public Hotel(int hotelId, String name, String address, List<Room> rooms, List<Guest> guests) {
         this.hotelId = hotelId;
@@ -33,15 +34,15 @@ public class Hotel {
         this.address = address;
     }
 
-
     public Hotel() {
+        // Constructor por defecto para Jackson
     }
 
-
-    public Hotel(long hotelId2) {
+    public Hotel(long hotelId) {
+        this.hotelId = (int) hotelId;
     }
 
-
+    // Getters y setters
     public int getHotelId() {
         return hotelId;
     }
@@ -88,7 +89,9 @@ public class Hotel {
                 "hotelId=" + hotelId +
                 ", name='" + name + '\'' +
                 ", address='" + address + '\'' +
-                ", room=" + rooms +
+                ", rooms=" + (rooms != null ? rooms.size() : 0) +
                 '}';
     }
 }
+
+

@@ -240,9 +240,9 @@ public class HotelManagementController {
             String jsonResponse = guestData.readAll();
             DataResponse response = parseDataResponse(jsonResponse);
 
-          //  if (response.isSuccess()) {
-            //    List<Guest> allGuests = objectMapper.convertValue(response.getData(),
-              //          new TypeReference<List<Guest>>() {});
+           if (response.isSuccess()) {
+                List<Guest> allGuests = objectMapper.convertValue(response.getData(),
+                        new TypeReference<List<Guest>>() {});
 
                 // Filtrar huéspedes por hotel usando sus reservas
                 List<Guest> hotelGuests = allGuests.stream()

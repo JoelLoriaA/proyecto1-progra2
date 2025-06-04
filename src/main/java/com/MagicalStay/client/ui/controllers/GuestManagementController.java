@@ -313,4 +313,9 @@ public class GuestManagementController {
         public Object getData() { return data; }
         public void setData(Object data) { this.data = data; }
     }
+
+    public void setSelectedHotel(Hotel selectedHotel2) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setSelectedHotel'");
+    }
 }

@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.io.RandomAccessFile;
+
 
 
 public class RoomDataTest {
@@ -51,7 +53,9 @@ public class RoomDataTest {
             .findFirst()
             .orElseThrow(() -> new IllegalStateException("Hotel no encontrado"));
 
-        Room room = new Room("BBB", storedHotel, RoomType.ESTANDAR, RoomCondition.DISPONIBLE, 150.0, 2, "WIfi",  "SW");
+
+        String roomPath = "data/images/1.jpeg"; 
+        Room room = new Room("BBB", storedHotel, RoomType.ESTANDAR, RoomCondition.DISPONIBLE, 150.0, 2, "WIfi",  "SW", roomPath);
 
         String createResultRoom = roomData.create(room);
         System.out.println("Room creada: " + createResultRoom);
@@ -73,7 +77,8 @@ public class RoomDataTest {
             .findFirst()
             .orElseThrow(() -> new IllegalStateException("Hotel no encontrado"));
 
-        Room room = new Room("CCC", storedHotel, RoomType.SUITE, RoomCondition.OCUPADA, 150.0, 2, "WIfi",  "SW");
+        String roomPath = "data/images/1.jpeg";     
+        Room room = new Room("CCC", storedHotel, RoomType.SUITE, RoomCondition.OCUPADA, 150.0, 2, "WIfi",  "SW", roomPath);
 
         String createResult = roomData.create(room);
         System.out.println("✅ Creación: " + createResult);
@@ -114,8 +119,15 @@ public class RoomDataTest {
         roomData.create(room3);
 
         // Eliminar solo una habitación
+
+        System.out.println(">>> Habitaciones antes de borrar:");
+        for (Room room : roomData.loadRooms()) {
+            System.out.println(" - " + room.getRoomNumber().trim() + " (HotelID: " + room.getHotel().getHotelId() + ")");
+        }
+
         String deleteResult = roomData.delete("102");
         System.out.println("Resultado eliminación: " + deleteResult);
+
         assertTrue(deleteResult.contains("\"success\":true"), "Falló al eliminar habitación 102");
 
         // Leer todas las habitaciones restantes
@@ -129,4 +141,43 @@ public class RoomDataTest {
         assertTrue(roomsRemaining.stream().anyMatch(r -> r.getRoomNumber().equals("103")), "Falta la habitación 103");
         assertFalse(roomsRemaining.stream().anyMatch(r -> r.getRoomNumber().equals("102")), "La habitación 102 no fue eliminada correctamente");
     }
+
+    @Test
+    public void testCreateMultipleRooms_afterWipe() throws IOException {
+        roomData.clearDataFile();    
+
+        // Obtener hotel existente
+        Hotel storedHotel = hotelData.getAllHotels().stream()
+            .filter(h -> h.getHotelId() == 1)
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("Hotel con ID 1 no encontrado"));
+
+        // Lista de habitaciones a crear
+        String roomPath = "data/images/1.jpeg"; 
+        List<Room> roomsToCreate = List.of(
+            new Room("101", storedHotel, RoomType.ESTANDAR, RoomCondition.DISPONIBLE, 100.0, 2, "WiFi,TV", "Cerca del lobby", roomPath),
+            new Room("102", storedHotel, RoomType.SUITE, RoomCondition.OCUPADA, 200.0, 4, "Jacuzzi,WiFi", "Vista al mar", roomPath),
+            new Room("103", storedHotel, RoomType.SUITE, RoomCondition.OCUPADA, 150.0, 3, "WiFi", "Segundo piso", roomPath),
+            new Room("104", storedHotel, RoomType.ESTANDAR, RoomCondition.EN_MANTENIMIENTO, 120.0, 2, "A/C,TV", "Cerca de la salida", roomPath)
+        );
+
+        // Crear habitaciones
+        for (Room room : roomsToCreate) {
+            String result = roomData.create(room);
+            System.out.println("Creación habitación " + room.getRoomNumber() + ": " + result);
+            assertNotNull(result, "Resultado de creación nulo para " + room.getRoomNumber());
+            assertTrue(result.contains("\"success\":true"), "Creación fallida para " + room.getRoomNumber());
+        }
+
+        // Verificar lectura de todas las habitaciones
+        for (Room room : roomsToCreate) {
+            String readResult = roomData.read(room.getRoomNumber());
+            System.out.println("Lectura habitación " + room.getRoomNumber() + ": " + readResult);
+            assertNotNull(readResult, "Lectura nula para " + room.getRoomNumber());
+            assertTrue(readResult.contains(room.getRoomNumber()), "No contiene número de habitación");
+            assertTrue(readResult.contains(room.getRoomType().name()), "No contiene tipo");
+            assertTrue(readResult.contains(room.getRoomCondition().name()), "No contiene condición");
+        }
+    }
+
 }
