@@ -18,7 +18,7 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane prefHeight="672.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.client.ui.controllers.HotelManagementController">
+<BorderPane prefHeight="785.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MagicalStay.client.ui.controllers.HotelManagementController">
     <top>
         <VBox style="-fx-background-color: #FF9800; -fx-padding: 20px;">
             <Label style="-fx-font-size: 24px; -fx-text-fill: white; -fx-font-weight: bold;" text="🏨 Gestión de Hoteles" />
@@ -99,7 +99,7 @@
                <Label layoutX="30.0" layoutY="341.0" style="-fx-font-weight: bold;" text="🛏️ Huéspedes del Hotel" />
                <HBox alignment="CENTER_RIGHT" spacing="8.0">
                   <children>
-                     <Button fx:id="manageRoomsButton1" disable="true" onAction="#handleManageRooms" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🔧 Gestionar Habitaciones" />
+                     <Button fx:id="manageGuestsButton" disable="true" onAction="#handleManageGuests" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🔧 Gestionar Huéspedes" />
                   </children>
                </HBox>
                <TableView fx:id="guestsTableView" layoutX="30.0" layoutY="443.0" prefHeight="78.0" prefWidth="726.0" style="-fx-background-radius: 5px;">
@@ -120,10 +120,10 @@
     </center>
 
     <bottom>
-        <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #fff3e0; -fx-padding: 10px;">
+        <HBox alignment="CENTER_LEFT" prefHeight="54.0" prefWidth="1100.0" spacing="10.0" style="-fx-background-color: #fff3e0; -fx-padding: 10px;">
             <Label style="-fx-font-weight: bold;" text="Estado:" />
             <Label fx:id="statusLabel" text="Listo" />
-            <Pane HBox.hgrow="ALWAYS" />
+            <Pane prefWidth="926.0" HBox.hgrow="ALWAYS" />
             <Button fx:id="closeButton" onAction="#handleClose" style="-fx-background-color: #607D8B; -fx-text-fill: white; -fx-background-radius: 5px;" text="🚪 Cerrar" />
         </HBox>
     </bottom>

@@ -3,6 +3,7 @@ package com.MagicalStay.client.ui.controllers;
 import com.MagicalStay.client.data.DataFactory;
 import com.MagicalStay.shared.data.GuestData;
 import com.MagicalStay.shared.domain.Guest;
+import com.MagicalStay.shared.domain.Hotel;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.collections.FXCollections;
@@ -51,6 +52,7 @@ public class GuestManagementController {
     private ObservableList<Guest> guestList;
     private Guest selectedGuest;
     private boolean editMode = false;
+    private Hotel selectedHotel;
 
     @FXML
     private void initialize() {
@@ -72,6 +74,7 @@ public class GuestManagementController {
                     }
                 }
             });
+
 
             setFieldsEnabled(false);
             editButton.setDisable(true);
