@@ -248,7 +248,7 @@ public class GuestController {
             // Fill form fields with selected guest data
             nameField.setText(selectedGuest.getName());
             lastNameField.setText(selectedGuest.getLastName());
-            dniField.setText(String.valueOf(selectedGuest.getDni()));
+            dniField.setText(String.valueOf(selectedGuest.getId()));
             phoneNumberField.setText(String.valueOf(selectedGuest.getPhoneNumber()));
             emailField.setText(selectedGuest.getEmail());
             addressField.setText(selectedGuest.getAddress());
@@ -347,7 +347,7 @@ public class GuestController {
             Optional<ButtonType> result = confirmAlert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
                 try {
-                    String jsonResponse = guestData.delete(selectedGuest.getDni());
+                    String jsonResponse = guestData.delete(selectedGuest.getId());
                     DataResponse response = parseDataResponse(jsonResponse);
 
                     if (response.isSuccess()) {

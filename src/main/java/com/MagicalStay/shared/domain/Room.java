@@ -30,7 +30,6 @@ public class Room {
         this.capacity = capacity;
         this.features = features;
         this.description = description;
-        
     }
     
 

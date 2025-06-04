@@ -10,7 +10,6 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.application.Platform;
@@ -88,7 +87,7 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
 
     @FXML
     private void handleBookingManagement() {
-        openWindow("/com/MagicalStay/booking-management.fxml", "Gestión de Reservas");
+        openWindow("com/MagicalStay/booking-management.fxml", "Gestión de Reservas");
     }
 
     @FXML

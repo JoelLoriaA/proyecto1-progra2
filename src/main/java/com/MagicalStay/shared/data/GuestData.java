@@ -2,9 +2,6 @@ package com.MagicalStay.shared.data;
 
 import com.MagicalStay.shared.domain.Guest;
 import java.io.IOException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -35,7 +32,7 @@ public class GuestData extends JsonDataResponse {
 
             writeString(buffer, guest.getName(), NAME_SIZE);
             writeString(buffer, guest.getLastName(), LAST_NAME_SIZE);
-            buffer.putInt(guest.getDni());
+            buffer.putInt(guest.getId());
             buffer.putInt(guest.getPhoneNumber());
             writeString(buffer, guest.getEmail(), EMAIL_SIZE);
             writeString(buffer, guest.getAddress(), ADDRESS_SIZE);
@@ -111,13 +108,13 @@ public class GuestData extends JsonDataResponse {
                 raf.seek(pos + NAME_SIZE + LAST_NAME_SIZE);
                 int readDni = raf.readInt();
 
-                if (readDni == guest.getDni()) {
+                if (readDni == guest.getId()) {
                     raf.seek(pos);
                     ByteBuffer buffer = ByteBuffer.allocate(RECORD_SIZE);
 
                     writeString(buffer, guest.getName(), NAME_SIZE);
                     writeString(buffer, guest.getLastName(), LAST_NAME_SIZE);
-                    buffer.putInt(guest.getDni());
+                    buffer.putInt(guest.getId());
                     buffer.putInt(guest.getPhoneNumber());
                     writeString(buffer, guest.getEmail(), EMAIL_SIZE);
                     writeString(buffer, guest.getAddress(), ADDRESS_SIZE);

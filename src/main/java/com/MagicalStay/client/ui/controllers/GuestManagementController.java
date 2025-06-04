@@ -70,7 +70,7 @@ public class GuestManagementController {
                     if (empty || guest == null) {
                         setText(null);
                     } else {
-                        setText(guest.getName() + " " + guest.getLastName() + " - DNI: " + guest.getDni());
+                        setText(guest.getName() + " " + guest.getLastName() + " - DNI: " + guest.getId());
                     }
                 }
             });
@@ -111,7 +111,7 @@ public class GuestManagementController {
         if (selectedGuest != null) {
             nameField.setText(selectedGuest.getName());
             lastNameField.setText(selectedGuest.getLastName());
-            dniField.setText(String.valueOf(selectedGuest.getDni()));
+            dniField.setText(String.valueOf(selectedGuest.getId()));
             phoneField.setText(String.valueOf(selectedGuest.getPhoneNumber()));
             emailField.setText(selectedGuest.getEmail());
             addressField.setText(selectedGuest.getAddress());
@@ -157,7 +157,7 @@ public class GuestManagementController {
             Optional<ButtonType> result = alert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
                 try {
-                    String jsonResponse = guestData.delete(selectedGuest.getDni());
+                    String jsonResponse = guestData.delete(selectedGuest.getId());
                     JsonResponse response = objectMapper.readValue(jsonResponse, JsonResponse.class);
 
                     if (response.isSuccess()) {
