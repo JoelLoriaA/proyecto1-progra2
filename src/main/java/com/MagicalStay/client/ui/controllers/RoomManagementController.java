@@ -593,13 +593,13 @@ public class RoomManagementController implements Closeable {
             try {
                 String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
                 String newFileName = "habitacion_" + System.currentTimeMillis() + extension;
-                File destFile = new File("data/images", newFileName);
+                File destFile = new File("DataCopy/images", newFileName);
 
                 Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
                 roomImageView.setImage(new Image(destFile.toURI().toString()));
 
-                selectedImagePath = "data/images/" + newFileName;
+                selectedImagePath = "DataCopy/images/" + newFileName;
 
                 System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
 
@@ -609,8 +609,6 @@ public class RoomManagementController implements Closeable {
             }
         }
     }
-
-
 
 }
 

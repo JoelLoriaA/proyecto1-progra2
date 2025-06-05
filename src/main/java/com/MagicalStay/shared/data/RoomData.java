@@ -438,7 +438,16 @@ public String create(Room room) {
             String image = readString(buffer, IMAGE_SIZE);
     
             
-            Hotel hotel = hotelData.findById(hotelId);
+            String json = hotelData.retrieveById(hotelId);
+            JsonResponse response = new ObjectMapper().readValue(json, JsonResponse.class);
+            Hotel hotel = null;
+            
+            if (response.isSuccess()) {
+                hotel = new ObjectMapper().convertValue(response.getData(), Hotel.class);
+            } else {
+                System.err.println("⚠️ No se encontró el hotel con ID " + hotelId + ": " + response.getMessage());
+                continue; // o manejar como null según el caso
+            }
     
             Room room = new Room(
                 roomNumber,

@@ -52,7 +52,6 @@ public class HotelDataTest {
         Hotel hotel = new Hotel(1, "Hotel Test", "Dirección Test");
         hotelData.create(hotel);
 
-        // Probar retrieveById
         String retrieveResult = hotelData.retrieveById(1);
         System.out.println("📖 Resultado retrieveById: " + retrieveResult);
         
@@ -67,7 +66,6 @@ public class HotelDataTest {
 
     @Test
     public void testRetrieveAll() throws IOException {
-        // Crear hoteles de prueba
         Hotel hotel1 = new Hotel(1, "Hotel Playa", "Av. Costa 123");
         Hotel hotel2 = new Hotel(2, "Hotel Centro", "Jr. Lima 456");
         Hotel hotel3 = new Hotel(3, "Hotel Norte", "Av. Norte 789");
@@ -92,7 +90,6 @@ public class HotelDataTest {
 
     @Test
     public void testRetrieveByName() throws IOException {
-        // Crear hoteles con nombres similares
         Hotel hotel1 = new Hotel(1, "Gran Hotel Plaza", "Dirección 1");
         Hotel hotel2 = new Hotel(2, "Hotel Plaza Real", "Dirección 2");
         Hotel hotel3 = new Hotel(3, "Hotel Centenario", "Dirección 3");
@@ -117,7 +114,6 @@ public class HotelDataTest {
 
     @Test
     public void testRetrieveByAddress() throws IOException {
-        // Crear hoteles con diferentes direcciones
         Hotel hotel1 = new Hotel(1, "Hotel A", "Miraflores, Lima");
         Hotel hotel2 = new Hotel(2, "Hotel B", "San Isidro, Lima");
         
@@ -140,11 +136,9 @@ public class HotelDataTest {
 
     @Test
     public void testUpdateHotel() throws IOException {
-        // Crear hotel inicial
         Hotel hotel = new Hotel(1, "Hotel Original", "Dirección Original");
         hotelData.create(hotel);
 
-        // Modificar y actualizar
         hotel.setName("Hotel Actualizado");
         hotel.setAddress("Dirección Actualizada");
         
@@ -153,7 +147,6 @@ public class HotelDataTest {
         
         assertTrue(updateResult.contains("\"success\":true"), "❌ Actualización fallida");
 
-        // Verificar cambios
         String retrieveResult = hotelData.retrieveById(1);
         assertTrue(retrieveResult.contains("Hotel Actualizado"), "❌ Nombre no actualizado");
         assertTrue(retrieveResult.contains("Dirección Actualizada"), "❌ Dirección no actualizada");
@@ -161,7 +154,6 @@ public class HotelDataTest {
 
     @Test
     public void testDeleteHotel() throws IOException {
-        // Crear hotel para eliminar
         Hotel hotel = new Hotel(1, "Hotel a Eliminar", "Dirección Test");
         hotelData.create(hotel);
 

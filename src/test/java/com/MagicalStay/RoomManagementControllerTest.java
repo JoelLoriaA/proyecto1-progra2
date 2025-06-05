@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.MagicalStay.client.ui.controllers.RoomManagementController;
 import com.MagicalStay.shared.data.HotelData;
+import com.MagicalStay.shared.data.JsonResponse;
 import com.MagicalStay.shared.data.RoomData;
 import com.MagicalStay.shared.domain.Hotel;
 import com.MagicalStay.shared.domain.Room;
@@ -42,10 +43,9 @@ public class RoomManagementControllerTest {
 
     private File hotelFile;
     private File roomFile;
-
     private HotelData hotelData;
     private RoomData roomData;
-
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private RoomManagementController controller;
 
     // Inicializar JavaFX Toolkit solo una vez
@@ -60,34 +60,44 @@ public class RoomManagementControllerTest {
 
     @BeforeEach
     public void setup() throws IOException {
-        // Archivos temporales
         hotelFile = File.createTempFile("hotels", ".dat");
         roomFile = File.createTempFile("rooms", ".dat");
 
+        // Inicializar hotelData primero
         hotelData = new HotelData(hotelFile.getAbsolutePath());
+
+        // Crear y guardar hotel
+        Hotel hotel = new Hotel(1, "Hotel Test", "Centro");
+        String hotelResult = hotelData.create(hotel);
+        assertTrue(hotelResult.contains("\"success\":true"), "❌ No se creó el hotel correctamente");
+
+        // Cerrar y reabrir hotelData antes de pasarlo a RoomData
+        hotelData.close();
+        hotelData = new HotelData(hotelFile.getAbsolutePath());
+
+        // ✅ Ahora inicializar roomData con hotelData ya listo
         roomData = new RoomData(roomFile.getAbsolutePath(), hotelData);
 
+        // Configurar controlador
         controller = new RoomManagementController();
-
-        // Inyectar dependencias reales
         controller.roomData = roomData;
         controller.objectMapper = new ObjectMapper();
         controller.roomList = FXCollections.observableArrayList();
         controller.statusLabel = new Label();
 
-        // Crear hotel y setearlo como seleccionado
-        Hotel hotel = new Hotel(1, "Hotel Test", "centro");
-        hotelData.create(hotel);
-        // Fuerza guardar el hotel en archivo y recargarlo correctamente
-        hotelData.close();
-        hotelData = new HotelData(hotelFile.getAbsolutePath());
-        Hotel hotelFromFile = hotelData.findById(1);
-        assertNotNull(hotelFromFile, "Hotel no se recuperó desde archivo");
+        // Obtener hotel como lo haría RoomData
+        String json = hotelData.retrieveById(1);
+        System.out.println("📄 retrieveById JSON: " + json);
+        JsonResponse response = objectMapper.readValue(json, JsonResponse.class);
+        assertTrue(response.isSuccess(), "❌ Hotel no recuperado exitosamente");
 
-        controller.selectedHotel = hotelFromFile; 
+        Hotel hotelFromFile = objectMapper.convertValue(response.getData(), Hotel.class);
+        assertNotNull(hotelFromFile, "❌ Hotel no se recuperó desde archivo");
 
-        
+        controller.selectedHotel = hotelFromFile;
     }
+
+    
 
     @AfterEach
     public void cleanup() throws IOException {
@@ -95,141 +105,149 @@ public class RoomManagementControllerTest {
         if (hotelData != null) hotelData.close();
     }
 
+    
     @Test
-public void testLoadRoomsFromFile() throws Exception {
-    // Limpiar archivo de habitaciones
-    roomData.clearDataFile();
+    public void testLoadRoomsFromFile() throws Exception {
+        System.out.println("🧪 Iniciando testLoadRoomsFromFile");
 
-    // Crear y guardar hotel
-    Hotel hotel = new Hotel(1, "Hotel Test", "Centro");
-    String resultHotel = hotelData.create(hotel);
-    assertTrue(resultHotel.contains("\"success\":true"), "Hotel no se creó correctamente");
+        // Limpiar archivo de habitaciones
+        roomData.clearDataFile();
+        System.out.println("✅ Archivo de habitaciones limpiado");
 
-    // Refrescar instancia de hotel desde archivo (simula reinicio de sistema)
-    hotelData.close();
-    hotelData = new HotelData(hotelFile.getAbsolutePath());
-    Hotel storedHotel = hotelData.findById(1);
-    assertNotNull(storedHotel, "No se recuperó el hotel desde archivo");
+        // Crear y guardar hotel
+        Hotel hotel = new Hotel(1, "Hotel Test", "Centro");
+        String hotelResult = hotelData.create(hotel);
+        System.out.println("✅ Resultado al crear hotel: " + hotelResult);
+        assertTrue(hotelResult.contains("\"success\":true"), "❌ Hotel no se creó correctamente");
 
-    // Crear roomData con hotelData actualizado
-    roomData.close();
-    roomData = new RoomData(roomFile.getAbsolutePath(), hotelData);
+        // Recuperar hotel desde archivo
+        String hotelJson = hotelData.retrieveById(1);
+        System.out.println("🔍 Resultado de retrieveById: " + hotelJson);
+        JsonResponse response = objectMapper.readValue(hotelJson, JsonResponse.class);
+        assertTrue(response.isSuccess(), "❌ Falló retrieveById");
 
-    // Crear habitación asociada al hotel recuperado
-    String roomPath = "data/images/1.jpeg"; 
-    Room room = new Room("101", storedHotel, RoomType.ESTANDAR, RoomCondition.DISPONIBLE, 100.0, 2, "WiFi,TV", "Cerca del lobby", roomPath);
-    String roomResult = roomData.create(room);
-    System.out.println("Resultado de crear habitación: " + roomResult);
-    assertTrue(roomResult.contains("\"success\":true"), "No se pudo crear la habitación");
+        Hotel selectedHotel = objectMapper.convertValue(response.getData(), Hotel.class);
+        System.out.println("✅ Hotel recuperado: " + selectedHotel);
+        assertNotNull(selectedHotel, "❌ Hotel no recuperado correctamente");
 
-    // Reabrir para lectura
-    roomData.close();
-    roomData = new RoomData(roomFile.getAbsolutePath(), hotelData);
+        // Crear habitación con hotel recuperado
+        Room room = new Room("101", selectedHotel, RoomType.ESTANDAR, RoomCondition.DISPONIBLE,
+                            100.0, 2, "WiFi,TV", "Cerca del lobby", "data/images/1.jpeg");
 
-    // Configurar controller
-    RoomManagementController controller = new RoomManagementController();
-    controller.roomData = roomData;
-    controller.selectedHotel = storedHotel;
-    controller.roomList = FXCollections.observableArrayList();
-    controller.statusLabel = new Label();
-    controller.objectMapper = new ObjectMapper();
+        String roomResult = roomData.create(room);  // ✅ Importante: antes de cerrar roomData
+        System.out.println("✅ Resultado al crear habitación: " + roomResult);
+        assertTrue(roomResult.contains("\"success\":true"), "❌ Falló al crear habitación");
 
-    // Debug directo desde archivo
-    System.out.println("Lectura directa del archivo con roomData:");
-    List<Room> directRooms = roomData.loadRooms();
-    for (Room r : directRooms) {
-        System.out.println("Room: " + r.getRoomNumber() + ", hotelId: " + 
-            (r.getHotel() != null ? r.getHotel().getHotelId() : "null"));
+        // Leer y mostrar habitaciones en archivo (opcional pero útil para debug)
+        String allRoomsJson = roomData.readAll();
+        System.out.println("📄 Habitaciones en archivo tras creación:");
+        System.out.println(allRoomsJson);
+
+        // ✅ Cerrar roomData SOLO DESPUÉS de haber creado y leído todo
+        roomData.close();
+
+        // Reabrir para simular flujo real
+        roomData = new RoomData(roomFile.getAbsolutePath(), hotelData);
+        System.out.println("🔁 RoomData reabierto desde archivo");
+
+        // Configurar controlador
+        RoomManagementController controller = new RoomManagementController();
+        controller.roomData = roomData;
+        controller.selectedHotel = selectedHotel;
+        controller.roomList = FXCollections.observableArrayList();
+        controller.statusLabel = new Label();
+        controller.objectMapper = new ObjectMapper();
+
+        // Cargar habitaciones
+        System.out.println("📥 Cargando habitaciones con loadRoomsFromFile()");
+        controller.loadRoomsFromFile();
+
+        System.out.println("📋 Tamaño de roomList: " + controller.roomList.size());
+        assertEquals(1, controller.roomList.size(), "❌ Debe haber una habitación cargada");
+
+        Room loadedRoom = controller.roomList.get(0);
+        System.out.println("✅ Habitación cargada: " + loadedRoom);
+
+        // Verificar campos
+        assertEquals("101", loadedRoom.getRoomNumber(), "❌ Número incorrecto");
+        assertEquals(selectedHotel.getHotelId(), loadedRoom.getHotel().getHotelId(), "❌ Hotel incorrecto");
+
+        System.out.println("✅ testLoadRoomsFromFile completado exitosamente");
     }
-    System.out.println("Total en archivo: " + directRooms.size());
-
-    // Ejecutar carga en controller
-    controller.loadRoomsFromFile();
-
-    // Debug de resultado cargado en controller
-    System.out.println("Habitaciones cargadas:");
-    controller.roomList.forEach(r -> System.out.println(r.getRoomNumber() + " - HotelID: " + r.getHotel().getHotelId()));
-
-    // Verificaciones
-    assertEquals(1, controller.roomList.size(), "Debe haber una habitación cargada");
-    Room loadedRoom = controller.roomList.get(0);
-    assertEquals("101", loadedRoom.getRoomNumber(), "Número de habitación incorrecto");
-    assertEquals(storedHotel.getHotelId(), loadedRoom.getHotel().getHotelId(), "Hotel incorrecto");
-}
 
 
-@Test
-void testHandleSaveCreatesRoomSuccessfully() throws IOException {
 
-    roomData.clearDataFile();
-    // Crear archivo temporal de hoteles y habitaciones
-    File hotelFile = File.createTempFile("test_hotels", ".dat");
-    File roomFile = File.createTempFile("test_rooms", ".dat");
-    hotelFile.deleteOnExit();
-    roomFile.deleteOnExit();
 
-    // Crear datos de prueba
-    Hotel hotel = new Hotel(1, "Hotel Test", "Centro");
-    HotelData hotelData = new HotelData(hotelFile.getAbsolutePath());
-    hotelData.create(hotel);
 
-    RoomData roomData = new RoomData(roomFile.getAbsolutePath(), hotelData);
 
-    RoomManagementController controller = new RoomManagementController();
+    @Test
+    void testHandleSaveCreatesRoomSuccessfully() throws IOException {
 
-    controller.roomData = roomData;
-    controller.selectedHotel = hotel;
-    controller.editMode = false; 
-    controller.numberTextField = new TextField("101");
-    controller.priceTextField = new TextField("150.0");
-    controller.typeComboBox = new ComboBox<>(FXCollections.observableArrayList(RoomType.values()));
-    controller.typeComboBox.setValue(RoomType.ESTANDAR);
-    controller.statusComboBox = new ComboBox<>(FXCollections.observableArrayList(RoomCondition.values()));
-    controller.statusComboBox.setValue(RoomCondition.DISPONIBLE);
-    controller.capacitySpinner = new Spinner<>(1, 10, 2);
-    controller.featuresTextArea = new TextArea("WiFi, TV");
-    controller.descriptionTextArea = new TextArea("Cerca del lobby");
-    controller.selectedImagePath = "images/habitacion101.jpg";
+        roomData.clearDataFile();
+        // Crear archivo temporal de hoteles y habitaciones
+        File hotelFile = File.createTempFile("test_hotels", ".dat");
+        File roomFile = File.createTempFile("test_rooms", ".dat");
+        hotelFile.deleteOnExit();
+        roomFile.deleteOnExit();
 
-    controller.roomListView = new ListView<>();
-    controller.saveButton = new Button();
-    controller.cancelButton = new Button();
+        // Crear datos de prueba
+        Hotel hotel = new Hotel(1, "Hotel Test", "Centro");
+        HotelData hotelData = new HotelData(hotelFile.getAbsolutePath());
+        hotelData.create(hotel);
 
-    controller.roomList = FXCollections.observableArrayList();
+        RoomData roomData = new RoomData(roomFile.getAbsolutePath(), hotelData);
 
-    Platform.runLater(() -> {
-        controller.handleSave();
+        RoomManagementController controller = new RoomManagementController();
+
+        controller.roomData = roomData;
+        controller.selectedHotel = hotel;
+        controller.editMode = false; 
+        controller.numberTextField = new TextField("101");
+        controller.priceTextField = new TextField("150.0");
+        controller.typeComboBox = new ComboBox<>(FXCollections.observableArrayList(RoomType.values()));
+        controller.typeComboBox.setValue(RoomType.ESTANDAR);
+        controller.statusComboBox = new ComboBox<>(FXCollections.observableArrayList(RoomCondition.values()));
+        controller.statusComboBox.setValue(RoomCondition.DISPONIBLE);
+        controller.capacitySpinner = new Spinner<>(1, 10, 2);
+        controller.featuresTextArea = new TextArea("WiFi, TV");
+        controller.descriptionTextArea = new TextArea("Cerca del lobby");
+        controller.selectedImagePath = "images/habitacion101.jpg";
+
+        controller.roomListView = new ListView<>();
+        controller.saveButton = new Button();
+        controller.cancelButton = new Button();
+
+        controller.roomList = FXCollections.observableArrayList();
+
+        Platform.runLater(() -> {
+            controller.handleSave();
+
+            try {
+                RoomData roomDataReloaded = new RoomData(roomFile.getAbsolutePath(), hotelData);
+                List<Room> rooms = roomDataReloaded.getRoomsByHotelId(hotel.getHotelId());
+
+                assertEquals(1, rooms.size(), "Se esperaba una habitación guardada");
+
+                Room savedRoom = rooms.get(0);
+                assertEquals("101", savedRoom.getRoomNumber());
+                assertEquals(RoomType.ESTANDAR, savedRoom.getRoomType());
+                assertEquals(RoomCondition.DISPONIBLE, savedRoom.getRoomCondition());
+                assertEquals(150.0, savedRoom.getPrice());
+                assertEquals(2, savedRoom.getCapacity());
+                assertEquals("WiFi, TV", savedRoom.getFeatures());
+                assertEquals("Cerca del lobby", savedRoom.getDescription());
+                assertEquals("images/habitacion101.jpg", savedRoom.getImagePath());
+
+            } catch (IOException e) {
+                fail("Error al recargar datos de habitaciones: " + e.getMessage());
+            }
+        });
 
         try {
-            RoomData roomDataReloaded = new RoomData(roomFile.getAbsolutePath(), hotelData);
-            List<Room> rooms = roomDataReloaded.getRoomsByHotelId(hotel.getHotelId());
-
-            assertEquals(1, rooms.size(), "Se esperaba una habitación guardada");
-
-            Room savedRoom = rooms.get(0);
-            assertEquals("101", savedRoom.getRoomNumber());
-            assertEquals(RoomType.ESTANDAR, savedRoom.getRoomType());
-            assertEquals(RoomCondition.DISPONIBLE, savedRoom.getRoomCondition());
-            assertEquals(150.0, savedRoom.getPrice());
-            assertEquals(2, savedRoom.getCapacity());
-            assertEquals("WiFi, TV", savedRoom.getFeatures());
-            assertEquals("Cerca del lobby", savedRoom.getDescription());
-            assertEquals("images/habitacion101.jpg", savedRoom.getImagePath());
-
-        } catch (IOException e) {
-            fail("Error al recargar datos de habitaciones: " + e.getMessage());
+            Thread.sleep(1000); 
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-    });
-
-    try {
-        Thread.sleep(1000); 
-    } catch (InterruptedException e) {
-        e.printStackTrace();
     }
-}
-
-
-
-
 }
 

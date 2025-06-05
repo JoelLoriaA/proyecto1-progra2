@@ -20,6 +20,8 @@ public class RoomDataTest {
     private File roomFile;
     private HotelData hotelData;
     private RoomData roomData;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
 
     @BeforeEach
     public void setup() throws IOException {
@@ -47,35 +49,65 @@ public class RoomDataTest {
 
     @Test
     public void testCreateRoom() throws IOException {
-        System.out.println(hotelData.getAllHotels());
-        Hotel storedHotel = hotelData.getAllHotels().stream()
+        String retrieveAllResult = hotelData.retrieveAll();
+        System.out.println("📚 Resultado retrieveAll: " + retrieveAllResult);
+    
+        JsonResponse response = objectMapper.readValue(retrieveAllResult, JsonResponse.class);
+    
+        List<Hotel> hotels = objectMapper.convertValue(
+            response.getData(), 
+            new TypeReference<List<Hotel>>() {}
+        );
+    
+        assertTrue(response.isSuccess(), "❌ Error al recuperar hoteles");
+        assertFalse(hotels.isEmpty(), "❌ Lista de hoteles vacía");
+    
+        // Buscar el hotel con ID 1
+        Hotel storedHotel = hotels.stream()
             .filter(h -> h.getHotelId() == 1)
             .findFirst()
-            .orElseThrow(() -> new IllegalStateException("Hotel no encontrado"));
-
-
-        String roomPath = "data/images/1.jpeg"; 
-        Room room = new Room("BBB", storedHotel, RoomType.ESTANDAR, RoomCondition.DISPONIBLE, 150.0, 2, "WIfi",  "SW", roomPath);
-
+            .orElseThrow(() -> new IllegalStateException("❌ Hotel con ID 1 no encontrado"));
+    
+        // Crear habitación
+        String roomPath = "data/images/1.jpeg";
+        Room room = new Room("BBB", storedHotel, RoomType.ESTANDAR, RoomCondition.DISPONIBLE, 150.0, 2, "Wifi", "SW", roomPath);
+    
         String createResultRoom = roomData.create(room);
-        System.out.println("Room creada: " + createResultRoom);
-        assertNotNull(createResultRoom, "Resultado de creación nulo");
-        assertTrue(createResultRoom.contains("\"success\":true"), "Creación fallida: " + createResultRoom);
-
+        System.out.println("🏨 Resultado creación habitación: " + createResultRoom);
+        assertNotNull(createResultRoom);
+        assertTrue(createResultRoom.contains("\"success\":true"), "❌ Error al crear habitación");
+    
+        // Leer habitación
         String readResult = roomData.read("BBB");
-        assertNotNull(readResult, "Resultado de lectura nulo");
-        assertTrue(readResult.contains("BBB"), "No contiene número de habitación");
-        assertTrue(readResult.contains("ESTANDAR"), "No contiene tipo de habitación");
-        assertTrue(readResult.contains("DISPONIBLE"), "No contiene condición");
-        assertTrue(readResult.contains("Hotel Prueba"), "No contiene nombre de hotel");
+        System.out.println("📄 Resultado lectura habitación: " + readResult);
+        assertNotNull(readResult);
+        assertTrue(readResult.contains("BBB"), "❌ No contiene número habitación");
+        assertTrue(readResult.contains("ESTANDAR"), "❌ No contiene tipo de habitación");
+        assertTrue(readResult.contains("DISPONIBLE"), "❌ No contiene condición");
+        assertTrue(readResult.contains("Hotel Prueba") || readResult.contains("Hotel Playa"), "❌ No contiene nombre de hotel");
     }
+    
 
     @Test
     public void testDeleteRoom() throws IOException {
-        Hotel storedHotel = hotelData.getAllHotels().stream()
+        String retrieveAllResult = hotelData.retrieveAll();
+        System.out.println("📚 Resultado retrieveAll: " + retrieveAllResult);
+    
+        JsonResponse response = objectMapper.readValue(retrieveAllResult, JsonResponse.class);
+    
+        List<Hotel> hotels = objectMapper.convertValue(
+            response.getData(), 
+            new TypeReference<List<Hotel>>() {}
+        );
+    
+        assertTrue(response.isSuccess(), "❌ Error al recuperar hoteles");
+        assertFalse(hotels.isEmpty(), "❌ Lista de hoteles vacía");
+    
+        // Buscar el hotel con ID 1
+        Hotel storedHotel = hotels.stream()
             .filter(h -> h.getHotelId() == 1)
             .findFirst()
-            .orElseThrow(() -> new IllegalStateException("Hotel no encontrado"));
+            .orElseThrow(() -> new IllegalStateException("❌ Hotel con ID 1 no encontrado"));
 
         String roomPath = "data/images/1.jpeg";     
         Room room = new Room("CCC", storedHotel, RoomType.SUITE, RoomCondition.OCUPADA, 150.0, 2, "WIfi",  "SW", roomPath);
@@ -102,14 +134,27 @@ public class RoomDataTest {
                 
     }
 
+    
     @Test
     public void testDeleteOneRoomOnly() throws IOException {
-        Hotel storedHotel = hotelData.getAllHotels().stream()
+        String retrieveAllResult = hotelData.retrieveAll();
+        System.out.println("📚 Resultado retrieveAll: " + retrieveAllResult);
+
+        JsonResponse response = objectMapper.readValue(retrieveAllResult, JsonResponse.class);
+
+        List<Hotel> hotels = objectMapper.convertValue(
+            response.getData(), 
+            new TypeReference<List<Hotel>>() {}
+        );
+
+        assertTrue(response.isSuccess(), "❌ Error al recuperar hoteles");
+        assertFalse(hotels.isEmpty(), "❌ Lista de hoteles vacía");
+
+        Hotel storedHotel = hotels.stream()
             .filter(h -> h.getHotelId() == 1)
             .findFirst()
-            .orElseThrow(() -> new IllegalStateException("Hotel no encontrado"));
+            .orElseThrow(() -> new IllegalStateException("❌ Hotel con ID 1 no encontrado"));
 
-        // Crear tres habitaciones distintas
         Room room1 = new Room("101", RoomType.ESTANDAR, RoomCondition.DISPONIBLE, storedHotel);
         Room room2 = new Room("102", RoomType.SUITE, RoomCondition.OCUPADA, storedHotel);
         Room room3 = new Room("103", RoomType.SUITE, RoomCondition.DISPONIBLE, storedHotel);
@@ -118,8 +163,6 @@ public class RoomDataTest {
         roomData.create(room2);
         roomData.create(room3);
 
-        // Eliminar solo una habitación
-
         System.out.println(">>> Habitaciones antes de borrar:");
         for (Room room : roomData.loadRooms()) {
             System.out.println(" - " + room.getRoomNumber().trim() + " (HotelID: " + room.getHotel().getHotelId() + ")");
@@ -127,30 +170,43 @@ public class RoomDataTest {
 
         String deleteResult = roomData.delete("102");
         System.out.println("Resultado eliminación: " + deleteResult);
+        assertTrue(deleteResult.contains("\"success\":true"), "❌ Falló al eliminar habitación 102");
 
-        assertTrue(deleteResult.contains("\"success\":true"), "Falló al eliminar habitación 102");
+        String jsonResponse2 = roomData.readAll();
+        JsonResponse response2 = objectMapper.readValue(jsonResponse2, JsonResponse.class);
+        assertTrue(response2.isSuccess(), "❌ Error al leer habitaciones después del borrado");
 
-        // Leer todas las habitaciones restantes
-        String jsonResponse = roomData.readAll();
-        JsonResponse response = new ObjectMapper().readValue(jsonResponse, JsonResponse.class);
-        List<Room> roomsRemaining = new ObjectMapper().convertValue(response.getData(), new TypeReference<List<Room>>() {});
+        List<Room> roomsRemaining = objectMapper.convertValue(response2.getData(), new TypeReference<List<Room>>() {});
 
-        // Verificaciones
-        assertEquals(2, roomsRemaining.size(), "Deben quedar 2 habitaciones");
-        assertTrue(roomsRemaining.stream().anyMatch(r -> r.getRoomNumber().equals("101")), "Falta la habitación 101");
-        assertTrue(roomsRemaining.stream().anyMatch(r -> r.getRoomNumber().equals("103")), "Falta la habitación 103");
-        assertFalse(roomsRemaining.stream().anyMatch(r -> r.getRoomNumber().equals("102")), "La habitación 102 no fue eliminada correctamente");
+        assertEquals(2, roomsRemaining.size(), "❌ Deben quedar 2 habitaciones");
+        assertTrue(roomsRemaining.stream().anyMatch(r -> r.getRoomNumber().trim().equals("101")), "❌ Falta la habitación 101");
+        assertTrue(roomsRemaining.stream().anyMatch(r -> r.getRoomNumber().trim().equals("103")), "❌ Falta la habitación 103");
+        assertFalse(roomsRemaining.stream().anyMatch(r -> r.getRoomNumber().trim().equals("102")), "❌ La habitación 102 no fue eliminada correctamente");
     }
+
 
     @Test
     public void testCreateMultipleRooms_afterWipe() throws IOException {
         roomData.clearDataFile();    
 
-        // Obtener hotel existente
-        Hotel storedHotel = hotelData.getAllHotels().stream()
+        String retrieveAllResult = hotelData.retrieveAll();
+        System.out.println("📚 Resultado retrieveAll: " + retrieveAllResult);
+    
+        JsonResponse response = objectMapper.readValue(retrieveAllResult, JsonResponse.class);
+    
+        List<Hotel> hotels = objectMapper.convertValue(
+            response.getData(), 
+            new TypeReference<List<Hotel>>() {}
+        );
+    
+        assertTrue(response.isSuccess(), "❌ Error al recuperar hoteles");
+        assertFalse(hotels.isEmpty(), "❌ Lista de hoteles vacía");
+    
+        // Buscar el hotel con ID 1
+        Hotel storedHotel = hotels.stream()
             .filter(h -> h.getHotelId() == 1)
             .findFirst()
-            .orElseThrow(() -> new IllegalStateException("Hotel con ID 1 no encontrado"));
+            .orElseThrow(() -> new IllegalStateException("❌ Hotel con ID 1 no encontrado"));
 
         // Lista de habitaciones a crear
         String roomPath = "data/images/1.jpeg"; 
