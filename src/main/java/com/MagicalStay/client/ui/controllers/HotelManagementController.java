@@ -125,37 +125,42 @@ public class HotelManagementController {
     @FXML
     private void initialize() {
         try {
-
             objectMapper = new ObjectMapper();
-
-
-            // Initialize data access objects
             hotelData = DataFactory.getHotelData();
             roomData = DataFactory.getRoomData();
             guestData = DataFactory.getGuestData();
 
+            // Configurar columnas de rooms con tipos genéricos
+            roomNumberColumn.setCellValueFactory(new PropertyValueFactory<Room, String>("roomNumber"));
+            roomTypeColumn.setCellValueFactory(new PropertyValueFactory<Room, String>("roomType"));
+            roomStatusColumn.setCellValueFactory(new PropertyValueFactory<Room, String>("roomCondition"));
+
+            // Configurar columnas de guests con tipos genéricos
+            guestNameColumn.setCellValueFactory(new PropertyValueFactory<Guest, String>("name"));
+            guestLastNameColumn.setCellValueFactory(new PropertyValueFactory<Guest, String>("lastName"));
+            guestDniColumn.setCellValueFactory(new PropertyValueFactory<Guest, Integer>("id"));
+            guestPhoneNumberColumn.setCellValueFactory(new PropertyValueFactory<Guest, Integer>("phoneNumber"));
+            guestEmailColumn.setCellValueFactory(new PropertyValueFactory<Guest, String>("email"));
+            guestAddressColumn.setCellValueFactory(new PropertyValueFactory<Guest, String>("address"));
+            guestNationalityColumn.setCellValueFactory(new PropertyValueFactory<Guest, String>("nationality"));
+
+            // Inicializar listas observables
+            hotelList = FXCollections.observableArrayList();
+            roomList = FXCollections.observableArrayList();
+
+            // Configurar ComboBox de búsqueda
+            searchTypeComboBox.setItems(FXCollections.observableArrayList(
+                    "Por Nombre",
+                    "Por Dirección",
+                    "Todos"
+            ));
+            searchTypeComboBox.setValue("Por Nombre");
+
+            // Cargar datos iniciales
             loadHotelsFromFile();
 
-            // Agregar log para ver la respuesta JSON
-            String jsonResponse = hotelData.retrieveAll();
-            System.out.println("Respuesta JSON: " + jsonResponse);
-
-            loadHotelsFromFile();
-
-            // Setup room table columns
-            roomNumberColumn.setCellValueFactory(new PropertyValueFactory<>("roomNumber"));
-            roomTypeColumn.setCellValueFactory(cellData ->
-                    new javafx.beans.property.SimpleStringProperty(
-                            cellData.getValue().getRoomType().toString()));
-            roomStatusColumn.setCellValueFactory(cellData ->
-                    new javafx.beans.property.SimpleStringProperty(
-                            cellData.getValue().getRoomCondition().toString()));
-
-
-            // Set the hotel list view items
+            // Configurar ListView de hoteles
             hotelListView.setItems(hotelList);
-
-            // Set cell factory to display hotel names in the list
             hotelListView.setCellFactory(lv -> new ListCell<Hotel>() {
                 @Override
                 protected void updateItem(Hotel hotel, boolean empty) {
@@ -171,25 +176,27 @@ public class HotelManagementController {
                 }
             });
 
-            // Disable detail fields initially
+            // Deshabilitar campos y botones inicialmente
             setFieldsEnabled(false);
+            editButton.setDisable(true);
+            deleteButton.setDisable(true);
+            manageRoomsButton.setDisable(true);
+            manageGuestsButton.setDisable(true);
 
-            guestNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
-            guestLastNameColumn.setCellValueFactory(new PropertyValueFactory<>("lastName"));
-            guestDniColumn.setCellValueFactory(new PropertyValueFactory<>("dni"));
-            guestEmailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
-            guestPhoneNumberColumn.setCellValueFactory(new PropertyValueFactory<>("phoneNumber"));
-            guestAddressColumn.setCellValueFactory(new PropertyValueFactory<>("address"));
-            guestNationalityColumn.setCellValueFactory(new PropertyValueFactory<>("nationality"));
+            // Configurar listeners para selección
+            hotelListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal != null) {
+                    selectedHotel = newVal;
+                    loadRoomsForHotel(newVal);
+                    loadGuestsForHotel(newVal);
+                    editButton.setDisable(false);
+                    deleteButton.setDisable(false);
+                    manageRoomsButton.setDisable(false);
+                    manageGuestsButton.setDisable(false);
+                }
+            });
 
-
-            searchTypeComboBox.setItems(FXCollections.observableArrayList(
-                    "Por Nombre",
-                    "Por Dirección",
-                    "Por ID",
-                    "Todos"
-            ));
-            searchTypeComboBox.setValue("Por Nombre"); // valor por defecto
+            statusLabel.setText("Sistema inicializado correctamente");
 
         } catch (IOException e) {
             showAlert(Alert.AlertType.ERROR, "Error de Inicialización",
@@ -228,29 +235,30 @@ public class HotelManagementController {
         }
     }
 
-    private void loadRoomsForHotel(Hotel hotel) {
+  private void loadRoomsForHotel(Hotel hotel) {
         try {
-            String jsonResponse = roomData.readAll();
-            DataResponse response = parseDataResponse(jsonResponse);
-
-            if (response.isSuccess()) {
-                List<Room> allRooms = objectMapper.convertValue(response.getData(),
-                        new TypeReference<List<Room>>() {});
-
-                List<Room> hotelRooms = allRooms.stream()
-                        .filter(room -> room.getHotel().getHotelId() == hotel.getHotelId())
-                        .collect(java.util.stream.Collectors.toList());
-
-                roomList = FXCollections.observableArrayList(hotelRooms);
-                roomsTableView.setItems(roomList);
-            } else {
-                roomList = FXCollections.observableArrayList();
-                roomsTableView.setItems(roomList);
+            if (hotel == null) {
+                roomsTableView.setItems(FXCollections.observableArrayList());
+                return;
             }
+
+            // Obtener las habitaciones del hotel usando RoomData
+            List<Room> rooms = DataFactory.getRoomData().getRoomsByHotelId(hotel.getHotelId());
+
+            // Convertir a observable list y actualizar la tabla
+            ObservableList<Room> observableRooms = FXCollections.observableArrayList(rooms);
+            roomsTableView.setItems(observableRooms);
+
+            // Actualizar etiqueta de resultados
+            if (rooms.isEmpty()) {
+                statusLabel.setText("No hay habitaciones registradas para este hotel");
+            } else {
+                statusLabel.setText(String.format("Se encontraron %d habitaciones", rooms.size()));
+            }
+
         } catch (Exception e) {
-            roomList = FXCollections.observableArrayList();
-            roomsTableView.setItems(roomList);
             statusLabel.setText("Error al cargar habitaciones: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -260,41 +268,21 @@ public class HotelManagementController {
             DataResponse response = parseDataResponse(jsonResponse);
 
             if (response.isSuccess()) {
-                List<Guest> allGuests = objectMapper.convertValue(response.getData(),
-                        new TypeReference<List<Guest>>() {
-                        });
+                List<Guest> allGuests = objectMapper.convertValue(
+                        response.getData(),
+                        new TypeReference<List<Guest>>() {}
+                );
 
-                // Filtrar huéspedes por hotel usando sus reservas
-                List<Guest> hotelGuests = allGuests.stream()
-                        .filter(guest -> {
-                            // Verificar si el huésped tiene reservas
-                            if (guest.getBookings() != null) {
-                                // Buscar si alguna reserva corresponde al hotel seleccionado
-                                return guest.getBookings().stream()
-                                        .anyMatch(booking ->
-                                                booking.getHotel() != null &&
-                                                        booking.getHotel().getHotelId() == hotel.getHotelId()
-                                        );
-                            }
-                            return false;
-                        })
-                        .collect(Collectors.toList());
+                ObservableList<Guest> hotelGuests = FXCollections.observableArrayList(allGuests);
+                guestsTableView.setItems(hotelGuests);
+                guestsTableView.refresh();
 
-                ObservableList<Guest> guestList = FXCollections.observableArrayList(hotelGuests);
-                guestsTableView.setItems(guestList);
-
-                if (hotelGuests.isEmpty()) {
-                    statusLabel.setText("No se encontraron huéspedes para este hotel");
-                } else {
-                    statusLabel.setText("Se encontraron " + hotelGuests.size() + " huéspedes");
-                }
-            } else {
-                guestsTableView.setItems(FXCollections.observableArrayList());
-                statusLabel.setText("Error al cargar huéspedes: " + response.getMessage());
+                statusLabel.setText("Huéspedes cargados: " + hotelGuests.size());
             }
         } catch (Exception e) {
-                guestsTableView.setItems(FXCollections.observableArrayList());
-                statusLabel.setText("Error al cargar huéspedes: " + e.getMessage());
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Error",
+                    "Error al cargar huéspedes: " + e.getMessage());
         }
     }
 

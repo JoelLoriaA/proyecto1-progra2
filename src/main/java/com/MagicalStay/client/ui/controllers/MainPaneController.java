@@ -1,22 +1,26 @@
 package com.MagicalStay.client.ui.controllers;
 
+import com.MagicalStay.client.data.DataFactory;
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.shared.config.ConfiguracionApp;
+import com.MagicalStay.shared.data.JsonResponse;
 import com.MagicalStay.shared.domain.UserRole;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.application.Platform;
+import javafx.scene.layout.GridPane;
+import javafx.geometry.Insets;
+import javafx.util.Pair;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.Optional;
 
 public class MainPaneController implements SocketCliente.ClienteCallback {
 
@@ -41,6 +45,7 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
     private UserRole currentRole;
     @FXML
     private BorderPane mdiContainer;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @FXML
     private void initialize() {
@@ -118,7 +123,7 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
 
         } catch (IOException e) {
             showAlert("Error", "No se pudo abrir la ventana: " + title,
-                    "Error: " + e.getMessage());
+                    "Error: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
@@ -154,13 +159,7 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
         }
     }
 
-    private void showAlert(String title, String header, String content) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(header);
-        alert.setContentText(content);
-        alert.showAndWait();
-    }
+
 
     // Implementación de SocketCliente.ClienteCallback
     @Override
@@ -178,7 +177,8 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
         connectButton.setDisable(false);
         updateConnectionStatus(false);
 
-        showAlert("Error de Conexión", "No se pudo conectar al servidor", error);
+        showAlert("Error de Conexión", "No se pudo conectar al servidor",
+                error, Alert.AlertType.ERROR);
     }
 
     @Override
@@ -191,7 +191,7 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
         }
 
         showAlert("Conexión Exitosa", "¡Conectado al servidor!",
-                "La conexión se ha establecido correctamente.");
+                "La conexión se ha establecido correctamente.", Alert.AlertType.INFORMATION);
     }
 
     @Override
@@ -204,25 +204,116 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
         }
     }
 
+    @FXML
     private void showRoleDialog() {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Selección de Rol");
-        alert.setHeaderText("Por favor, seleccione su rol:");
-        alert.setContentText("¿Es usted administrador?");
+        try {
+            // Verificar si hay recepcionistas registrados
+            String jsonResponse = DataFactory.getFrontDeskData().retrieveAll();
+            JsonResponse response = objectMapper.readValue(jsonResponse, JsonResponse.class);
+            boolean hasReceptionists = response.isSuccess() && response.getData() != null;
 
-        ButtonType buttonTypeAdmin = new ButtonType("Administrador");
-        ButtonType buttonTypeFrontDesk = new ButtonType("Recepcionista");
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Selección de Rol");
 
-        alert.getButtonTypes().setAll(buttonTypeAdmin, buttonTypeFrontDesk);
-
-        alert.showAndWait().ifPresent(buttonType -> {
-            if (buttonType == buttonTypeAdmin) {
+            if (!hasReceptionists) {
+                // Si no hay recepcionistas, solo permitir acceso como administrador
+                alert.setHeaderText("No hay recepcionistas registrados.");
+                alert.setContentText("Debe ingresar como administrador para registrar recepcionistas.");
+                alert.getButtonTypes().setAll(ButtonType.OK);
+                alert.showAndWait();
                 currentRole = UserRole.ADMIN;
-            } else {
-                currentRole = UserRole.FRONTDESK;
+                updateUIBasedOnRole();
+                return;
             }
-            updateUIBasedOnRole();
+
+            // Si hay recepcionistas, mostrar opciones
+            alert.setHeaderText("Seleccione su rol:");
+            ButtonType buttonTypeAdmin = new ButtonType("Administrador");
+            ButtonType buttonTypeFrontDesk = new ButtonType("Recepcionista");
+            alert.getButtonTypes().setAll(buttonTypeAdmin, buttonTypeFrontDesk);
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent()) {
+                if (result.get() == buttonTypeAdmin) {
+                    currentRole = UserRole.ADMIN;
+                    updateUIBasedOnRole();
+                } else if (result.get() == buttonTypeFrontDesk) {
+                    showLoginDialog();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert("Error", "Error al verificar recepcionistas",
+                    e.getMessage(), Alert.AlertType.ERROR);
+        }
+    }
+
+    private void showLoginDialog() {
+        // Crear el diálogo personalizado
+        Dialog<Pair<String, String>> dialog = new Dialog<>();
+        dialog.setTitle("Inicio de Sesión");
+        dialog.setHeaderText("Ingrese sus credenciales de recepcionista");
+
+        // Configurar los botones
+        ButtonType loginButtonType = new ButtonType("Iniciar Sesión", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(loginButtonType, ButtonType.CANCEL);
+
+        // Crear los campos de texto
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField username = new TextField();
+        username.setPromptText("Usuario");
+        PasswordField password = new PasswordField();
+        password.setPromptText("Contraseña");
+
+        grid.add(new Label("Usuario:"), 0, 0);
+        grid.add(username, 1, 0);
+        grid.add(new Label("Contraseña:"), 0, 1);
+        grid.add(password, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // Convertir el resultado
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == loginButtonType) {
+                return new Pair<>(username.getText(), password.getText());
+            }
+            return null;
         });
+
+        Optional<Pair<String, String>> result = dialog.showAndWait();
+        result.ifPresent(credentials -> {
+            try {
+                // Autenticar usando el FrontDeskData
+                String jsonResponse = DataFactory.getFrontDeskData().authenticate(
+                    credentials.getKey(), credentials.getValue());
+                JsonResponse response = objectMapper.readValue(jsonResponse, JsonResponse.class);
+
+                if (response.isSuccess()) {
+                    currentRole = UserRole.FRONTDESK;
+                    updateUIBasedOnRole();
+                } else {
+                    // Para errores
+                    showAlert("Error", "Error de Autenticación", response.getMessage(), Alert.AlertType.ERROR);
+                    showRoleDialog(); // Volver a mostrar el diálogo de rol
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                showAlert("Error", "Error de Autenticación", e.getMessage(), Alert.AlertType.ERROR);
+                showRoleDialog();
+            }
+        });
+    }
+
+    private void showAlert(String title, String header, String content, Alert.AlertType type) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 
     private void updateUIBasedOnRole() {

@@ -113,6 +113,7 @@ public class GuestManagementController {
     @FXML
     private void initialize() {
         try {
+            setFieldsEnabled(false);
             // Initialize data access objects
             guestData = DataFactory.getGuestData();
             objectMapper = new ObjectMapper();
@@ -145,6 +146,7 @@ public class GuestManagementController {
             editButton.setDisable(true);
             deleteButton.setDisable(true);
             updateButton.setDisable(true);
+
 
             // Set initial status
             statusLabel.setText("Listo");
@@ -524,6 +526,7 @@ public class GuestManagementController {
         emailField.setDisable(!enabled);
         addressField.setDisable(!enabled);
         nationalityComboBox.setDisable(!enabled);
+        saveButton.setDisable(!enabled);
     }
 
     private boolean validateFields() {

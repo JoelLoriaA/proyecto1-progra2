@@ -326,6 +326,13 @@ public class RoomManagementController implements Closeable {
     
     @FXML
     public void handleSave() {
+
+        if (selectedHotel == null || hotelComboBox.getValue() == null) {
+                showAlert(Alert.AlertType.ERROR, "Error", "Debe seleccionar un hotel antes de guardar.");
+                return;
+        }
+        if (!validateFields()) return;
+
         if (!validateFields()) return;
 
         if (selectedHotel == null) {
@@ -469,12 +476,26 @@ public class RoomManagementController implements Closeable {
 
     private boolean validateFields() {
         StringBuilder sb = new StringBuilder();
-        if (numberTextField.getText().isEmpty()) sb.append("Número obligatorio.\n");
-        if (typeComboBox.getValue() == null) sb.append("Tipo obligatorio.\n");
-        if (statusComboBox.getValue() == null) sb.append("Estado obligatorio.\n");
+
+        // Validar hotel seleccionado primero
+        if (selectedHotel == null || hotelComboBox.getValue() == null) {
+            sb.append("Debe seleccionar un hotel.\n");
+        }
+        if (numberTextField.getText().isEmpty()) {
+            sb.append("Número de habitación obligatorio.\n");
+        }
+        if (typeComboBox.getValue() == null) {
+            sb.append("Tipo de habitación obligatorio.\n");
+        }
+        if (statusComboBox.getValue() == null) {
+            sb.append("Estado de habitación obligatorio.\n");
+        }
+        if (priceTextField.getText().isEmpty() || !priceTextField.getText().matches("\\d+(\\.\\d+)?")) {
+            sb.append("Precio debe ser un número válido.\n");
+        }
 
         if (sb.length() > 0) {
-            FXUtility.alertError("Campos inválidos", sb.toString()).show();
+            showAlert(Alert.AlertType.ERROR, "Campos Inválidos", sb.toString());
             return false;
         }
         return true;
@@ -580,7 +601,7 @@ public class RoomManagementController implements Closeable {
             new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
         );
 
-        File initialDir = new File("proyecto1-progra2/dataBase/images");
+        File initialDir = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\dataBase");
         if (!initialDir.exists()) {
             initialDir.mkdirs();
         }
@@ -593,13 +614,13 @@ public class RoomManagementController implements Closeable {
             try {
                 String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
                 String newFileName = "habitacion_" + System.currentTimeMillis() + extension;
-                File destFile = new File("DataCopy/images", newFileName);
+                File destFile = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\dataBase\\images", newFileName);
 
                 Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
                 roomImageView.setImage(new Image(destFile.toURI().toString()));
 
-                selectedImagePath = "DataCopy/images/" + newFileName;
+                selectedImagePath = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\dataCopy\\images" + newFileName;
 
                 System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
 

@@ -11,7 +11,7 @@ public class DataFactory {
     private static HotelData hotelData;
     private static RoomData roomData;
     private static ImageStorage imageStorage;
-    private static final String DATA_DIRECTORY = "server/data/";
+    private static final String DATA_DIRECTORY = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server";
     
     static {
         try {

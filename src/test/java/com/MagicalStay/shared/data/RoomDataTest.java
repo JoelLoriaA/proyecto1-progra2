@@ -31,6 +31,8 @@ public class RoomDataTest {
         hotelData = new HotelData(hotelFile.getAbsolutePath());
         roomData = new RoomData(roomFile.getAbsolutePath(), hotelData);
 
+        String retrieveResult = hotelData.retrieveById(1);
+
         Hotel hotel = new Hotel(1, "Hotel Prueba", "norte");
         String result = hotelData.create(hotel);
         System.out.println("Resultado de creación del hotel: " + result);
