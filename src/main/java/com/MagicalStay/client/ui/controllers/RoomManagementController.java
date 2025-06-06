@@ -2,6 +2,7 @@ package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.client.data.DataFactory;
+import com.MagicalStay.shared.config.ConfiguracionApp;
 import com.MagicalStay.shared.data.HotelData;
 import com.MagicalStay.shared.data.JsonResponse;
 import com.MagicalStay.shared.data.RoomData;
@@ -601,7 +602,7 @@ public class RoomManagementController implements Closeable {
             new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
         );
 
-        File initialDir = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\dataBase");
+        File initialDir = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR);
         if (!initialDir.exists()) {
             initialDir.mkdirs();
         }
@@ -614,13 +615,13 @@ public class RoomManagementController implements Closeable {
             try {
                 String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
                 String newFileName = "habitacion_" + System.currentTimeMillis() + extension;
-                File destFile = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\dataBase\\images", newFileName);
+                File destFile = new File(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, newFileName);
 
                 Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
                 roomImageView.setImage(new Image(destFile.toURI().toString()));
 
-                selectedImagePath = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\dataCopy\\images" + newFileName;
+                selectedImagePath = ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR + newFileName;
 
                 System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
 
