@@ -29,59 +29,45 @@ public class FileClient {
         }
     }
 
+
     public void sincronizarBidireccional() throws IOException, ClassNotFoundException {
         if (sincronizando) return;
         sincronizando = true;
 
         try {
-            // 1. Solicitar lista de archivos al servidor
+            // Solo recibir archivos del servidor
             socketCliente.enviarMensaje("listar_archivos");
-
-            // 2. Recibir mensaje de bienvenida y respuesta FILE_COUNT
             String respuesta = (String) socketCliente.recibirObjeto();
+
             if (!respuesta.startsWith("FILE_COUNT|")) {
-                // Si es mensaje de bienvenida, leer siguiente mensaje
-                respuesta = (String) socketCliente.recibirObjeto();
-                if (!respuesta.startsWith("FILE_COUNT|")) {
-                    throw new IOException("Respuesta inesperada del servidor: " + respuesta);
-                }
+                return;
             }
 
-            // 3. Procesar cantidad de archivos
-            String[] partes = respuesta.split("\\|");
-            int cantidadArchivos = Integer.parseInt(partes[1]);
+            int cantidadArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
             System.out.println("Se recibirán " + cantidadArchivos + " archivos");
 
-            // 4. Recibir archivos del servidor
+            // Recibir archivos
             for (int i = 0; i < cantidadArchivos; i++) {
-                String infoArchivo = (String) socketCliente.recibirObjeto();
-                partes = infoArchivo.split("\\|");
+                String fileInfo = (String) socketCliente.recibirObjeto();
+                String[] partes = fileInfo.split("\\|");
                 String tipo = partes[0];
                 String nombre = partes[1];
 
                 byte[] datos = (byte[]) socketCliente.recibirObjeto();
-                Path rutaDestino;
+                Path rutaDestino = Paths.get(
+                        tipo.equals("imagen") ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
+                        nombre
+                );
 
-                if (tipo.equals("imagen")) {
-                    rutaDestino = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombre);
-                    if (Files.exists(rutaDestino)) {
-                        System.out.println("Imagen ya existe en el directorio principal: " + rutaDestino);
-                        continue;
-                    }
+                // Solo guardar si el archivo no existe
+                if (!Files.exists(rutaDestino)) {
+                    Files.createDirectories(rutaDestino.getParent());
+                    Files.write(rutaDestino, datos);
+                    System.out.println(tipo + " recibido: " + nombre);
                 } else {
-                    rutaDestino = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombre);
+                    System.out.println(tipo + " ya existe: " + rutaDestino);
                 }
-
-                Files.createDirectories(rutaDestino.getParent());
-                Files.write(rutaDestino, datos);
             }
-            System.out.println("Recibidos " + cantidadArchivos + " archivos del servidor");
-
-            // 5. Enviar archivos locales al servidor
-            System.out.println("Enviando archivos locales al servidor...");
-            enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, false);
-            enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, true);
-
         } finally {
             sincronizando = false;
         }
@@ -90,7 +76,7 @@ public class FileClient {
     public void subirArchivo(String nombre, byte[] datos, boolean esImagen) throws IOException {
         String comando = esImagen ? "subir_imagen" : "subir_archivo";
         socketCliente.enviarMensaje(comando + "|" + nombre);
-        socketCliente.enviarObjeto(datos); // Enviar datos completos sin dividir en chunks
+        socketCliente.enviarObjeto(datos);
     }
 
     private void enviarArchivosDesdeDirectorio(String directorio, boolean sonImagenes) throws IOException {
