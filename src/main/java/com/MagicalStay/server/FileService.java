@@ -41,30 +41,39 @@ package com.MagicalStay.server;
         public void sincronizarArchivos() throws IOException {
             socketCliente.enviarMensaje("listar_archivos");
             try {
-                int numArchivos = (Integer) socketCliente.recibirObjeto();
+                // Recibir el número como String y convertirlo
+                String numArchivosStr = (String) socketCliente.recibirObjeto();
+                int numArchivos = Integer.parseInt(numArchivosStr);
                 System.out.println("Sincronizando " + numArchivos + " archivos...");
 
                 for (int i = 0; i < numArchivos; i++) {
-                    String metadata = (String) socketCliente.recibirObjeto();
-                    String[] partes = metadata.split("\\|");
-                    String tipo = partes[0];
-                    String nombreArchivo = partes[1];
+                    try {
+                        String metadata = (String) socketCliente.recibirObjeto();
+                        String[] partes = metadata.split("\\|");
+                        String tipo = partes[0];
+                        String nombreArchivo = partes[1];
 
-                    byte[] contenido = (byte[]) socketCliente.recibirObjeto();
+                        byte[] contenido = (byte[]) socketCliente.recibirObjeto();
 
-                    Path rutaLocal;
-                    if (tipo.equals("archivo")) {
-                        rutaLocal = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
-                    } else {
-                        rutaLocal = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreArchivo);
+                        Path rutaLocal;
+                        if (tipo.equals("archivo")) {
+                            rutaLocal = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
+                        } else {
+                            rutaLocal = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreArchivo);
+                        }
+
+                        Files.createDirectories(rutaLocal.getParent());
+                        Files.write(rutaLocal, contenido, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                        System.out.println("Archivo sincronizado: " + rutaLocal);
+                    } catch (Exception e) {
+                        System.err.println("Error procesando archivo " + (i + 1) + ": " + e.getMessage());
+                        // Continuar con el siguiente archivo
                     }
-
-                    Files.createDirectories(rutaLocal.getParent());
-                    Files.write(rutaLocal, contenido, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                    System.out.println("Archivo sincronizado: " + rutaLocal);
                 }
             } catch (ClassNotFoundException e) {
                 throw new IOException("Error sincronizando archivos: " + e.getMessage());
+            } catch (NumberFormatException e) {
+                throw new IOException("Error en el formato del número de archivos: " + e.getMessage());
             }
         }
 
