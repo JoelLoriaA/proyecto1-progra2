@@ -1,6 +1,7 @@
 package com.MagicalStay.client.sockets;
 
 import com.MagicalStay.shared.config.ConfiguracionApp;
+import jakarta.xml.bind.DatatypeConverter;
 import javafx.application.Platform;
 
 import java.io.*;
@@ -11,7 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.xml.bind.DatatypeConverter;
+
 
 public class FileClient {
     private final SocketCliente socketCliente;
