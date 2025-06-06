@@ -25,7 +25,7 @@ public class SocketCliente {
     }
 
 
-   public void conectar(String host, int puerto) {
+    public void conectar(String host, int puerto) {
         if (conectado) return;
 
         new Thread(() -> {
@@ -38,29 +38,34 @@ public class SocketCliente {
 
                 // Leer mensaje de bienvenida primero
                 String mensajeBienvenida = (String) entrada.readObject();
-                callback.onMensajeRecibido(mensajeBienvenida);
+                Platform.runLater(() -> callback.onMensajeRecibido(mensajeBienvenida));
 
                 // Iniciar sincronización después del mensaje de bienvenida
                 FileClient fileClient = new FileClient(this);
                 fileClient.sincronizarBidireccional();
 
-                callback.onConexionEstablecida();
+                Platform.runLater(() -> callback.onConexionEstablecida());
 
                 // Bucle principal de recepción
                 while (conectado) {
                     Object mensaje = entrada.readObject();
                     if (mensaje instanceof String) {
-                        callback.onMensajeRecibido((String) mensaje);
+                        String mensajeStr = (String) mensaje;
+                        Platform.runLater(() -> callback.onMensajeRecibido(mensajeStr));
                     }
                 }
             } catch (IOException e) {
                 conectado = false;
-                callback.onError("Error de conexión: " + e.getMessage());
-                callback.onDesconexion();
+                Platform.runLater(() -> {
+                    callback.onError("Error de conexión: " + e.getMessage());
+                    callback.onDesconexion();
+                });
             } catch (ClassNotFoundException e) {
                 conectado = false;
-                callback.onError("Error de protocolo: " + e.getMessage());
-                callback.onDesconexion();
+                Platform.runLater(() -> {
+                    callback.onError("Error de protocolo: " + e.getMessage());
+                    callback.onDesconexion();
+                });
             }
         }).start();
     }
