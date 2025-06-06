@@ -30,7 +30,7 @@ public class FileClient {
     }
 
 
-    public void sincronizarBidireccional() throws IOException, ClassNotFoundException {
+   public void sincronizarBidireccional() throws IOException, ClassNotFoundException {
         if (sincronizando) return;
         sincronizando = true;
 
@@ -39,47 +39,61 @@ public class FileClient {
             socketCliente.enviarMensaje("listar_archivos");
             String respuesta = (String) socketCliente.recibirObjeto();
 
-            if (respuesta.startsWith("FILE_COUNT|")) {
-                int cantidadArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
+            if (!respuesta.startsWith("FILE_COUNT|")) {
+                throw new IOException("Respuesta inesperada del servidor: " + respuesta);
+            }
+
+            String[] partes = respuesta.split("\\|");
+            if (partes.length != 2) {
+                throw new IOException("Formato de respuesta inválido");
+            }
+
+            try {
+                int cantidadArchivos = Integer.parseInt(partes[1].trim());
                 System.out.println("Se recibirán " + cantidadArchivos + " archivos");
 
-                // Enviar archivos .dat y imágenes
-                System.out.println("Enviando archivos locales al servidor...");
-                enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, false);
-                enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, true);
-
-
-                // Recibir archivos
                 for (int i = 0; i < cantidadArchivos; i++) {
                     String fileInfo = (String) socketCliente.recibirObjeto();
-                    String[] partes = fileInfo.split("\\|");
+                    partes = fileInfo.split("\\|");
+                    if (partes.length != 2) {
+                        throw new IOException("Formato de archivo inválido: " + fileInfo);
+                    }
+
                     String tipo = partes[0];
                     String nombre = partes[1];
 
-                    byte[] datos = (byte[]) socketCliente.recibirObjeto();
-                    Path rutaDestino = Paths.get(
-                            tipo.equals("imagen") ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
-                            nombre
-                    );
-
-                    // Solo guardar si el archivo no existe
-                    if (!Files.exists(rutaDestino)) {
-                        Files.createDirectories(rutaDestino.getParent());
-                        Files.write(rutaDestino, datos);
-                        System.out.println(tipo + " recibido: " + nombre);
-                    } else {
-                        System.out.println(tipo + " ya existe en el directorio principal: " + rutaDestino);
+                    Object datosObj = socketCliente.recibirObjeto();
+                    if (!(datosObj instanceof byte[])) {
+                        throw new IOException("Tipo de datos inválido para " + nombre);
                     }
+
+                    byte[] datos = (byte[]) datosObj;
+                    String rutaBase = tipo.equals("imagen") ?
+                        ConfiguracionApp.RUTA_IMAGENES_SERVIDOR :
+                        ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
+
+                    Path rutaDestino = Paths.get(rutaBase, nombre);
+                    Files.createDirectories(rutaDestino.getParent());
+                    Files.write(rutaDestino, datos);
+                    System.out.println("Recibido " + tipo + ": " + nombre);
                 }
-                System.out.println("Recibidos " + cantidadArchivos + " archivos del servidor");
+
+                // Esperar mensaje de confirmación
+                String confirmacion = (String) socketCliente.recibirObjeto();
+                System.out.println(confirmacion);
+
+                // Enviar archivos locales
+                Thread.sleep(1000); // Pausa antes de enviar
+                enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, false);
+                enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, true);
+
+            } catch (NumberFormatException e) {
+                throw new IOException("Cantidad de archivos inválida: " + partes[1]);
             }
 
-            // Enviar solo archivos .dat
-            System.out.println("Enviando archivos locales al servidor...");
-            enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, false);
-
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (Exception e) {
             System.err.println("Error durante la sincronización: " + e.getMessage());
+            e.printStackTrace();
             throw e;
         } finally {
             sincronizando = false;

@@ -71,34 +71,42 @@ public class ClientHandler implements Runnable {
     private void enviarListaArchivos() throws IOException {
         List<Path> archivos = new ArrayList<>();
 
-        // Recolectar archivos de ambos directorios
+        // Recolectar solo archivos .dat
         try (Stream<Path> archivosNormales = Files.walk(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR))) {
             archivosNormales
                 .filter(Files::isRegularFile)
+                .filter(p -> p.toString().endsWith(".dat"))
                 .forEach(archivos::add);
         }
 
+        // Recolectar solo imágenes
         try (Stream<Path> imagenes = Files.walk(Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR))) {
             imagenes
                 .filter(Files::isRegularFile)
+                .filter(p -> {
+                    String nombre = p.toString().toLowerCase();
+                    return nombre.endsWith(".jpg") ||
+                           nombre.endsWith(".jpeg") ||
+                           nombre.endsWith(".png");
+                })
                 .forEach(archivos::add);
         }
 
-        // Enviar conteo total
         enviarMensaje("FILE_COUNT|" + archivos.size());
 
-        // Enviar cada archivo
         for (Path archivo : archivos) {
             String tipo = archivo.toString().contains("images") ? "imagen" : "archivo";
             String nombre = archivo.getFileName().toString();
 
-            // Enviar metadata
-            enviarMensaje(tipo + "|" + nombre);
-
-            // Enviar contenido
-            byte[] datos = Files.readAllBytes(archivo);
-            salida.writeObject(datos);
-            salida.flush();
+            try {
+                enviarMensaje(tipo + "|" + nombre);
+                byte[] datos = Files.readAllBytes(archivo);
+                salida.writeObject(datos);
+                salida.flush();
+                Thread.sleep(100); // Pequeña pausa entre archivos
+            } catch (Exception e) {
+                System.err.println("Error enviando archivo " + nombre + ": " + e.getMessage());
+            }
         }
 
         enviarMensaje("Lista de archivos enviada");
