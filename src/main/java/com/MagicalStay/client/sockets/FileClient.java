@@ -35,66 +35,72 @@ public class FileClient {
         sincronizando = true;
 
         try {
-            // Primero recibir archivos del servidor
             socketCliente.enviarMensaje("listar_archivos");
-            String respuesta = (String) socketCliente.recibirObjeto();
+
+            // Leer la respuesta como String
+            String respuesta = null;
+            Object respObj = socketCliente.recibirObjeto();
+            if (respObj instanceof String) {
+                respuesta = (String) respObj;
+            } else {
+                throw new IOException("Tipo de respuesta inesperado");
+            }
 
             if (!respuesta.startsWith("FILE_COUNT|")) {
                 throw new IOException("Respuesta inesperada del servidor: " + respuesta);
             }
 
-            String[] partes = respuesta.split("\\|");
-            if (partes.length != 2) {
-                throw new IOException("Formato de respuesta inválido");
-            }
+            int cantidadArchivos = Integer.parseInt(respuesta.substring(11));
+            System.out.println("Se recibirán " + cantidadArchivos + " archivos");
 
-            try {
-                int cantidadArchivos = Integer.parseInt(partes[1].trim());
-                System.out.println("Se recibirán " + cantidadArchivos + " archivos");
+            for (int i = 0; i < cantidadArchivos; i++) {
+                // Leer metadata del archivo
+                Object infoObj = socketCliente.recibirObjeto();
+                if (!(infoObj instanceof String)) {
+                    throw new IOException("Formato de metadata inválido");
+                }
+                String fileInfo = (String) infoObj;
+                String[] partes = fileInfo.split("\\|");
 
-                for (int i = 0; i < cantidadArchivos; i++) {
-                    String fileInfo = (String) socketCliente.recibirObjeto();
-                    partes = fileInfo.split("\\|");
-                    if (partes.length != 2) {
-                        throw new IOException("Formato de archivo inválido: " + fileInfo);
-                    }
-
-                    String tipo = partes[0];
-                    String nombre = partes[1];
-
-                    Object datosObj = socketCliente.recibirObjeto();
-                    if (!(datosObj instanceof byte[])) {
-                        throw new IOException("Tipo de datos inválido para " + nombre);
-                    }
-
-                    byte[] datos = (byte[]) datosObj;
-                    String rutaBase = tipo.equals("imagen") ?
-                        ConfiguracionApp.RUTA_IMAGENES_SERVIDOR :
-                        ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
-
-                    Path rutaDestino = Paths.get(rutaBase, nombre);
-                    Files.createDirectories(rutaDestino.getParent());
-                    Files.write(rutaDestino, datos);
-                    System.out.println("Recibido " + tipo + ": " + nombre);
+                if (partes.length != 2) {
+                    throw new IOException("Formato de archivo inválido: " + fileInfo);
                 }
 
-                // Esperar mensaje de confirmación
-                String confirmacion = (String) socketCliente.recibirObjeto();
-                System.out.println(confirmacion);
+                String tipo = partes[0];
+                String nombre = partes[1];
 
-                // Enviar archivos locales
-                Thread.sleep(1000); // Pausa antes de enviar
-                enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, false);
-                enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, true);
+                // Leer datos del archivo
+                Object datosObj = socketCliente.recibirObjeto();
+                if (!(datosObj instanceof byte[])) {
+                    throw new IOException("Tipo de datos inválido para " + nombre);
+                }
 
-            } catch (NumberFormatException e) {
-                throw new IOException("Cantidad de archivos inválida: " + partes[1]);
+                byte[] datos = (byte[]) datosObj;
+                String rutaBase = tipo.equals("imagen") ?
+                    ConfiguracionApp.RUTA_IMAGENES_SERVIDOR :
+                    ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
+
+                Path rutaDestino = Paths.get(rutaBase, nombre);
+                Files.createDirectories(rutaDestino.getParent());
+                Files.write(rutaDestino, datos);
+                System.out.println("Recibido " + tipo + ": " + nombre);
             }
+
+            // Esperar confirmación final
+            String confirmacion = (String) socketCliente.recibirObjeto();
+            System.out.println(confirmacion);
+
+            // Pausa antes de enviar archivos locales
+            Thread.sleep(1000);
+
+            // Enviar archivos locales
+            enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, false);
+            enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, true);
 
         } catch (Exception e) {
             System.err.println("Error durante la sincronización: " + e.getMessage());
             e.printStackTrace();
-            throw e;
+            throw e instanceof IOException ? (IOException) e : new IOException(e);
         } finally {
             sincronizando = false;
         }

@@ -162,8 +162,13 @@ public class ClientHandler implements Runnable {
 
     private void enviarMensaje(String mensaje) throws IOException {
         if (salida != null && !socket.isClosed()) {
-            salida.writeObject(mensaje);
-            salida.flush();
+            try {
+                salida.writeObject(mensaje);
+                salida.flush();
+                Thread.sleep(50); // Pequeña pausa entre mensajes
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
