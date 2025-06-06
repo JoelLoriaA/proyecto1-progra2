@@ -63,18 +63,43 @@ package com.MagicalStay.client.sockets;
 
             try {
                 String respuesta = (String) socketCliente.recibirObjeto();
-                if (!respuesta.startsWith("FILE_COUNT|")) {
-                    throw new IOException("Protocolo de transferencia incorrecto");
+                if (respuesta == null) {
+                    throw new IOException("No se recibió respuesta del servidor");
                 }
 
-                int numArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
+                if (!respuesta.startsWith("FILE_COUNT|")) {
+                    System.err.println("Respuesta recibida: " + respuesta);
+                    throw new IOException("Protocolo de transferencia incorrecto: respuesta inválida");
+                }
+
+                int numArchivos;
+                try {
+                    numArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
+                    System.out.println("Se recibirán " + numArchivos + " archivos");
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+                    throw new IOException("Formato de contador de archivos inválido");
+                }
+
                 for (int i = 0; i < numArchivos; i++) {
                     String metadata = (String) socketCliente.recibirObjeto();
+                    if (metadata == null) {
+                        throw new IOException("Metadata nula para archivo " + (i + 1));
+                    }
+
                     String[] partes = metadata.split("\\|");
-                    archivos.add(partes[1]); // Agregar solo el nombre del archivo
+                    if (partes.length != 2) {
+                        throw new IOException("Formato de metadata inválido para archivo " + (i + 1));
+                    }
+
+                    archivos.add(partes[1]);
+                    System.out.println("Procesando archivo: " + partes[1]);
 
                     // Recibir y guardar el contenido
                     byte[] contenido = (byte[]) socketCliente.recibirObjeto();
+                    if (contenido == null) {
+                        throw new IOException("Contenido nulo para archivo " + partes[1]);
+                    }
+
                     Path rutaLocal = Paths.get(
                         partes[0].equals("archivo") ?
                             ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR :
@@ -83,6 +108,7 @@ package com.MagicalStay.client.sockets;
                     );
                     Files.createDirectories(rutaLocal.getParent());
                     Files.write(rutaLocal, contenido);
+                    System.out.println("Guardado archivo: " + rutaLocal);
                 }
             } catch (ClassNotFoundException e) {
                 throw new IOException("Error listando archivos: " + e.getMessage());
@@ -91,14 +117,31 @@ package com.MagicalStay.client.sockets;
             return archivos;
         }
 
-       public void sincronizarBidireccional() throws IOException {
-            // Primero recibir archivos del servidor
-            System.out.println("Iniciando sincronización bidireccional...");
-            List<String> archivosServidor = listarArchivos();
-            System.out.println("Recibidos " + archivosServidor.size() + " archivos del servidor");
+     public void sincronizarBidireccional() throws IOException {
+            try {
+                // Esperar mensaje de bienvenida
+                String bienvenida = (String) socketCliente.recibirObjeto();
+                if (!bienvenida.startsWith("WELCOME|")) {
+                    throw new IOException("Protocolo de conexión incorrecto");
+                }
+                System.out.println(bienvenida.split("\\|")[1]);
 
-            // Luego enviar archivos locales al servidor
-            enviarArchivosLocales();
+                // Enviar confirmación
+                socketCliente.enviarMensaje("READY");
+
+                // Iniciar sincronización
+                System.out.println("Iniciando sincronización bidireccional...");
+
+                // Primero recibir archivos del servidor
+                List<String> archivosServidor = listarArchivos();
+                System.out.println("Recibidos " + archivosServidor.size() + " archivos del servidor");
+
+                // Luego enviar archivos locales al servidor
+                enviarArchivosLocales();
+
+            } catch (ClassNotFoundException e) {
+                throw new IOException("Error en el protocolo de conexión: " + e.getMessage());
+            }
         }
 
         private void enviarArchivosLocales() throws IOException {
