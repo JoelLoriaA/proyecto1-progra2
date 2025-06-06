@@ -1,13 +1,11 @@
 package com.MagicalStay.server;
-
 import com.MagicalStay.shared.config.ConfiguracionApp;
-
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.Arrays;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
@@ -23,7 +21,6 @@ public class ClientHandler implements Runnable {
         try {
             salida = new ObjectOutputStream(socket.getOutputStream());
             entrada = new ObjectInputStream(socket.getInputStream());
-
 
             handleConnect();
 
@@ -46,21 +43,6 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void cerrarRecursos() {
-        try {
-            if (entrada != null) entrada.close();
-            if (salida != null) salida.close();
-        } catch (IOException e) {
-            System.err.println("Error al cerrar recursos: " + e.getMessage());
-        }
-    }
-
-    private void handleConnect() throws IOException {
-        System.out.println("Nuevo cliente conectado desde: " + socket.getInetAddress());
-        salida.writeObject("Bienvenido al servidor de MagicalStay");
-        salida.flush();
-    }
-
     private void handleMessage(String comando) throws IOException {
         String respuesta = procesarComando(comando);
         salida.writeObject(respuesta);
@@ -74,12 +56,48 @@ public class ClientHandler implements Runnable {
 
             switch (accion) {
                 case "listar_archivos":
-                    File[] archivos = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
-                    salida.writeObject(archivos.length);
-                    for (File archivo : archivos) {
-                        salida.writeObject(archivo.getName());
-                        byte[] contenido = Files.readAllBytes(archivo.toPath());
-                        salida.writeObject(contenido);
+                    File[] archivosNormales = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
+                    File[] imagenes = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();
+
+                    // Contar archivos válidos
+                    int totalArchivos = 0;
+                    if (archivosNormales != null) {
+                        totalArchivos += (int) Arrays.stream(archivosNormales)
+                                .filter(File::isFile)
+                                .count();
+                    }
+                    if (imagenes != null) {
+                        totalArchivos += (int) Arrays.stream(imagenes)
+                                .filter(File::isFile)
+                                .count();
+                    }
+
+                    // Enviar comando y número
+                    salida.writeObject("FILE_COUNT|" + totalArchivos);
+                    System.out.println("Enviando " + totalArchivos + " archivos...");
+
+                    // Enviar archivos normales
+                    if (archivosNormales != null) {
+                        for (File archivo : archivosNormales) {
+                            if (archivo.isFile()) {
+                                salida.writeObject("archivo|" + archivo.getName());
+                                byte[] contenido = Files.readAllBytes(archivo.toPath());
+                                salida.writeObject(contenido);
+                                System.out.println("Enviado archivo: " + archivo.getName());
+                            }
+                        }
+                    }
+
+                    // Enviar imágenes
+                    if (imagenes != null) {
+                        for (File imagen : imagenes) {
+                            if (imagen.isFile()) {
+                                salida.writeObject("imagen|" + imagen.getName());
+                                byte[] contenido = Files.readAllBytes(imagen.toPath());
+                                salida.writeObject(contenido);
+                                System.out.println("Enviada imagen: " + imagen.getName());
+                            }
+                        }
                     }
                     return "Lista de archivos enviada";
 
@@ -97,7 +115,6 @@ public class ClientHandler implements Runnable {
                     Path rutaImagen = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreImagen);
                     Files.createDirectories(rutaImagen.getParent());
                     Files.write(rutaImagen, datosImagen);
-
                     return "Imagen guardada: " + nombreImagen;
 
                 case "obtener_archivo":
@@ -109,6 +126,7 @@ public class ClientHandler implements Runnable {
                         return "Archivo enviado";
                     }
                     return "Archivo no encontrado";
+
                 default:
                     return "Comando no reconocido";
             }
@@ -118,39 +136,23 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private String handleQuery() {
-        // Implementar lógica de consulta
-        return "Consultando disponibilidad de habitaciones...";
+    private void handleConnect() throws IOException {
+        System.out.println("Cliente conectado desde: " + socket.getInetAddress());
+        salida.writeObject("WELCOME|Conectado al servidor MagicalStay");
+        salida.flush();
     }
 
-    private String handleBooking(String[] partes) {
-        if (partes.length < 2) {
-            return "Error: Faltan parámetros para la reserva";
+    private void cerrarRecursos() {
+        try {
+            if (entrada != null) entrada.close();
+            if (salida != null) salida.close();
+            if (socket != null && !socket.isClosed()) socket.close();
+        } catch (IOException e) {
+            System.err.println("Error cerrando recursos: " + e.getMessage());
         }
-        // Implementar lógica de reserva
-        return "Procesando reserva para: " + partes[1];
-    }
-
-    private String handleCancellation(String[] partes) {
-        if (partes.length < 2) {
-            return "Error: Faltan parámetros para la cancelación";
-        }
-        // Implementar lógica de cancelación
-        return "Cancelando reserva: " + partes[1];
-    }
-
-    private String handleExit() {
-        return "¡Hasta luego! Gracias por usar MagicalStay";
     }
 
     private void handleDisconnect() {
-        try {
-            if (socket != null && !socket.isClosed()) {
-                socket.close();
-                System.out.println("Conexión cerrada con: " + socket.getInetAddress());
-            }
-        } catch (IOException e) {
-            System.err.println("Error al cerrar el socket: " + e.getMessage());
-        }
+        System.out.println("Cliente desconectado: " + socket.getInetAddress());
     }
 }
