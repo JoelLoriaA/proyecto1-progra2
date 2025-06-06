@@ -1,6 +1,6 @@
+
 package com.MagicalStay.client.ui.controllers;
 
-import com.MagicalStay.client.sockets.FileClient;
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.client.data.DataFactory;
 import com.MagicalStay.shared.config.ConfiguracionApp;
@@ -57,48 +57,27 @@ import java.io.File;
 
 
 public class RoomManagementController implements Closeable {
-    @FXML
-    private ComboBox<Hotel> hotelComboBox;
-    @FXML
-    private TextField searchTextField;
-    @FXML
-    public TextField numberTextField;
-    @FXML
-    public TextField priceTextField;
-    @FXML
-    public ComboBox<RoomType> typeComboBox;
-    @FXML
-    public ComboBox<RoomCondition> statusComboBox;
-    @FXML
-    public TextArea descriptionTextArea;
-    @FXML
-    public TextArea featuresTextArea;
-    @FXML
-    public Spinner<Integer> capacitySpinner;
-    @FXML
-    private Button addButton, editButton, deleteButton;
-    @FXML
-    private Button closeButton;
-    @FXML
-    public Button saveButton;
-    @FXML
-    public Button cancelButton;
-    @FXML
-    private Button searchButton;
-    @FXML
-    public Label statusLabel;
-    @FXML
-    public ListView<Room> roomListView;
-    @FXML
-    private TableColumn<Room, String> roomNumberColumn, roomTypeColumn, roomStatusColumn;
-    @FXML
-    private TableColumn<Room, Integer> roomCapacityColumn;
-    @FXML
-    private TableColumn<Room, Double> roomPriceColumn;
-    @FXML
-    private Button selectImageButton;
-    @FXML
-    private ImageView roomImageView;
+    @FXML private ComboBox<Hotel> hotelComboBox;
+    @FXML private TextField searchTextField;
+    @FXML public TextField numberTextField;
+    @FXML public TextField priceTextField;
+    @FXML public ComboBox<RoomType> typeComboBox;
+    @FXML public ComboBox<RoomCondition> statusComboBox;
+    @FXML public TextArea descriptionTextArea;
+    @FXML public TextArea featuresTextArea;
+    @FXML public Spinner<Integer> capacitySpinner;
+    @FXML private Button addButton, editButton, deleteButton;
+    @FXML private Button closeButton;
+    @FXML public Button saveButton;
+    @FXML public Button cancelButton;
+    @FXML private Button searchButton;
+    @FXML public Label statusLabel;
+    @FXML public ListView<Room> roomListView;
+    @FXML private TableColumn<Room, String> roomNumberColumn, roomTypeColumn, roomStatusColumn;
+    @FXML private TableColumn<Room, Integer> roomCapacityColumn;
+    @FXML private TableColumn<Room, Double> roomPriceColumn;
+    @FXML private Button selectImageButton;
+    @FXML private ImageView roomImageView;
     private File selectedImageFile;
     public String selectedImagePath;
     public RoomData roomData;
@@ -120,23 +99,16 @@ public class RoomManagementController implements Closeable {
 
     public RoomManagementController() {
         socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
-            @Override
-            public void onMensajeRecibido(String mensaje) {
+            @Override public void onMensajeRecibido(String mensaje) {
                 Platform.runLater(() -> procesarRespuestaServidor(mensaje));
             }
-
-            @Override
-            public void onError(String error) {
+            @Override public void onError(String error) {
                 Platform.runLater(() -> FXUtility.alertError("Error de comunicación", error).show());
             }
-
-            @Override
-            public void onConexionEstablecida() {
+            @Override public void onConexionEstablecida() {
                 Platform.runLater(() -> loadRoomsFromServer());
             }
-
-            @Override
-            public void onDesconexion() {
+            @Override public void onDesconexion() {
                 Platform.runLater(() -> FXUtility.alertError("Desconexión", "Se perdió la conexión con el servidor").show());
             }
         });
@@ -157,13 +129,11 @@ public class RoomManagementController implements Closeable {
 
             hotelComboBox.setItems(hotelList);
             hotelComboBox.setConverter(new StringConverter<Hotel>() {
-                @Override
-                public String toString(Hotel hotel) {
+                @Override public String toString(Hotel hotel) {
                     return hotel != null ? hotel.getName() : "";
                 }
 
-                @Override
-                public Hotel fromString(String string) {
+                @Override public Hotel fromString(String string) {
                     return null;
                 }
             });
@@ -195,8 +165,7 @@ public class RoomManagementController implements Closeable {
                         Label type = new Label("Tipo: " + room.getRoomType());
                         Label capacity = new Label("Capacidad: " + room.getCapacity());
                         Label status = new Label("Estado: " + room.getRoomCondition());
-                        Label price = new Label(String.format("Precio: 💲%.2f", room.getPrice()));
-                        price.setStyle("-fx-font-weight: bold;");
+                        Label price = new Label(String.format("Precio: 💲%.2f", room.getPrice()));                    price.setStyle("-fx-font-weight: bold;");
 
                         VBox leftBox = new VBox(number, type, capacity);
                         leftBox.setSpacing(2);
@@ -229,8 +198,7 @@ public class RoomManagementController implements Closeable {
             String json = hotelData.retrieveAll();
             JsonResponse response = objectMapper.readValue(json, JsonResponse.class);
             if (response.isSuccess()) {
-                List<Hotel> hotels = objectMapper.convertValue(response.getData(), new TypeReference<List<Hotel>>() {
-                });
+                List<Hotel> hotels = objectMapper.convertValue(response.getData(), new TypeReference<List<Hotel>>() {});
                 hotelList.setAll(hotels);
 
                 if (!hotelList.isEmpty()) {
@@ -609,29 +577,14 @@ public class RoomManagementController implements Closeable {
         private String message;
         private Object data;
 
-        public boolean isSuccess() {
-            return success;
-        }
+        public boolean isSuccess() { return success; }
+        public void setSuccess(boolean success) { this.success = success; }
 
-        public void setSuccess(boolean success) {
-            this.success = success;
-        }
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
 
-        public String getMessage() {
-            return message;
-        }
-
-        public void setMessage(String message) {
-            this.message = message;
-        }
-
-        public Object getData() {
-            return data;
-        }
-
-        public void setData(Object data) {
-            this.data = data;
-        }
+        public Object getData() { return data; }
+        public void setData(Object data) { this.data = data; }
     }
 
     private void showAlert(Alert.AlertType type, String title, String message) {
@@ -642,7 +595,6 @@ public class RoomManagementController implements Closeable {
         alert.showAndWait();
     }
 
-
     @FXML
     private void handleSelectImage() {
         FileChooser fileChooser = new FileChooser();
@@ -651,7 +603,7 @@ public class RoomManagementController implements Closeable {
                 new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
         );
 
-        File initialDir = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\dataBase\\images");
+        File initialDir = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR);
         if (!initialDir.exists()) {
             initialDir.mkdirs();
         }
@@ -664,13 +616,13 @@ public class RoomManagementController implements Closeable {
             try {
                 String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
                 String newFileName = "habitacion_" + System.currentTimeMillis() + extension;
-                File destFile = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\dataBase\\images\\dataCopy\\", newFileName);
+                File destFile = new File(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, newFileName);
 
                 Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
                 roomImageView.setImage(new Image(destFile.toURI().toString()));
 
-                selectedImagePath = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\dataBase\\images\\dataCopy\\" + newFileName;
+                selectedImagePath = ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR + newFileName;
 
                 System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
 
@@ -680,5 +632,5 @@ public class RoomManagementController implements Closeable {
             }
         }
     }
-}
 
+}
