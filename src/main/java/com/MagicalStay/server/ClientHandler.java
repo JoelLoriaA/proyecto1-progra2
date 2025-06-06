@@ -21,17 +21,22 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
+            // Importante: primero salida, luego entrada
             salida = new ObjectOutputStream(socket.getOutputStream());
+            salida.flush(); // Flush inicial importante
             entrada = new ObjectInputStream(socket.getInputStream());
 
             handleConnect();
 
             while (!socket.isClosed()) {
-                String comando = (String) entrada.readObject();
-                handleMessage(comando);
+                Object mensaje = entrada.readObject(); // Usar Object en lugar de String
+                if (mensaje instanceof String) {
+                    String comando = (String) mensaje;
+                    handleMessage(comando);
 
-                if (comando.equalsIgnoreCase("salir")) {
-                    break;
+                    if (comando.equalsIgnoreCase("salir")) {
+                        break;
+                    }
                 }
             }
         } catch (EOFException e) {

@@ -25,6 +25,7 @@ public class SocketCliente {
     }
 
 
+
     public void conectar(String host, int puerto) {
         if (conectado) return;
 
@@ -32,15 +33,19 @@ public class SocketCliente {
             try {
                 socket = new Socket();
                 socket.connect(new InetSocketAddress(host, puerto), TIMEOUT_CONEXION);
-                salida = new ObjectOutputStream(socket.getOutputStream());
-                entrada = new ObjectInputStream(socket.getInputStream());
-                conectado = true;
 
-                // Usar la sincronización bidireccional
+                // Importante: primero salida, luego entrada
+                salida = new ObjectOutputStream(socket.getOutputStream());
+                salida.flush(); // Flush inicial importante
+                entrada = new ObjectInputStream(socket.getInputStream());
+
+                conectado = true;
+                Platform.runLater(() -> callback.onConexionEstablecida());
+
+                // Ahora sí, sincronizar
                 FileClient fileClient = new FileClient(this);
                 fileClient.sincronizarBidireccional();
 
-                Platform.runLater(() -> callback.onConexionEstablecida());
                 escucharMensajes();
             } catch (IOException e) {
                 Platform.runLater(() -> callback.onError("Error de conexión: " + e.getMessage()));
