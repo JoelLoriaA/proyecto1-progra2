@@ -29,6 +29,7 @@ public class ServerApp {
         System.out.println("Directorios inicializados:");
         System.out.println("- Archivos: " + ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR);
         System.out.println("- Imágenes: " + ConfiguracionApp.RUTA_IMAGENES_SERVIDOR);
+        System.out.println("- Copia de Imágenes: " + ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR);
     }
 
     public void iniciar() {

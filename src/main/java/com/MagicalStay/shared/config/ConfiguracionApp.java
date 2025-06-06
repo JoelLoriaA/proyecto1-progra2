@@ -30,38 +30,14 @@ public class ConfiguracionApp {
     public static final String FXML_BOOKING_MANAGEMENT = "/com/MagicalStay/booking-management.fxml";
     public static final String FXML_GUEST_MANAGEMENT = "/com/MagicalStay/guest-management.fxml";
     public static final String FXML_FRONTDESK_MANAGEMENT = "/com/MagicalStay/frontdesk-management.fxml";
-    public static final String FXML_REPORTS = "/com/MagicalStay/reports.fxml";
 
     // Mensajes del sistema
     public static final String MSG_CONEXION_EXITOSA = "Conexión establecida correctamente";
     public static final String MSG_CONEXION_ERROR = "Error al conectar con el servidor";
     public static final String MSG_DESCONEXION = "Desconectado del servidor";
 
-
-    // Para conexiones remotas, usar métodos estáticos
-    public static void configurarServidorRemoto(String host, int puerto) {
-        // En una implementación real, podrías usar un archivo de configuración
-        System.setProperty("magicalstay.server.host", host);
-        System.setProperty("magicalstay.server.port", String.valueOf(puerto));
-    }
-
-    public static String getHostServidor() {
-        return System.getProperty("magicalstay.server.host", HOST_SERVIDOR);
-    }
-
-    public static int getPuertoServidor() {
-        return Integer.parseInt(System.getProperty("magicalstay.server.port", String.valueOf(PUERTO_SERVIDOR)));
-    }
     // Agregar en ConfiguracionApp.java
     private static boolean servidorConectado = true;
-
-    public static boolean isServidorConectado() {
-        return servidorConectado;
-    }
-
-    public static void setServidorConectado(boolean estado) {
-        servidorConectado = estado;
-    }
 
 
 

@@ -1,6 +1,5 @@
 package com.MagicalStay.client.sockets;
 
-import com.MagicalStay.server.FileService;
 import javafx.application.Platform;
 import java.io.*;
 import java.net.Socket;
