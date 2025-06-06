@@ -2,6 +2,7 @@ package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.client.data.DataFactory;
+import com.MagicalStay.shared.config.ConfiguracionApp;
 import com.MagicalStay.shared.data.HotelData;
 import com.MagicalStay.shared.data.JsonResponse;
 import com.MagicalStay.shared.data.RoomData;
@@ -54,7 +55,7 @@ import javafx.stage.Stage;
 import java.io.File;
 
 
-public class RoomManagementController implements Closeable {
+public class RoomManagementController {
     @FXML private ComboBox<Hotel> hotelComboBox;
     @FXML private TextField searchTextField;
     @FXML public TextField numberTextField;
@@ -86,7 +87,6 @@ public class RoomManagementController implements Closeable {
     public Room selectedRoom;
     public Hotel selectedHotel;
     public boolean editMode = false;
-    private final SocketCliente socketCliente;
     @FXML
     private TableView imagesTableView;
     @FXML
@@ -94,23 +94,6 @@ public class RoomManagementController implements Closeable {
     @FXML
     private TableColumn imageNameColumn;
 
-
-    public RoomManagementController() {
-        socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
-            @Override public void onMensajeRecibido(String mensaje) {
-                Platform.runLater(() -> procesarRespuestaServidor(mensaje));
-            }
-            @Override public void onError(String error) {
-                Platform.runLater(() -> FXUtility.alertError("Error de comunicación", error).show());
-            }
-            @Override public void onConexionEstablecida() {
-                Platform.runLater(() -> loadRoomsFromServer());
-            }
-            @Override public void onDesconexion() {
-                Platform.runLater(() -> FXUtility.alertError("Desconexión", "Se perdió la conexión con el servidor").show());
-            }
-        });
-    }
 
     @FXML
     private void initialize() {
@@ -540,32 +523,6 @@ public class RoomManagementController implements Closeable {
         statusLabel.setText(rooms.isEmpty() ? "Sin habitaciones." : "");
     }
 
-    private void loadRoomsFromServer() {
-        if (!socketCliente.estaConectado()) {
-            FXUtility.alertError("Error", "Sin conexión al servidor").show();
-            return;
-        }
-        socketCliente.enviarMensaje("OBTENER_HABITACIONES|" + selectedHotel.getHotelId());
-    }
-
-    @FXML
-    public void handleClose(ActionEvent e) throws IOException {
-        DataFactory.closeAll();
-
-        Stage stage = (Stage) closeButton.getScene().getWindow();
-        stage.close();
-    }
-
-    @Override
-    public void close() {
-        try {
-            if (roomData != null) roomData.close();
-            if (socketCliente != null) socketCliente.desconectar();
-        } catch (Exception e) {
-            FXUtility.alertError("Error", "Error al cerrar: " + e.getMessage()).show();
-        }
-    }
-
     private DataResponse parseDataResponse(String jsonResponse) throws Exception {
         return objectMapper.readValue(jsonResponse, DataResponse.class);
     }
@@ -601,7 +558,7 @@ public class RoomManagementController implements Closeable {
                 new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
         );
 
-        File initialDir = new File("\"D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\images\"");
+        File initialDir = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR);
         if (!initialDir.exists()) {
             initialDir.mkdirs();
         }
@@ -614,13 +571,13 @@ public class RoomManagementController implements Closeable {
             try {
                 String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
                 String newFileName = "habitacion_" + System.currentTimeMillis() + extension;
-                File destFile = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\images\\copy", newFileName);
+                File destFile = new File(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, newFileName);
 
                 Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
                 roomImageView.setImage(new Image(destFile.toURI().toString()));
 
-                selectedImagePath = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\images\\copy" + newFileName;
+                selectedImagePath = ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR + newFileName;
 
                 System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
 
