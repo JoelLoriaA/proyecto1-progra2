@@ -35,39 +35,43 @@ public class FileClient {
         sincronizando = true;
 
         try {
-            // Solo recibir archivos del servidor
+            // Primero recibir archivos del servidor
             socketCliente.enviarMensaje("listar_archivos");
             String respuesta = (String) socketCliente.recibirObjeto();
 
-            if (!respuesta.startsWith("FILE_COUNT|")) {
-                return;
-            }
+            if (respuesta.startsWith("FILE_COUNT|")) {
+                int cantidadArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
+                System.out.println("Se recibirán " + cantidadArchivos + " archivos");
 
-            int cantidadArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
-            System.out.println("Se recibirán " + cantidadArchivos + " archivos");
+                // Recibir archivos
+                for (int i = 0; i < cantidadArchivos; i++) {
+                    String fileInfo = (String) socketCliente.recibirObjeto();
+                    String[] partes = fileInfo.split("\\|");
+                    String tipo = partes[0];
+                    String nombre = partes[1];
 
-            // Recibir archivos
-            for (int i = 0; i < cantidadArchivos; i++) {
-                String fileInfo = (String) socketCliente.recibirObjeto();
-                String[] partes = fileInfo.split("\\|");
-                String tipo = partes[0];
-                String nombre = partes[1];
+                    byte[] datos = (byte[]) socketCliente.recibirObjeto();
+                    Path rutaDestino = Paths.get(
+                            tipo.equals("imagen") ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
+                            nombre
+                    );
 
-                byte[] datos = (byte[]) socketCliente.recibirObjeto();
-                Path rutaDestino = Paths.get(
-                        tipo.equals("imagen") ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
-                        nombre
-                );
-
-                // Solo guardar si el archivo no existe
-                if (!Files.exists(rutaDestino)) {
-                    Files.createDirectories(rutaDestino.getParent());
-                    Files.write(rutaDestino, datos);
-                    System.out.println(tipo + " recibido: " + nombre);
-                } else {
-                    System.out.println(tipo + " ya existe: " + rutaDestino);
+                    if (!Files.exists(rutaDestino)) {
+                        Files.createDirectories(rutaDestino.getParent());
+                        Files.write(rutaDestino, datos);
+                        System.out.println(tipo + " recibido: " + nombre);
+                    } else {
+                        System.out.println(tipo + " ya existe en el directorio principal: " + rutaDestino);
+                    }
                 }
+                System.out.println("Recibidos " + cantidadArchivos + " archivos del servidor");
             }
+
+            // Luego enviar archivos locales al servidor
+            System.out.println("Enviando archivos locales al servidor...");
+            enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, false);
+            enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, true);
+
         } finally {
             sincronizando = false;
         }
