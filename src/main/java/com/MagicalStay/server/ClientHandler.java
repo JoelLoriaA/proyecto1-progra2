@@ -1,12 +1,13 @@
+
 package com.MagicalStay.server;
 
 import com.MagicalStay.shared.config.ConfiguracionApp;
-
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
@@ -44,21 +45,6 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void cerrarRecursos() {
-        try {
-            if (entrada != null) entrada.close();
-            if (salida != null) salida.close();
-        } catch (IOException e) {
-            System.err.println("Error al cerrar recursos: " + e.getMessage());
-        }
-    }
-
-    private void handleConnect() throws IOException {
-        System.out.println("Nuevo cliente conectado desde: " + socket.getInetAddress());
-        salida.writeObject("Bienvenido al servidor de MagicalStay");
-        salida.flush();
-    }
-
     private void handleMessage(String comando) throws IOException {
         String respuesta = procesarComando(comando);
         salida.writeObject(respuesta);
@@ -70,172 +56,109 @@ public class ClientHandler implements Runnable {
             String[] partes = comando.split("\\|");
             String accion = partes[0].toLowerCase();
 
-            return switch (accion) {
-                case "subir_archivo" -> handleFileUpload(partes);
-                case "subir_imagen" -> handleImageUpload(partes);
-                case "obtener_archivo" -> handleFileDownload(partes);
-                case "obtener_imagen" -> handleImageDownload(partes);
-                case "listar_archivos" -> handleListFiles();
-                case "verificar_archivo" -> handleVerifyFile(partes);
-                case "consultar" -> handleQuery();
-                case "reservar" -> handleBooking(partes);
-                case "cancelar" -> handleCancellation(partes);
-                case "salir" -> handleExit();
-                default -> "Comando no reconocido";
-            };
+            switch (accion) {
+                case "ready":
+                    return "OK";
+
+                case "listar_archivos":
+                    File[] archivosNormales = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
+                    File[] imagenes = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();
+
+                    // Contar archivos válidos
+                    int totalArchivos = 0;
+                    if (archivosNormales != null) {
+                        totalArchivos += Arrays.stream(archivosNormales)
+                                .filter(File::isFile)
+                                .count();
+                    }
+                    if (imagenes != null) {
+                        totalArchivos += Arrays.stream(imagenes)
+                                .filter(File::isFile)
+                                .count();
+                    }
+
+                    // Enviar comando y número
+                    salida.writeObject("FILE_COUNT|" + totalArchivos);
+                    System.out.println("Enviando " + totalArchivos + " archivos...");
+
+                    // Enviar archivos normales
+                    if (archivosNormales != null) {
+                        for (File archivo : archivosNormales) {
+                            if (archivo.isFile()) {
+                                salida.writeObject("archivo|" + archivo.getName());
+                                byte[] contenido = Files.readAllBytes(archivo.toPath());
+                                salida.writeObject(contenido);
+                                System.out.println("Enviado archivo: " + archivo.getName());
+                            }
+                        }
+                    }
+
+                    // Enviar imágenes
+                    if (imagenes != null) {
+                        for (File imagen : imagenes) {
+                            if (imagen.isFile()) {
+                                salida.writeObject("imagen|" + imagen.getName());
+                                byte[] contenido = Files.readAllBytes(imagen.toPath());
+                                salida.writeObject(contenido);
+                                System.out.println("Enviada imagen: " + imagen.getName());
+                            }
+                        }
+                    }
+                    return "Lista de archivos enviada";
+
+                case "subir_archivo":
+                    String nombreArchivo = partes[1];
+                    byte[] datos = (byte[]) entrada.readObject();
+                    Path rutaArchivo = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
+                    Files.createDirectories(rutaArchivo.getParent());
+                    Files.write(rutaArchivo, datos);
+                    return "Archivo guardado: " + nombreArchivo;
+
+                case "subir_imagen":
+                    String nombreImagen = partes[1];
+                    byte[] datosImagen = (byte[]) entrada.readObject();
+                    Path rutaImagen = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreImagen);
+                    Files.createDirectories(rutaImagen.getParent());
+                    Files.write(rutaImagen, datosImagen);
+                    return "Imagen guardada: " + nombreImagen;
+
+                case "obtener_archivo":
+                    String nombre = partes[1];
+                    Path ruta = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombre);
+                    if (Files.exists(ruta)) {
+                        byte[] contenido = Files.readAllBytes(ruta);
+                        salida.writeObject(contenido);
+                        return "Archivo enviado";
+                    }
+                    return "Archivo no encontrado";
+
+                default:
+                    return "Comando no reconocido";
+            }
         } catch (Exception e) {
-            return "Error procesando comando: " + e.getMessage();
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
         }
     }
 
-   private String handleFileUpload(String[] partes) throws IOException {
-        if (partes.length < 2) return "Error: Nombre de archivo requerido";
-        String nombreArchivo = partes[1];
-
-        byte[] datos = (byte[]) recibirObjeto();
-        Path rutaDestino = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
-        Files.createDirectories(rutaDestino.getParent());
-        Files.write(rutaDestino, datos);
-
-        return "OK|Archivo subido exitosamente";
+    private void handleConnect() throws IOException {
+        System.out.println("Cliente conectado desde: " + socket.getInetAddress());
+        // Enviar mensaje de bienvenida con protocolo correcto
+        salida.writeObject("WELCOME|Conectado al servidor MagicalStay");
+        salida.flush();
     }
 
-    private String handleImageUpload(String[] partes) throws IOException {
-        if (partes.length < 2) return "Error: Nombre de imagen requerido";
-        String nombreImagen = partes[1];
-
-        byte[] datos = (byte[]) recibirObjeto();
-
-        // Guardar en el directorio principal de imágenes
-        Path rutaPrincipal = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreImagen);
-        Files.createDirectories(rutaPrincipal.getParent());
-        Files.write(rutaPrincipal, datos);
-
-        // Crear copia automática
-        Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, nombreImagen);
-        Files.createDirectories(rutaCopia.getParent());
-        Files.copy(rutaPrincipal, rutaCopia, StandardCopyOption.REPLACE_EXISTING);
-
-        return "OK|Imagen subida exitosamente";
-    }
-
-    private String handleFileDownload(String[] partes) throws IOException {
-        if (partes.length < 2) return "Error: Nombre de archivo requerido";
-        String nombreArchivo = partes[1];
-
-        Path rutaArchivo = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
-        if (!Files.exists(rutaArchivo)) {
-            return "ERROR|Archivo no encontrado";
+    private void cerrarRecursos() {
+        try {
+            if (entrada != null) entrada.close();
+            if (salida != null) salida.close();
+            if (socket != null && !socket.isClosed()) socket.close();
+        } catch (IOException e) {
+            System.err.println("Error cerrando recursos: " + e.getMessage());
         }
-
-        byte[] datos = Files.readAllBytes(rutaArchivo);
-        salida.writeObject(datos);
-        return "OK";
-    }
-
-    private String handleImageDownload(String[] partes) throws IOException {
-        if (partes.length < 2) return "Error: Nombre de imagen requerido";
-        String nombreImagen = partes[1];
-
-        Path rutaImagen = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreImagen);
-        if (!Files.exists(rutaImagen)) {
-            return "ERROR|Imagen no encontrada";
-        }
-
-        byte[] datos = Files.readAllBytes(rutaImagen);
-        salida.writeObject(datos);
-        return "OK";
-    }
-
-    private String handleListFiles() throws IOException {
-        List<String> archivos = new ArrayList<>();
-
-        // Listar archivos regulares
-        try (DirectoryStream<Path> streamArchivos = Files.newDirectoryStream(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR))) {
-            streamArchivos.forEach(path -> archivos.add("archivo|" + path.getFileName()));
-        }
-
-        // Listar imágenes
-        try (DirectoryStream<Path> streamImagenes = Files.newDirectoryStream(Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR))) {
-            streamImagenes.forEach(path -> archivos.add("imagen|" + path.getFileName()));
-        }
-
-        salida.writeObject("FILE_COUNT|" + archivos.size());
-
-        // Enviar cada archivo
-        for (String archivo : archivos) {
-            String[] partes = archivo.split("\\|");
-            Path ruta = Paths.get(
-                    partes[0].equals("archivo") ?
-                            ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR :
-                            ConfiguracionApp.RUTA_IMAGENES_SERVIDOR,
-                    partes[1]
-            );
-
-            salida.writeObject(archivo);
-            salida.writeObject(Files.readAllBytes(ruta));
-        }
-
-        return "OK";
-    }
-
-    private String handleVerifyFile(String[] partes) throws IOException {
-        if (partes.length < 3) return "Error: Parámetros insuficientes";
-
-        String tipo = partes[1];
-        String nombre = partes[2];
-
-        Path ruta = Paths.get(
-                tipo.equals("archivo") ?
-                        ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR :
-                        ConfiguracionApp.RUTA_IMAGENES_SERVIDOR,
-                nombre
-        );
-
-        return Files.exists(ruta) ? "OK|EXISTS" : "OK|NOT_EXISTS";
-    }
-
-    private String handleQuery() {
-        // Implementar lógica de consulta
-        return "Consultando disponibilidad de habitaciones...";
-    }
-
-    private String handleBooking(String[] partes) {
-        if (partes.length < 2) {
-            return "Error: Faltan parámetros para la reserva";
-        }
-        // Implementar lógica de reserva
-        return "Procesando reserva para: " + partes[1];
-    }
-
-    private String handleCancellation(String[] partes) {
-        if (partes.length < 2) {
-            return "Error: Faltan parámetros para la cancelación";
-        }
-        // Implementar lógica de cancelación
-        return "Cancelando reserva: " + partes[1];
-    }
-
-    private String handleExit() {
-        return "¡Hasta luego! Gracias por usar MagicalStay";
     }
 
     private void handleDisconnect() {
-        try {
-            if (socket != null && !socket.isClosed()) {
-                socket.close();
-                System.out.println("Conexión cerrada con: " + socket.getInetAddress());
-            }
-        } catch (IOException e) {
-            System.err.println("Error al cerrar el socket: " + e.getMessage());
-        }
-    }
-
-    private Object recibirObjeto() throws IOException {
-        try {
-            return entrada.readObject();
-        } catch (ClassNotFoundException e) {
-            throw new IOException("Error al recibir objeto: " + e.getMessage());
-        }
+        System.out.println("Cliente desconectado: " + socket.getInetAddress());
     }
 }
