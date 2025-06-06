@@ -1,185 +1,115 @@
 package com.MagicalStay.server;
 
-import com.MagicalStay.shared.config.ConfiguracionApp;
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
 
 public class ClientHandler implements Runnable {
-    private final Socket socket;
+    private Socket socket;
     private ObjectInputStream entrada;
     private ObjectOutputStream salida;
-    private volatile boolean ejecutando = true;
 
     public ClientHandler(Socket socket) {
         this.socket = socket;
     }
 
-   @Override
+    @Override
     public void run() {
         try {
             salida = new ObjectOutputStream(socket.getOutputStream());
-            salida.flush();
             entrada = new ObjectInputStream(socket.getInputStream());
+            
+        handleConnect();
 
-            enviarMensaje("WELCOME|Conectado al servidor MagicalStay");
+        while (!socket.isClosed()) {
+            String comando = (String) entrada.readObject();
+            handleMessage(comando);
 
-            while (ejecutando && !socket.isClosed()) {
-                try {
-                    Object mensaje = entrada.readObject();
-                    if (mensaje instanceof String) {
-                        String comandoStr = (String) mensaje;
-                        handleMessage(comandoStr);
-                    } else {
-                        System.out.println("Mensaje no reconocido: " + mensaje.getClass());
-                    }
-                } catch (EOFException e) {
-                    break; // Conexión cerrada normalmente
-                } catch (IOException | ClassNotFoundException e) {
-                    if (ejecutando) {
-                        System.err.println("Error procesando mensaje: " + e.getMessage());
-                    }
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error en ClientHandler: " + e.getMessage());
-        } finally {
-            cerrarConexion();
-        }
-    }
-
-    private void handleMessage(String mensaje) throws IOException {
-        try {
-            if (mensaje.equals("listar_archivos")) {
-                enviarListaArchivos();
-            } else if (mensaje.startsWith("subir_archivo|") || mensaje.startsWith("subir_imagen|")) {
-                recibirArchivo(mensaje);
-            } else {
-                procesarComandoEstandar(mensaje);
-            }
-        } catch (Exception e) {
-            enviarMensaje("Error: " + e.getMessage());
-        }
-    }
-
-    private void enviarListaArchivos() throws IOException {
-        List<Path> archivos = new ArrayList<>();
-
-        // Recolectar solo archivos .dat
-        try (Stream<Path> archivosNormales = Files.walk(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR))) {
-            archivosNormales
-                .filter(Files::isRegularFile)
-                .filter(p -> p.toString().endsWith(".dat"))
-                .forEach(archivos::add);
-        }
-
-        // Recolectar solo imágenes
-        try (Stream<Path> imagenes = Files.walk(Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR))) {
-            imagenes
-                .filter(Files::isRegularFile)
-                .filter(p -> {
-                    String nombre = p.toString().toLowerCase();
-                    return nombre.endsWith(".jpg") ||
-                           nombre.endsWith(".jpeg") ||
-                           nombre.endsWith(".png");
-                })
-                .forEach(archivos::add);
-        }
-
-        enviarMensaje("FILE_COUNT|" + archivos.size());
-
-        for (Path archivo : archivos) {
-            String tipo = archivo.toString().contains("images") ? "imagen" : "archivo";
-            String nombre = archivo.getFileName().toString();
-
-            try {
-                enviarMensaje(tipo + "|" + nombre);
-                byte[] datos = Files.readAllBytes(archivo);
-                salida.writeObject(datos);
-                salida.flush();
-                Thread.sleep(100); // Pequeña pausa entre archivos
-            } catch (Exception e) {
-                System.err.println("Error enviando archivo " + nombre + ": " + e.getMessage());
+            if (comando.equalsIgnoreCase("salir")) {
+                break;
             }
         }
+    } catch (EOFException e) {
+        System.out.println("Cliente desconectado: " + socket.getInetAddress());
+    } catch (Exception e) {
+        System.err.println("Error en la comunicación con el cliente: " + e.getMessage());
+        e.printStackTrace();
+    } finally {
+        cerrarRecursos();
+        handleDisconnect();
+    }
+}
 
-        enviarMensaje("Lista de archivos enviada");
+private void cerrarRecursos() {
+    try {
+        if (entrada != null) entrada.close();
+        if (salida != null) salida.close();
+    } catch (IOException e) {
+        System.err.println("Error al cerrar recursos: " + e.getMessage());
+    }
+}
+
+    private void handleConnect() throws IOException {
+        System.out.println("Nuevo cliente conectado desde: " + socket.getInetAddress());
+        salida.writeObject("Bienvenido al servidor de MagicalStay");
+        salida.flush();
     }
 
-  private void recibirArchivo(String comando) throws IOException {
+    private void handleMessage(String comando) throws IOException {
+        String respuesta = procesarComando(comando);
+        salida.writeObject(respuesta);
+        salida.flush();
+    }
+
+    private String procesarComando(String comando) {
         try {
             String[] partes = comando.split("\\|");
-            if (partes.length != 2) {
-                throw new IllegalArgumentException("Formato de comando inválido");
-            }
+            String accion = partes[0].toLowerCase();
 
-            String tipo = partes[0];
-            String nombre = partes[1];
-
-            int tamanoTotal = entrada.readInt();
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(tamanoTotal);
-            byte[] buffer = new byte[8192];
-
-            while (true) {
-                int tamanoChunk = entrada.readInt();
-                if (tamanoChunk == -1) break;
-
-                int bytesLeidos = 0;
-                while (bytesLeidos < tamanoChunk) {
-                    int leidos = entrada.read(buffer, 0, Math.min(buffer.length, tamanoChunk - bytesLeidos));
-                    if (leidos == -1) break;
-                    baos.write(buffer, 0, leidos);
-                    bytesLeidos += leidos;
-                }
-            }
-
-            String rutaBase = tipo.equals("subir_imagen") ?
-                ConfiguracionApp.RUTA_IMAGENES_SERVIDOR :
-                ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
-
-            Path rutaDestino = Paths.get(rutaBase, nombre);
-            Files.createDirectories(rutaDestino.getParent());
-            Files.write(rutaDestino, baos.toByteArray());
-
-            enviarMensaje("Archivo recibido: " + nombre);
+            return switch (accion) {
+                case "consultar" -> handleQuery();
+                case "reservar" -> handleBooking(partes);
+                case "cancelar" -> handleCancellation(partes);
+                case "salir" -> handleExit();
+                default -> "Comando no reconocido";
+            };
         } catch (Exception e) {
-            String error = "Error al recibir archivo: " + e.getMessage();
-            System.err.println(error);
-            enviarMensaje("Error: " + error);
+            return "Error procesando comando: " + e.getMessage();
         }
     }
 
-    private void procesarComandoEstandar(String comando) throws IOException {
-        // Procesar otros comandos estándar aquí
-        enviarMensaje("Comando procesado: " + comando);
+    private String handleQuery() {
+        // Implementar lógica de consulta
+        return "Consultando disponibilidad de habitaciones...";
     }
 
-    private void enviarMensaje(String mensaje) throws IOException {
-        if (salida != null && !socket.isClosed()) {
-            try {
-                salida.writeObject(mensaje);
-                salida.flush();
-                Thread.sleep(50); // Pequeña pausa entre mensajes
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+    private String handleBooking(String[] partes) {
+        if (partes.length < 2) {
+            return "Error: Faltan parámetros para la reserva";
         }
+        // Implementar lógica de reserva
+        return "Procesando reserva para: " + partes[1];
     }
 
-    private void cerrarConexion() {
-        ejecutando = false;
+    private String handleCancellation(String[] partes) {
+        if (partes.length < 2) {
+            return "Error: Faltan parámetros para la cancelación";
+        }
+        // Implementar lógica de cancelación
+        return "Cancelando reserva: " + partes[1];
+    }
+
+    private String handleExit() {
+        return "¡Hasta luego! Gracias por usar MagicalStay";
+    }
+
+    private void handleDisconnect() {
         try {
-            if (salida != null) salida.close();
-            if (entrada != null) entrada.close();
-            if (socket != null) socket.close();
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+                System.out.println("Conexión cerrada con: " + socket.getInetAddress());
+            }
         } catch (IOException e) {
-            System.err.println("Error al cerrar conexión: " + e.getMessage());
+            System.err.println("Error al cerrar el socket: " + e.getMessage());
         }
     }
 }

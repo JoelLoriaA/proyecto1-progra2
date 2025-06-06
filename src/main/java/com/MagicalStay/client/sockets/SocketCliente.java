@@ -24,56 +24,24 @@ public class SocketCliente {
         this.callback = callback;
     }
 
-
     public void conectar(String host, int puerto) {
         if (conectado) return;
 
         new Thread(() -> {
             try {
                 socket = new Socket();
-                socket.setKeepAlive(true);
-                socket.setSoTimeout(30000); // 30 segundos timeout
                 socket.connect(new InetSocketAddress(host, puerto), TIMEOUT_CONEXION);
-
                 salida = new ObjectOutputStream(socket.getOutputStream());
-                salida.flush();
                 entrada = new ObjectInputStream(socket.getInputStream());
-
                 conectado = true;
+                
                 Platform.runLater(() -> callback.onConexionEstablecida());
-
-                // Leer mensaje de bienvenida
-                String mensajeBienvenida = (String) entrada.readObject();
-                Platform.runLater(() -> callback.onMensajeRecibido(mensajeBienvenida));
-
-                // Iniciar sincronización en un hilo separado
-                new Thread(() -> {
-                    try {
-                        FileClient fileClient = new FileClient(this);
-                        fileClient.sincronizarBidireccional();
-                    } catch (Exception e) {
-                        Platform.runLater(() -> callback.onError("Error en sincronización: " + e.getMessage()));
-                    }
-                }).start();
-
-                // Bucle principal de recepción
-                while (conectado && !socket.isClosed()) {
-                    Object mensaje = entrada.readObject();
-                    if (mensaje instanceof String) {
-                        String mensajeStr = (String) mensaje;
-                        Platform.runLater(() -> callback.onMensajeRecibido(mensajeStr));
-                    }
-                }
-            } catch (Exception e) {
-                conectado = false;
-                Platform.runLater(() -> {
-                    callback.onError("Error de conexión: " + e.getMessage());
-                    callback.onDesconexion();
-                });
+                escucharMensajes();
+            } catch (IOException e) {
+                Platform.runLater(() -> callback.onError("Error de conexión: " + e.getMessage()));
             }
         }).start();
     }
-
 
     private void escucharMensajes() {
         new Thread(() -> {
@@ -96,19 +64,21 @@ public class SocketCliente {
 
     public void enviarMensaje(String mensaje) {
         if (!conectado) {
-            Platform.runLater(() -> callback.onError("No conectado al servidor"));
+            callback.onError("No conectado al servidor");
             return;
         }
 
-        try {
-            salida.writeObject(mensaje);
-            salida.flush();
-        } catch (IOException e) {
-            Platform.runLater(() -> {
-                callback.onError("Error enviando mensaje: " + e.getMessage());
-                desconectar();
-            });
-        }
+        new Thread(() -> {
+            try {
+                salida.writeObject(mensaje);
+                salida.flush();
+            } catch (IOException e) {
+                Platform.runLater(() -> {
+                    callback.onError("Error enviando mensaje: " + e.getMessage());
+                    desconectar();
+                });
+            }
+        }).start();
     }
 
     public void desconectar() {
@@ -127,47 +97,5 @@ public class SocketCliente {
 
     public boolean estaConectado() {
         return conectado;
-    }
-
-  public synchronized void enviarObjeto(Object obj) {
-        if (!conectado) {
-            Platform.runLater(() -> callback.onError("No conectado al servidor"));
-            return;
-        }
-
-        try {
-            if (obj instanceof byte[]) {
-                byte[] datos = (byte[]) obj;
-                salida.writeInt(datos.length);
-                salida.flush();
-
-                int tamanoChunk = 8192;
-                for (int offset = 0; offset < datos.length; offset += tamanoChunk) {
-                    int tamanoActual = Math.min(tamanoChunk, datos.length - offset);
-                    byte[] chunk = new byte[tamanoActual];
-                    System.arraycopy(datos, offset, chunk, 0, tamanoActual);
-                    salida.writeInt(tamanoActual);
-                    salida.write(chunk, 0, tamanoActual);
-                    salida.flush();
-                }
-                salida.writeInt(-1);
-                salida.flush();
-            } else {
-                salida.writeObject(obj);
-                salida.flush();
-            }
-        } catch (IOException e) {
-            Platform.runLater(() -> {
-                callback.onError("Error enviando objeto: " + e.getMessage());
-                desconectar();
-            });
-        }
-    }
-
-    public Object recibirObjeto() throws IOException, ClassNotFoundException {
-        if (!conectado) {
-            throw new IOException("No conectado al servidor");
-        }
-        return entrada.readObject();
     }
 }
