@@ -98,4 +98,30 @@ public class SocketCliente {
     public boolean estaConectado() {
         return conectado;
     }
+
+    public void enviarObjeto(Object obj) {
+        if (!conectado) {
+            callback.onError("No conectado al servidor");
+            return;
+        }
+        new Thread(() -> {
+            try {
+                salida.writeObject(obj);
+                salida.flush();
+            } catch (IOException e) {
+                Platform.runLater(() -> {
+                    callback.onError("Error enviando objeto: " + e.getMessage());
+                    desconectar();
+                });
+            }
+        }).start();
+    }
+
+    public Object recibirObjeto() throws IOException, ClassNotFoundException {
+        if (!conectado) {
+            throw new IOException("No conectado al servidor");
+        }
+        return entrada.readObject();
+    }
+
 }

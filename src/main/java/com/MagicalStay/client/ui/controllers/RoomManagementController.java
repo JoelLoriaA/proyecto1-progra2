@@ -648,27 +648,34 @@ public class RoomManagementController implements Closeable {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Seleccionar Imagen de Habitación");
         fileChooser.getExtensionFilters().addAll(
-            new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
+                new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
         );
-        fileChooser.setInitialDirectory(new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR));
+
+        File initialDir = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\dataBase\\images");
+        if (!initialDir.exists()) {
+            initialDir.mkdirs();
+        }
+        fileChooser.setInitialDirectory(initialDir);
 
         Stage stage = (Stage) selectImageButton.getScene().getWindow();
         File selectedFile = fileChooser.showOpenDialog(stage);
 
         if (selectedFile != null) {
             try {
-                // Usar directamente el archivo seleccionado sin hacer copia
-                roomImageView.setImage(new Image(selectedFile.toURI().toString()));
-                selectedImagePath = selectedFile.getAbsolutePath();
+                String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
+                String newFileName = "habitacion_" + System.currentTimeMillis() + extension;
+                File destFile = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\dataBase\\images\\dataCopy\\", newFileName);
 
-                // Enviar la imagen al servidor
-                byte[] imageData = Files.readAllBytes(selectedFile.toPath());
-                FileClient fileClient = new FileClient(socketCliente);
-                fileClient.subirArchivo(selectedFile.getName(), imageData, true);
+                Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                roomImageView.setImage(new Image(destFile.toURI().toString()));
+
+                selectedImagePath = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\dataBase\\images\\dataCopy\\" + newFileName;
 
                 System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
+
             } catch (IOException e) {
-                FXUtility.alertError("Error", "No se pudo procesar la imagen: " + e.getMessage()).show();
+                FXUtility.alertError("Error", "No se pudo copiar la imagen: " + e.getMessage()).show();
                 e.printStackTrace();
             }
         }

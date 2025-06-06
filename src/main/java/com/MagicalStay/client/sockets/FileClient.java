@@ -1,18 +1,13 @@
+
 package com.MagicalStay.client.sockets;
-
 import com.MagicalStay.shared.config.ConfiguracionApp;
-import javafx.application.Platform;
-
 import java.io.*;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class FileClient {
-    private static final int BUFFER_SIZE = 8192;
     private final SocketCliente socketCliente;
-    private List<String> archivosEnviados = new ArrayList<>();
-    private volatile boolean sincronizando = false;
 
     public FileClient(SocketCliente socketCliente) {
         this.socketCliente = socketCliente;
@@ -23,86 +18,8 @@ public class FileClient {
         try {
             Files.createDirectories(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR));
             Files.createDirectories(Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR));
-            Files.createDirectories(Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR));
         } catch (IOException e) {
-            System.err.println("Error al crear directorios: " + e.getMessage());
-        }
-    }
-
-
-   public void sincronizarBidireccional() throws IOException, ClassNotFoundException {
-        if (sincronizando) return;
-        sincronizando = true;
-
-        try {
-            socketCliente.enviarMensaje("listar_archivos");
-
-            // Leer la respuesta como String
-            String respuesta = null;
-            Object respObj = socketCliente.recibirObjeto();
-            if (respObj instanceof String) {
-                respuesta = (String) respObj;
-            } else {
-                throw new IOException("Tipo de respuesta inesperado");
-            }
-
-            if (!respuesta.startsWith("FILE_COUNT|")) {
-                throw new IOException("Respuesta inesperada del servidor: " + respuesta);
-            }
-
-            int cantidadArchivos = Integer.parseInt(respuesta.substring(11));
-            System.out.println("Se recibirán " + cantidadArchivos + " archivos");
-
-            for (int i = 0; i < cantidadArchivos; i++) {
-                // Leer metadata del archivo
-                Object infoObj = socketCliente.recibirObjeto();
-                if (!(infoObj instanceof String)) {
-                    throw new IOException("Formato de metadata inválido");
-                }
-                String fileInfo = (String) infoObj;
-                String[] partes = fileInfo.split("\\|");
-
-                if (partes.length != 2) {
-                    throw new IOException("Formato de archivo inválido: " + fileInfo);
-                }
-
-                String tipo = partes[0];
-                String nombre = partes[1];
-
-                // Leer datos del archivo
-                Object datosObj = socketCliente.recibirObjeto();
-                if (!(datosObj instanceof byte[])) {
-                    throw new IOException("Tipo de datos inválido para " + nombre);
-                }
-
-                byte[] datos = (byte[]) datosObj;
-                String rutaBase = tipo.equals("imagen") ?
-                    ConfiguracionApp.RUTA_IMAGENES_SERVIDOR :
-                    ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
-
-                Path rutaDestino = Paths.get(rutaBase, nombre);
-                Files.createDirectories(rutaDestino.getParent());
-                Files.write(rutaDestino, datos);
-                System.out.println("Recibido " + tipo + ": " + nombre);
-            }
-
-            // Esperar confirmación final
-            String confirmacion = (String) socketCliente.recibirObjeto();
-            System.out.println(confirmacion);
-
-            // Pausa antes de enviar archivos locales
-            Thread.sleep(1000);
-
-            // Enviar archivos locales
-            enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, false);
-            enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, true);
-
-        } catch (Exception e) {
-            System.err.println("Error durante la sincronización: " + e.getMessage());
-            e.printStackTrace();
-            throw e instanceof IOException ? (IOException) e : new IOException(e);
-        } finally {
-            sincronizando = false;
+            System.err.println("Error creando directorios: " + e.getMessage());
         }
     }
 
@@ -110,51 +27,105 @@ public class FileClient {
         String comando = esImagen ? "subir_imagen" : "subir_archivo";
         socketCliente.enviarMensaje(comando + "|" + nombre);
         socketCliente.enviarObjeto(datos);
+
+        // Guardar copia local
+        Path rutaLocal = Paths.get(
+                esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
+                nombre
+        );
+        Files.createDirectories(rutaLocal.getParent());
+        Files.write(rutaLocal, datos);
     }
 
-  private void enviarArchivosDesdeDirectorio(String directorio, boolean sonImagenes) throws IOException {
-        File dir = new File(directorio);
-        if (!dir.exists() || !dir.isDirectory()) return;
+    public byte[] descargarArchivo(String nombre, boolean esImagen) throws IOException {
+        String comando = esImagen ? "obtener_imagen" : "obtener_archivo";
+        socketCliente.enviarMensaje(comando + "|" + nombre);
+        try {
+            byte[] datos = (byte[]) socketCliente.recibirObjeto();
 
-        File[] archivos = dir.listFiles();
-        if (archivos == null) return;
+            // Guardar copia local
+            Path rutaLocal = Paths.get(
+                    esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
+                    nombre
+            );
+            Files.createDirectories(rutaLocal.getParent());
+            Files.write(rutaLocal, datos);
 
-        for (File archivo : archivos) {
-            if (!archivo.isFile() || !esArchivoValido(archivo, sonImagenes)) continue;
+            return datos;
+        } catch (ClassNotFoundException e) {
+            throw new IOException("Error recibiendo archivo: " + e.getMessage());
+        }
+    }
 
-            String nombre = archivo.getName();
-            if (archivoYaEnviado(nombre, archivo)) continue;
+    public List<String> listarArchivos() throws IOException {
+        socketCliente.enviarMensaje("listar_archivos");
+        List<String> archivos = new ArrayList<>();
 
-            try {
-                byte[] datos = Files.readAllBytes(archivo.toPath());
-                System.out.println((sonImagenes ? "Enviando imagen: " : "Enviando archivo: ") + nombre);
-                subirArchivo(nombre, datos, sonImagenes);
-                archivosEnviados.add(obtenerIdentificadorArchivo(nombre, archivo));
-
-                // Esperar confirmación del servidor
-                Thread.sleep(500); // Pequeña pausa entre archivos
-
-            } catch (Exception e) {
-                System.err.println("Error al enviar " + nombre + ": " + e.getMessage());
+        try {
+            String respuesta = (String) socketCliente.recibirObjeto();
+            if (!respuesta.startsWith("FILE_COUNT|")) {
+                throw new IOException("Protocolo de transferencia incorrecto");
             }
+
+            int numArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
+            for (int i = 0; i < numArchivos; i++) {
+                String metadata = (String) socketCliente.recibirObjeto();
+                String[] partes = metadata.split("\\|");
+                archivos.add(partes[1]); // Agregar solo el nombre del archivo
+
+                // Recibir y guardar el contenido
+                byte[] contenido = (byte[]) socketCliente.recibirObjeto();
+                Path rutaLocal = Paths.get(
+                        partes[0].equals("archivo") ?
+                                ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR :
+                                ConfiguracionApp.RUTA_IMAGENES_SERVIDOR,
+                        partes[1]
+                );
+                Files.createDirectories(rutaLocal.getParent());
+                Files.write(rutaLocal, contenido);
+            }
+        } catch (ClassNotFoundException e) {
+            throw new IOException("Error listando archivos: " + e.getMessage());
         }
+
+        return archivos;
     }
 
-    private boolean archivoYaEnviado(String nombre, File archivo) {
-        return archivosEnviados.contains(obtenerIdentificadorArchivo(nombre, archivo));
+    public void sincronizar() throws IOException {
+        List<String> archivosServidor = listarArchivos();
+        System.out.println("Sincronización completada. " + archivosServidor.size() + " archivos actualizados.");
     }
 
-    private String obtenerIdentificadorArchivo(String nombre, File archivo) {
-        return nombre + "_" + archivo.length() + "_" + archivo.lastModified();
+    public byte[] leerArchivoLocal(String nombre, boolean esImagen) throws IOException {
+        Path ruta = Paths.get(
+                esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
+                nombre
+        );
+        return Files.readAllBytes(ruta);
     }
 
-    private boolean esArchivoValido(File archivo, boolean sonImagenes) {
-        String nombre = archivo.getName().toLowerCase();
-        if (sonImagenes) {
-            return nombre.endsWith(".jpg") || nombre.endsWith(".jpeg") ||
-                   nombre.endsWith(".png") || nombre.endsWith(".gif");
-        } else {
-            return nombre.endsWith(".dat");
-        }
+    public void guardarArchivoLocal(String nombre, byte[] datos, boolean esImagen) throws IOException {
+        Path ruta = Paths.get(
+                esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
+                nombre
+        );
+        Files.createDirectories(ruta.getParent());
+        Files.write(ruta, datos);
+    }
+
+    public boolean existeArchivoLocal(String nombre, boolean esImagen) {
+        Path ruta = Paths.get(
+                esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
+                nombre
+        );
+        return Files.exists(ruta);
+    }
+
+    public void eliminarArchivoLocal(String nombre, boolean esImagen) throws IOException {
+        Path ruta = Paths.get(
+                esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
+                nombre
+        );
+        Files.deleteIfExists(ruta);
     }
 }
