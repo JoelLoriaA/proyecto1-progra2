@@ -10,6 +10,7 @@ import java.util.List;
 
 public class FileClient {
     private final SocketCliente socketCliente;
+    private List<String> archivosEnviados = new ArrayList<>();
 
     public FileClient(SocketCliente socketCliente) {
         this.socketCliente = socketCliente;
@@ -26,22 +27,26 @@ public class FileClient {
         }
     }
 
-    public void subirArchivo(String nombre, byte[] datos, boolean esImagen) throws IOException {
+   public void subirArchivo(String nombre, byte[] datos, boolean esImagen) throws IOException {
         String comando = esImagen ? "subir_imagen" : "subir_archivo";
         socketCliente.enviarMensaje(comando + "|" + nombre);
         socketCliente.enviarObjeto(datos);
 
-        // Guardar copia local
-        String rutaBase = esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
-        Path rutaLocal = Paths.get(rutaBase, nombre);
-        Files.createDirectories(rutaLocal.getParent());
-        Files.write(rutaLocal, datos);
-
-        // Si es imagen, guardar también en el directorio de copias
         if (esImagen) {
+            // Guardar primero en el directorio de copias
             Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, nombre);
             Files.createDirectories(rutaCopia.getParent());
-            Files.copy(rutaLocal, rutaCopia, StandardCopyOption.REPLACE_EXISTING);
+            Files.write(rutaCopia, datos);
+
+            // Luego copiar a la carpeta general de imágenes
+            Path rutaImagen = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombre);
+            Files.createDirectories(rutaImagen.getParent());
+            Files.copy(rutaCopia, rutaImagen, StandardCopyOption.REPLACE_EXISTING);
+        } else {
+            // Si no es imagen, guardar en la carpeta de archivos normal
+            Path rutaArchivo = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombre);
+            Files.createDirectories(rutaArchivo.getParent());
+            Files.write(rutaArchivo, datos);
         }
     }
 
@@ -143,23 +148,41 @@ public class FileClient {
                     if (archivo.isFile()) {
                         try {
                             final String nombreArchivo = archivo.getName();
+
+                            // Verificar si el archivo ya fue enviado
+                            if (archivoYaEnviado(nombreArchivo, archivo)) {
+                                System.out.println("Omitiendo archivo duplicado: " + nombreArchivo);
+                                continue;
+                            }
+
                             byte[] datos = Files.readAllBytes(archivo.toPath());
                             Platform.runLater(() -> {
                                 try {
                                     subirArchivo(nombreArchivo, datos, esImagen);
+                                    archivosEnviados.add(obtenerIdentificadorArchivo(nombreArchivo, archivo));
                                     System.out.println("Enviado " + (esImagen ? "imagen: " : "archivo: ") + nombreArchivo);
                                 } catch (IOException e) {
                                     System.err.println("Error enviando " + (esImagen ? "imagen " : "archivo ") +
-                                        nombreArchivo + ": " + e.getMessage());
+                                            nombreArchivo + ": " + e.getMessage());
                                 }
                             });
                         } catch (IOException e) {
                             System.err.println("Error leyendo " + (esImagen ? "imagen " : "archivo ") +
-                                archivo.getName() + ": " + e.getMessage());
+                                    archivo.getName() + ": " + e.getMessage());
                         }
                     }
                 }
             }
         }
+    }
+
+    private boolean archivoYaEnviado(String nombreArchivo, File archivo) {
+        String identificador = obtenerIdentificadorArchivo(nombreArchivo, archivo);
+        return archivosEnviados.contains(identificador);
+    }
+
+    private String obtenerIdentificadorArchivo(String nombreArchivo, File archivo) {
+        // Crear un identificador único usando nombre + tamaño + última modificación
+        return nombreArchivo + "_" + archivo.length() + "_" + archivo.lastModified();
     }
 }
