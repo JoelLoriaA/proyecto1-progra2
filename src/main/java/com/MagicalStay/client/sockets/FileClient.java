@@ -91,9 +91,56 @@ package com.MagicalStay.client.sockets;
             return archivos;
         }
 
-        public void sincronizar() throws IOException {
+       public void sincronizarBidireccional() throws IOException {
+            // Primero recibir archivos del servidor
+            System.out.println("Iniciando sincronización bidireccional...");
             List<String> archivosServidor = listarArchivos();
-            System.out.println("Sincronización completada. " + archivosServidor.size() + " archivos actualizados.");
+            System.out.println("Recibidos " + archivosServidor.size() + " archivos del servidor");
+
+            // Luego enviar archivos locales al servidor
+            enviarArchivosLocales();
+        }
+
+        private void enviarArchivosLocales() throws IOException {
+            System.out.println("Enviando archivos locales al servidor...");
+
+            // Enviar archivos normales
+            File dirArchivos = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR);
+            if (dirArchivos.exists()) {
+                File[] archivos = dirArchivos.listFiles();
+                if (archivos != null) {
+                    for (File archivo : archivos) {
+                        if (archivo.isFile()) {
+                            try {
+                                byte[] datos = Files.readAllBytes(archivo.toPath());
+                                subirArchivo(archivo.getName(), datos, false);
+                                System.out.println("Enviado archivo: " + archivo.getName());
+                            } catch (IOException e) {
+                                System.err.println("Error enviando archivo " + archivo.getName() + ": " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Enviar imágenes
+            File dirImagenes = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR);
+            if (dirImagenes.exists()) {
+                File[] imagenes = dirImagenes.listFiles();
+                if (imagenes != null) {
+                    for (File imagen : imagenes) {
+                        if (imagen.isFile()) {
+                            try {
+                                byte[] datos = Files.readAllBytes(imagen.toPath());
+                                subirArchivo(imagen.getName(), datos, true);
+                                System.out.println("Enviada imagen: " + imagen.getName());
+                            } catch (IOException e) {
+                                System.err.println("Error enviando imagen " + imagen.getName() + ": " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         public byte[] leerArchivoLocal(String nombre, boolean esImagen) throws IOException {

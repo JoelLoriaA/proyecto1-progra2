@@ -26,7 +26,7 @@ public class SocketCliente {
     }
 
 
-    public void conectar(String host, int puerto) {
+   public void conectar(String host, int puerto) {
         if (conectado) return;
 
         new Thread(() -> {
@@ -37,9 +37,9 @@ public class SocketCliente {
                 entrada = new ObjectInputStream(socket.getInputStream());
                 conectado = true;
 
-                // Sincronizar archivos al conectar
-                FileService fileService = new FileService(this);
-                fileService.sincronizarArchivos();
+                // Usar la sincronización bidireccional
+                FileClient fileClient = new FileClient(this);
+                fileClient.sincronizarBidireccional();
 
                 Platform.runLater(() -> callback.onConexionEstablecida());
                 escucharMensajes();
