@@ -27,13 +27,13 @@ public class FileClient {
         }
     }
 
-   public void subirArchivo(String nombre, byte[] datos, boolean esImagen) throws IOException {
+    public void subirArchivo(String nombre, byte[] datos, boolean esImagen) throws IOException {
         String comando = esImagen ? "subir_imagen" : "subir_archivo";
         socketCliente.enviarMensaje(comando + "|" + nombre);
         socketCliente.enviarObjeto(datos);
 
         if (esImagen) {
-            // Solo guardar en el directorio de copias
+            // Solo guardar en el directorio de copias si es una imagen seleccionada por el usuario
             Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, nombre);
             Files.createDirectories(rutaCopia.getParent());
             Files.write(rutaCopia, datos);
@@ -73,16 +73,14 @@ public class FileClient {
                 if (contenido == null) continue;
 
                 if (esImagen) {
-                    // Las imágenes van al directorio principal de imágenes
+                    // Verificar si la imagen ya existe en el directorio principal
                     Path rutaImagen = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreArchivo);
-
-                    // Verificar si la imagen ya existe
                     if (!Files.exists(rutaImagen)) {
                         Files.createDirectories(rutaImagen.getParent());
                         Files.write(rutaImagen, contenido);
                         System.out.println("Nueva imagen guardada: " + rutaImagen);
                     } else {
-                        System.out.println("Imagen ya existe: " + rutaImagen);
+                        System.out.println("Imagen ya existe en el directorio principal: " + rutaImagen);
                     }
                 } else {
                     // Los archivos normales van al directorio de archivos
@@ -167,7 +165,6 @@ public class FileClient {
     }
 
     private String obtenerIdentificadorArchivo(String nombreArchivo, File archivo) {
-        // Crear un identificador único usando nombre + tamaño + última modificación
         return nombreArchivo + "_" + archivo.length() + "_" + archivo.lastModified();
     }
 }

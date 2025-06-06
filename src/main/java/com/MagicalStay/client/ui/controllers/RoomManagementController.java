@@ -680,7 +680,7 @@ public class RoomManagementController implements Closeable {
                     fileClient.subirArchivo(newFileName, imageData, true);
                 }
 
-                // Mostrar la imagen en la UI
+
                 roomImageView.setImage(new Image(copyFile.toURI().toString()));
                 selectedImagePath = copyFile.getAbsolutePath();
 
