@@ -1,5 +1,6 @@
 package com.MagicalStay.client.sockets;
 
+import com.MagicalStay.server.FileService;
 import javafx.application.Platform;
 import java.io.*;
 import java.net.Socket;
@@ -24,6 +25,7 @@ public class SocketCliente {
         this.callback = callback;
     }
 
+
     public void conectar(String host, int puerto) {
         if (conectado) return;
 
@@ -34,7 +36,11 @@ public class SocketCliente {
                 salida = new ObjectOutputStream(socket.getOutputStream());
                 entrada = new ObjectInputStream(socket.getInputStream());
                 conectado = true;
-                
+
+                // Sincronizar archivos al conectar
+                FileService fileService = new FileService(this);
+                fileService.sincronizarArchivos();
+
                 Platform.runLater(() -> callback.onConexionEstablecida());
                 escucharMensajes();
             } catch (IOException e) {
@@ -42,6 +48,7 @@ public class SocketCliente {
             }
         }).start();
     }
+
 
     private void escucharMensajes() {
         new Thread(() -> {

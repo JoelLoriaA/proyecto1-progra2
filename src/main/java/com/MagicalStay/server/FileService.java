@@ -42,12 +42,26 @@ package com.MagicalStay.server;
             socketCliente.enviarMensaje("listar_archivos");
             try {
                 int numArchivos = (Integer) socketCliente.recibirObjeto();
+                System.out.println("Sincronizando " + numArchivos + " archivos...");
+
                 for (int i = 0; i < numArchivos; i++) {
-                    String nombreArchivo = (String) socketCliente.recibirObjeto();
+                    String metadata = (String) socketCliente.recibirObjeto();
+                    String[] partes = metadata.split("\\|");
+                    String tipo = partes[0];
+                    String nombreArchivo = partes[1];
+
                     byte[] contenido = (byte[]) socketCliente.recibirObjeto();
-                    Path rutaLocal = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
+
+                    Path rutaLocal;
+                    if (tipo.equals("archivo")) {
+                        rutaLocal = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
+                    } else {
+                        rutaLocal = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreArchivo);
+                    }
+
                     Files.createDirectories(rutaLocal.getParent());
-                    Files.write(rutaLocal, contenido);
+                    Files.write(rutaLocal, contenido, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                    System.out.println("Archivo sincronizado: " + rutaLocal);
                 }
             } catch (ClassNotFoundException e) {
                 throw new IOException("Error sincronizando archivos: " + e.getMessage());
