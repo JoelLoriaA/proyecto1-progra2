@@ -1,6 +1,8 @@
 package com.MagicalStay.client.sockets;
 
     import com.MagicalStay.shared.config.ConfiguracionApp;
+    import javafx.application.Platform;
+
     import java.io.*;
     import java.nio.file.*;
     import java.util.ArrayList;
@@ -152,11 +154,18 @@ package com.MagicalStay.client.sockets;
                     for (File archivo : archivos) {
                         if (archivo.isFile()) {
                             try {
+                                final String nombreArchivo = archivo.getName();
                                 byte[] datos = Files.readAllBytes(archivo.toPath());
-                                subirArchivo(archivo.getName(), datos, false);
-                                System.out.println("Enviado archivo: " + archivo.getName());
+                                Platform.runLater(() -> {
+                                    try {
+                                        subirArchivo(nombreArchivo, datos, false);
+                                        System.out.println("Enviado archivo: " + nombreArchivo);
+                                    } catch (IOException e) {
+                                        System.err.println("Error enviando archivo " + nombreArchivo + ": " + e.getMessage());
+                                    }
+                                });
                             } catch (IOException e) {
-                                System.err.println("Error enviando archivo " + archivo.getName() + ": " + e.getMessage());
+                                System.err.println("Error leyendo archivo " + archivo.getName() + ": " + e.getMessage());
                             }
                         }
                     }
@@ -171,11 +180,18 @@ package com.MagicalStay.client.sockets;
                     for (File imagen : imagenes) {
                         if (imagen.isFile()) {
                             try {
+                                final String nombreImagen = imagen.getName();
                                 byte[] datos = Files.readAllBytes(imagen.toPath());
-                                subirArchivo(imagen.getName(), datos, true);
-                                System.out.println("Enviada imagen: " + imagen.getName());
+                                Platform.runLater(() -> {
+                                    try {
+                                        subirArchivo(nombreImagen, datos, true);
+                                        System.out.println("Enviada imagen: " + nombreImagen);
+                                    } catch (IOException e) {
+                                        System.err.println("Error enviando imagen " + nombreImagen + ": " + e.getMessage());
+                                    }
+                                });
                             } catch (IOException e) {
-                                System.err.println("Error enviando imagen " + imagen.getName() + ": " + e.getMessage());
+                                System.err.println("Error leyendo imagen " + imagen.getName() + ": " + e.getMessage());
                             }
                         }
                     }

@@ -71,21 +71,19 @@ public class SocketCliente {
 
     public void enviarMensaje(String mensaje) {
         if (!conectado) {
-            callback.onError("No conectado al servidor");
+            Platform.runLater(() -> callback.onError("No conectado al servidor"));
             return;
         }
 
-        new Thread(() -> {
-            try {
-                salida.writeObject(mensaje);
-                salida.flush();
-            } catch (IOException e) {
-                Platform.runLater(() -> {
-                    callback.onError("Error enviando mensaje: " + e.getMessage());
-                    desconectar();
-                });
-            }
-        }).start();
+        try {
+            salida.writeObject(mensaje);
+            salida.flush();
+        } catch (IOException e) {
+            Platform.runLater(() -> {
+                callback.onError("Error enviando mensaje: " + e.getMessage());
+                desconectar();
+            });
+        }
     }
 
     public void desconectar() {
