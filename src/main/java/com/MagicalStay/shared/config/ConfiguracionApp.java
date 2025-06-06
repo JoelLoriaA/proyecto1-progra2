@@ -38,7 +38,4 @@ public class ConfiguracionApp {
 
     // Agregar en ConfiguracionApp.java
     private static boolean servidorConectado = true;
-
-
-
 }

@@ -24,6 +24,7 @@ public class SocketCliente {
         this.callback = callback;
     }
 
+
     public void conectar(String host, int puerto) {
         if (conectado) return;
 
@@ -34,7 +35,11 @@ public class SocketCliente {
                 salida = new ObjectOutputStream(socket.getOutputStream());
                 entrada = new ObjectInputStream(socket.getInputStream());
                 conectado = true;
-                
+
+                // Usar la sincronización bidireccional
+                FileClient fileClient = new FileClient(this);
+                fileClient.sincronizarBidireccional();
+
                 Platform.runLater(() -> callback.onConexionEstablecida());
                 escucharMensajes();
             } catch (IOException e) {
@@ -42,6 +47,7 @@ public class SocketCliente {
             }
         }).start();
     }
+
 
     private void escucharMensajes() {
         new Thread(() -> {
@@ -64,26 +70,24 @@ public class SocketCliente {
 
     public void enviarMensaje(String mensaje) {
         if (!conectado) {
-            callback.onError("No conectado al servidor");
+            Platform.runLater(() -> callback.onError("No conectado al servidor"));
             return;
         }
 
-        new Thread(() -> {
-            try {
-                salida.writeObject(mensaje);
-                salida.flush();
-            } catch (IOException e) {
-                Platform.runLater(() -> {
-                    callback.onError("Error enviando mensaje: " + e.getMessage());
-                    desconectar();
-                });
-            }
-        }).start();
+        try {
+            salida.writeObject(mensaje);
+            salida.flush();
+        } catch (IOException e) {
+            Platform.runLater(() -> {
+                callback.onError("Error enviando mensaje: " + e.getMessage());
+                desconectar();
+            });
+        }
     }
 
     public void desconectar() {
         if (!conectado) return;
-        
+
         conectado = false;
         try {
             if (salida != null) salida.close();
@@ -123,5 +127,4 @@ public class SocketCliente {
         }
         return entrada.readObject();
     }
-
 }
