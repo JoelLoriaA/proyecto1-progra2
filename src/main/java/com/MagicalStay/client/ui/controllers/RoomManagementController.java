@@ -648,7 +648,7 @@ public class RoomManagementController implements Closeable {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Seleccionar Imagen de Habitación");
         fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
+            new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
         );
         fileChooser.setInitialDirectory(new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR));
 
@@ -657,35 +657,16 @@ public class RoomManagementController implements Closeable {
 
         if (selectedFile != null) {
             try {
-                String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
-                String newFileName = "habitacion_" + System.currentTimeMillis() + extension;
+                // Usar directamente el archivo seleccionado sin hacer copia
+                roomImageView.setImage(new Image(selectedFile.toURI().toString()));
+                selectedImagePath = selectedFile.getAbsolutePath();
 
-                // Verificar si la copia ya existe
-                File copyFile = new File(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, newFileName);
-                if (!copyFile.exists()) {
-                    Files.createDirectories(copyFile.getParentFile().toPath());
-                    Files.copy(selectedFile.toPath(), copyFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                    // Enviar la imagen solo si no existe la copia
-                    FileClient fileClient = new FileClient(new SocketCliente(new SocketCliente.ClienteCallback() {
-                        @Override public void onMensajeRecibido(String mensaje) {}
-                        @Override public void onError(String error) {
-                            Platform.runLater(() -> FXUtility.alertError("Error", error).show());
-                        }
-                        @Override public void onConexionEstablecida() {}
-                        @Override public void onDesconexion() {}
-                    }));
-
-                    byte[] imageData = Files.readAllBytes(copyFile.toPath());
-                    fileClient.subirArchivo(newFileName, imageData, true);
-                }
-
-
-                roomImageView.setImage(new Image(copyFile.toURI().toString()));
-                selectedImagePath = copyFile.getAbsolutePath();
+                // Enviar la imagen al servidor
+                byte[] imageData = Files.readAllBytes(selectedFile.toPath());
+                FileClient fileClient = new FileClient(socketCliente);
+                fileClient.subirArchivo(selectedFile.getName(), imageData, true);
 
                 System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
-
             } catch (IOException e) {
                 FXUtility.alertError("Error", "No se pudo procesar la imagen: " + e.getMessage()).show();
                 e.printStackTrace();

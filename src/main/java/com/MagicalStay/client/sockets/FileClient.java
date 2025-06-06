@@ -87,6 +87,12 @@ public class FileClient {
         }
     }
 
+    public void subirArchivo(String nombre, byte[] datos, boolean esImagen) throws IOException {
+        String comando = esImagen ? "subir_imagen" : "subir_archivo";
+        socketCliente.enviarMensaje(comando + "|" + nombre);
+        socketCliente.enviarObjeto(datos); // Enviar datos completos sin dividir en chunks
+    }
+
     private void enviarArchivosDesdeDirectorio(String directorio, boolean sonImagenes) throws IOException {
         File dir = new File(directorio);
         if (!dir.exists() || !dir.isDirectory()) return;
@@ -104,7 +110,7 @@ public class FileClient {
                 byte[] datos = Files.readAllBytes(archivo.toPath());
                 subirArchivo(nombre, datos, sonImagenes);
                 if (sonImagenes) {
-                    System.out.println("Enviada imagen original: " + nombre);
+                    System.out.println("Enviada imagen: " + nombre);
                 } else {
                     System.out.println("Enviado archivo: " + nombre);
                 }
@@ -112,20 +118,6 @@ public class FileClient {
             } catch (IOException e) {
                 System.err.println("Error al enviar archivo " + nombre + ": " + e.getMessage());
             }
-        }
-    }
-
-    public void subirArchivo(String nombre, byte[] datos, boolean esImagen) throws IOException {
-        String comando = esImagen ? "subir_imagen" : "subir_archivo";
-        socketCliente.enviarMensaje(comando + "|" + nombre);
-
-        int offset = 0;
-        while (offset < datos.length) {
-            int chunkSize = Math.min(BUFFER_SIZE, datos.length - offset);
-            byte[] chunk = new byte[chunkSize];
-            System.arraycopy(datos, offset, chunk, 0, chunkSize);
-            socketCliente.enviarObjeto(chunk);
-            offset += chunkSize;
         }
     }
 
