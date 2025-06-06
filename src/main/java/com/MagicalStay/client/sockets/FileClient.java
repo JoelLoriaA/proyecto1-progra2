@@ -51,54 +51,44 @@ public class FileClient {
 
         try {
             String respuesta = (String) socketCliente.recibirObjeto();
-            if (respuesta == null) {
-                throw new IOException("No se recibió respuesta del servidor");
+            if (respuesta == null || !respuesta.startsWith("FILE_COUNT|")) {
+                throw new IOException("Protocolo de transferencia incorrecto");
             }
 
-            if (!respuesta.startsWith("FILE_COUNT|")) {
-                System.err.println("Respuesta recibida: " + respuesta);
-                throw new IOException("Protocolo de transferencia incorrecto: respuesta inválida");
-            }
-
-            int numArchivos;
-            try {
-                numArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
-                System.out.println("Se recibirán " + numArchivos + " archivos");
-            } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-                throw new IOException("Formato de contador de archivos inválido");
-            }
+            int numArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
+            System.out.println("Se recibirán " + numArchivos + " archivos");
 
             for (int i = 0; i < numArchivos; i++) {
                 String metadata = (String) socketCliente.recibirObjeto();
-                if (metadata == null) {
-                    throw new IOException("Metadata nula para archivo " + (i + 1));
-                }
+                if (metadata == null) continue;
 
                 String[] partes = metadata.split("\\|");
-                if (partes.length != 2) {
-                    throw new IOException("Formato de metadata inválido para archivo " + (i + 1));
-                }
-
-                archivos.add(partes[1]);
-                System.out.println("Procesando archivo: " + partes[1]);
-
-                byte[] contenido = (byte[]) socketCliente.recibirObjeto();
-                if (contenido == null) {
-                    throw new IOException("Contenido nulo para archivo " + partes[1]);
-                }
+                if (partes.length != 2) continue;
 
                 boolean esImagen = partes[0].equals("imagen");
-                String rutaBase = esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
-                Path rutaLocal = Paths.get(rutaBase, partes[1]);
-                Files.createDirectories(rutaLocal.getParent());
-                Files.write(rutaLocal, contenido);
-                System.out.println("Guardado archivo: " + rutaLocal);
+                String nombreArchivo = partes[1];
+                archivos.add(nombreArchivo);
 
-                // Si es imagen, guardar copia
+                byte[] contenido = (byte[]) socketCliente.recibirObjeto();
+                if (contenido == null) continue;
+
                 if (esImagen) {
-                    Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, partes[1]);
-                    Files.createDirectories(rutaCopia.getParent());
-                    Files.copy(rutaLocal, rutaCopia, StandardCopyOption.REPLACE_EXISTING);
+                    // Las imágenes van al directorio principal de imágenes
+                    Path rutaImagen = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreArchivo);
+
+                    // Verificar si la imagen ya existe
+                    if (!Files.exists(rutaImagen)) {
+                        Files.createDirectories(rutaImagen.getParent());
+                        Files.write(rutaImagen, contenido);
+                        System.out.println("Nueva imagen guardada: " + rutaImagen);
+                    } else {
+                        System.out.println("Imagen ya existe: " + rutaImagen);
+                    }
+                } else {
+                    // Los archivos normales van al directorio de archivos
+                    Path rutaArchivo = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
+                    Files.createDirectories(rutaArchivo.getParent());
+                    Files.write(rutaArchivo, contenido);
                 }
             }
         } catch (ClassNotFoundException e) {

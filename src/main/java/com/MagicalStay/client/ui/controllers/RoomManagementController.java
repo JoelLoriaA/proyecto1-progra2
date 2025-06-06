@@ -650,6 +650,7 @@ public class RoomManagementController implements Closeable {
         fileChooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
         );
+        fileChooser.setInitialDirectory(new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR));
 
         Stage stage = (Stage) selectImageButton.getScene().getWindow();
         File selectedFile = fileChooser.showOpenDialog(stage);
@@ -659,38 +660,29 @@ public class RoomManagementController implements Closeable {
                 String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
                 String newFileName = "habitacion_" + System.currentTimeMillis() + extension;
 
-                // Solo guardar en el directorio de copias
-                File destFile = new File(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, newFileName);
-                Files.createDirectories(destFile.getParentFile().toPath());
-                Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                // Verificar si la copia ya existe
+                File copyFile = new File(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, newFileName);
+                if (!copyFile.exists()) {
+                    Files.createDirectories(copyFile.getParentFile().toPath());
+                    Files.copy(selectedFile.toPath(), copyFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                    // Enviar la imagen solo si no existe la copia
+                    FileClient fileClient = new FileClient(new SocketCliente(new SocketCliente.ClienteCallback() {
+                        @Override public void onMensajeRecibido(String mensaje) {}
+                        @Override public void onError(String error) {
+                            Platform.runLater(() -> FXUtility.alertError("Error", error).show());
+                        }
+                        @Override public void onConexionEstablecida() {}
+                        @Override public void onDesconexion() {}
+                    }));
+
+                    byte[] imageData = Files.readAllBytes(copyFile.toPath());
+                    fileClient.subirArchivo(newFileName, imageData, true);
+                }
 
                 // Mostrar la imagen en la UI
-                roomImageView.setImage(new Image(destFile.toURI().toString()));
-                selectedImagePath = destFile.getAbsolutePath();
-
-                // Enviar la imagen usando FileClient
-                FileClient fileClient = new FileClient(new SocketCliente(new SocketCliente.ClienteCallback() {
-                    @Override
-                    public void onMensajeRecibido(String mensaje) {
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        Platform.runLater(() -> FXUtility.alertError("Error", error).show());
-                    }
-
-                    @Override
-                    public void onConexionEstablecida() {
-                    }
-
-                    @Override
-                    public void onDesconexion() {
-                    }
-                }));
-
-                // Leer y enviar la imagen
-                byte[] imageData = Files.readAllBytes(destFile.toPath());
-                fileClient.subirArchivo(newFileName, imageData, true);
+                roomImageView.setImage(new Image(copyFile.toURI().toString()));
+                selectedImagePath = copyFile.getAbsolutePath();
 
                 System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
 
@@ -699,7 +691,6 @@ public class RoomManagementController implements Closeable {
                 e.printStackTrace();
             }
         }
-
     }
 }
 
