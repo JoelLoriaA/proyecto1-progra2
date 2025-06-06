@@ -89,25 +89,26 @@ public class FileClient {
         }
     }
 
-    public List<String> listarArchivos() throws IOException {
+ public List<String> listarArchivos() throws IOException {
         socketCliente.enviarMensaje("listar_archivos");
         List<String> archivos = new ArrayList<>();
         hashesServidor.clear();
 
         try {
-            String respuesta = (String) socketCliente.recibirObjeto();
-            if (respuesta == null || !respuesta.startsWith("FILE_COUNT|")) {
+            Object respuesta = socketCliente.recibirObjeto();
+            if (!(respuesta instanceof String) || !((String)respuesta).startsWith("FILE_COUNT|")) {
                 throw new IOException("Protocolo de transferencia incorrecto");
             }
 
-            int numArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
+            int numArchivos = Integer.parseInt(((String)respuesta).split("\\|")[1]);
 
             for (int i = 0; i < numArchivos; i++) {
-                String metadata = (String) socketCliente.recibirObjeto();
-                if (metadata == null) continue;
+                Object metadataObj = socketCliente.recibirObjeto();
+                if (!(metadataObj instanceof String)) continue;
 
+                String metadata = (String)metadataObj;
                 String[] partes = metadata.split("\\|");
-                if (partes.length != 3) continue; // nombre|tipo|hash
+                if (partes.length != 3) continue;
 
                 String nombre = partes[1];
                 String hashServidor = partes[2];
@@ -120,16 +121,18 @@ public class FileClient {
                     continue;
                 }
 
-                archivos.add(nombre);
-                byte[] contenido = (byte[]) socketCliente.recibirObjeto();
-                if (contenido == null) continue;
+                Object contenidoObj = socketCliente.recibirObjeto();
+                if (!(contenidoObj instanceof byte[])) continue;
 
-                String rutaBase = esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
+                byte[] contenido = (byte[])contenidoObj;
+                String rutaBase = esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR
+                                         : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
+
                 Path rutaLocal = Paths.get(rutaBase, nombre);
                 Files.createDirectories(rutaLocal.getParent());
                 Files.write(rutaLocal, contenido);
 
-                // Actualizar hash local
+                archivos.add(nombre);
                 hashesLocales.put(nombre, hashServidor);
                 hashesServidor.put(nombre, hashServidor);
 
@@ -147,22 +150,26 @@ public class FileClient {
     }
 
     public void sincronizarBidireccional() throws IOException {
-        try {
-            String bienvenida = (String) socketCliente.recibirObjeto();
-            if (!bienvenida.startsWith("WELCOME|")) {
-                throw new IOException("Protocolo de conexión incorrecto");
+            try {
+                // Enviar mensaje de sincronización al servidor
+                socketCliente.enviarMensaje("SYNC_REQUEST");
+
+                // Recibir respuesta del servidor
+                Object respuesta = socketCliente.recibirObjeto();
+                if (!(respuesta instanceof String) || !((String)respuesta).startsWith("WELCOME|")) {
+                    throw new IOException("Protocolo de conexión incorrecto");
+                }
+
+                System.out.println("Iniciando sincronización bidireccional...");
+                List<String> archivosServidor = listarArchivos();
+                System.out.println("Recibidos " + archivosServidor.size() + " archivos del servidor");
+
+                enviarArchivosLocales();
+
+            } catch (ClassNotFoundException e) {
+                System.err.println("Error en protocolo: " + e.getMessage());
+                throw new IOException("Error en el protocolo de conexión: " + e.getMessage());
             }
-            System.out.println(bienvenida.split("\\|")[1]);
-
-            System.out.println("Iniciando sincronización bidireccional...");
-            List<String> archivosServidor = listarArchivos();
-            System.out.println("Recibidos " + archivosServidor.size() + " archivos del servidor");
-
-            enviarArchivosLocales();
-
-        } catch (ClassNotFoundException e) {
-            throw new IOException("Error en el protocolo de conexión: " + e.getMessage());
-        }
     }
 
     private void enviarArchivosLocales() throws IOException {
