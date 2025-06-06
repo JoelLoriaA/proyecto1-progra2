@@ -44,7 +44,7 @@ public class GuestData extends JsonDataResponse {
             }
 
             // Verificar si el DNI ya existe
-            if (findById(guest.getId()) != null) {
+            if (findById(guest.getDni()) != null) {
                 return createJsonResponse(false, "Guest with this ID already exists", null);
             }
 
@@ -97,7 +97,7 @@ public class GuestData extends JsonDataResponse {
 
             for (long pos = 0; pos < raf.length(); pos += RECORD_SIZE) {
                 raf.seek(pos);
-                if (raf.readInt() == guest.getId()) {
+                if (raf.readInt() == guest.getDni()) {
                     raf.seek(pos);
                     writeGuest(guest);
                     return createJsonResponse(true, "Guest updated successfully", guest);
@@ -171,7 +171,7 @@ public class GuestData extends JsonDataResponse {
     }
 
     private void writeGuest(Guest guest) throws IOException {
-        raf.writeInt(guest.getId());
+        raf.writeInt(guest.getDni());
         writeString(guest.getName(), NAME_LENGTH);
         writeString(guest.getLastName(), LAST_NAME_LENGTH);
         writeString(guest.getEmail(), EMAIL_LENGTH);
@@ -193,18 +193,25 @@ public class GuestData extends JsonDataResponse {
     }
 
     private void writeString(String str, int length) throws IOException {
-        for (int i = 0; i < length; i++) {
-            raf.writeChar(i < str.length() ? str.charAt(i) : '\0');
+        int i = 0;
+        for (; i < str.length() && i < length; i++) {
+            raf.writeChar(str.charAt(i));
+        }
+        // Rellenar con '\0' hasta completar el tamaño
+        for (; i < length; i++) {
+            raf.writeChar('\0');
         }
     }
 
     private String readString(int length) throws IOException {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
             char c = raf.readChar();
-            if (c != '\0') sb.append(c);
+            if (c != '\0') {
+                sb.append(c);
+            }
         }
-        return sb.toString().trim();
+        return sb.toString();
     }
 
     private void moveRemainingRecords(long pos) throws IOException {

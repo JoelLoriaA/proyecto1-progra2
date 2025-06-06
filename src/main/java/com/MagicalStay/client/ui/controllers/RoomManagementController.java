@@ -601,7 +601,7 @@ public class RoomManagementController implements Closeable {
             new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
         );
 
-        File initialDir = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\dataBase");
+        File initialDir = new File("C:\\Users\\Admin\\Documents\\ULTIMA FASE\\dataBase\\images\\");
         if (!initialDir.exists()) {
             initialDir.mkdirs();
         }
@@ -614,13 +614,13 @@ public class RoomManagementController implements Closeable {
             try {
                 String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
                 String newFileName = "habitacion_" + System.currentTimeMillis() + extension;
-                File destFile = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\dataBase\\images", newFileName);
+                File destFile = new File("C:\\Users\\Admin\\Documents\\ULTIMA FASE\\dataCopy\\images\\", newFileName);
 
                 Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
                 roomImageView.setImage(new Image(destFile.toURI().toString()));
 
-                selectedImagePath = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\dataCopy\\images" + newFileName;
+                selectedImagePath = "C:\\Users\\Admin\\Documents\\ULTIMA FASE\\dataCopy\\images\\" + newFileName;
 
                 System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
 

@@ -2,6 +2,7 @@ package com.MagicalStay.server;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.List;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
@@ -65,13 +66,28 @@ private void cerrarRecursos() {
             String[] partes = comando.split("\\|");
             String accion = partes[0].toLowerCase();
 
-            return switch (accion) {
-                case "consultar" -> handleQuery();
-                case "reservar" -> handleBooking(partes);
-                case "cancelar" -> handleCancellation(partes);
-                case "salir" -> handleExit();
-                default -> "Comando no reconocido";
-            };
+            switch (accion) {
+                case "subirarchivo":
+                    // Espera nombre y datos del archivo
+                    String nombre = partes[1];
+                    byte[] datos = (byte[]) entrada.readObject();
+                    FileService.guardarArchivo(nombre, datos);
+                    return "Archivo subido correctamente";
+                case "descargararchivo":
+                    nombre = partes[1];
+                    byte[] archivo = FileService.leerArchivo(nombre);
+                    salida.writeObject(archivo);
+                    salida.flush();
+                    return "Archivo enviado";
+                case "listararchivos":
+                    List<String> archivos = FileService.listarArchivos();
+                    salida.writeObject(archivos);
+                    salida.flush();
+                    return "Lista enviada";
+                // ...otros comandos
+                default:
+                    return "Comando no reconocido";
+            }
         } catch (Exception e) {
             return "Error procesando comando: " + e.getMessage();
         }
@@ -112,4 +128,6 @@ private void cerrarRecursos() {
             System.err.println("Error al cerrar el socket: " + e.getMessage());
         }
     }
+
+
 }

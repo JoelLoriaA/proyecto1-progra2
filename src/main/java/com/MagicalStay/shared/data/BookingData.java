@@ -1,6 +1,5 @@
 package com.MagicalStay.shared.data;
 
-import com.MagicalStay.shared.data.JsonDataResponse;
 import com.MagicalStay.shared.domain.*;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -76,7 +75,7 @@ public class BookingData extends JsonDataResponse {
                 // Guest info (nombre;id)
                 String guestInfo = "";
                 if (booking.getGuest() != null) {
-                    guestInfo = booking.getGuest().getName() + ";" + booking.getGuest().getId();
+                    guestInfo = booking.getGuest().getName() + ";" + booking.getGuest().getDni();
                 }
                 writeString(padRight(guestInfo, GUEST_LENGTH), GUEST_LENGTH);
 
