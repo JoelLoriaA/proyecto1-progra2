@@ -25,7 +25,6 @@ public class SocketCliente {
     }
 
 
-   // Modificar en SocketCliente.java el método conectar
     public void conectar(String host, int puerto) {
         if (conectado) return;
 
@@ -37,25 +36,16 @@ public class SocketCliente {
                 entrada = new ObjectInputStream(socket.getInputStream());
                 conectado = true;
 
+                // Usar la sincronización bidireccional
+                FileClient fileClient = new FileClient(this);
+                fileClient.sincronizarBidireccional();
+
                 Platform.runLater(() -> callback.onConexionEstablecida());
-
-                // Mover la sincronización después de establecer la conexión
-                sincronizarConServidor();
-
                 escucharMensajes();
             } catch (IOException e) {
                 Platform.runLater(() -> callback.onError("Error de conexión: " + e.getMessage()));
             }
         }).start();
-    }
-
-    private void sincronizarConServidor() {
-        try {
-            FileClient fileClient = new FileClient(this);
-            fileClient.sincronizarBidireccional();
-        } catch (IOException e) {
-            Platform.runLater(() -> callback.onError("Error en sincronización: " + e.getMessage()));
-        }
     }
 
 

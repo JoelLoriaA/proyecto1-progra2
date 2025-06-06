@@ -1,36 +1,15 @@
 package com.MagicalStay.client.sockets;
 
 import com.MagicalStay.shared.config.ConfiguracionApp;
-import jakarta.xml.bind.DatatypeConverter;
 import javafx.application.Platform;
 
 import java.io.*;
 import java.nio.file.*;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
 
 public class FileClient {
     private final SocketCliente socketCliente;
-    private Map<String, String> hashesLocales = new HashMap<>();
-    private Map<String, String> hashesServidor = new HashMap<>();
-
-    // Método para calcular el hash MD5 de un archivo
-    private String calcularMD5(byte[] datos) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] hash = md.digest(datos);
-            return DatatypeConverter.printHexBinary(hash).toLowerCase();
-        } catch (NoSuchAlgorithmException e) {
-            System.err.println("Error calculando MD5: " + e.getMessage());
-            return null;
-        }
-    }
-
 
     public FileClient(SocketCliente socketCliente) {
         this.socketCliente = socketCliente;
@@ -48,29 +27,8 @@ public class FileClient {
     }
 
     public void subirArchivo(String nombre, byte[] datos, boolean esImagen) throws IOException {
-        String hash = calcularMD5(datos);
-
-        // Verificar si el archivo ya existe en el servidor
-        if (hashesServidor.containsValue(hash)) {
-            System.out.println("El archivo " + nombre + " ya existe en el servidor. Omitiendo...");
-            return;
-        }
-
         String comando = esImagen ? "subir_imagen" : "subir_archivo";
-        socketCliente.enviarMensaje(comando + "|" + nombre + "|" + hash);
-
-        // Esperar confirmación del servidor
-        try {
-            String respuesta = (String) socketCliente.recibirObjeto();
-            if (respuesta.equals("ARCHIVO_EXISTENTE")) {
-                System.out.println("El archivo ya existe en el servidor");
-                return;
-            }
-        } catch (ClassNotFoundException e) {
-            throw new IOException("Error en protocolo de transferencia");
-        }
-
-        // Proceder con la subida
+        socketCliente.enviarMensaje(comando + "|" + nombre);
         socketCliente.enviarObjeto(datos);
 
         // Guardar copia local
@@ -79,9 +37,7 @@ public class FileClient {
         Files.createDirectories(rutaLocal.getParent());
         Files.write(rutaLocal, datos);
 
-        // Actualizar hash local
-        hashesLocales.put(nombre, hash);
-
+        // Si es imagen, guardar también en el directorio de copias
         if (esImagen) {
             Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, nombre);
             Files.createDirectories(rutaCopia.getParent());
@@ -92,49 +48,55 @@ public class FileClient {
     public List<String> listarArchivos() throws IOException {
         socketCliente.enviarMensaje("listar_archivos");
         List<String> archivos = new ArrayList<>();
-        hashesServidor.clear();
 
         try {
             String respuesta = (String) socketCliente.recibirObjeto();
-            if (respuesta == null || !respuesta.startsWith("FILE_COUNT|")) {
-                throw new IOException("Protocolo de transferencia incorrecto");
+            if (respuesta == null) {
+                throw new IOException("No se recibió respuesta del servidor");
             }
 
-            int numArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
+            if (!respuesta.startsWith("FILE_COUNT|")) {
+                System.err.println("Respuesta recibida: " + respuesta);
+                throw new IOException("Protocolo de transferencia incorrecto: respuesta inválida");
+            }
+
+            int numArchivos;
+            try {
+                numArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
+                System.out.println("Se recibirán " + numArchivos + " archivos");
+            } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+                throw new IOException("Formato de contador de archivos inválido");
+            }
 
             for (int i = 0; i < numArchivos; i++) {
                 String metadata = (String) socketCliente.recibirObjeto();
-                if (metadata == null) continue;
-
-                String[] partes = metadata.split("\\|");
-                if (partes.length != 3) continue; // nombre|tipo|hash
-
-                String nombre = partes[1];
-                String hashServidor = partes[2];
-                boolean esImagen = partes[0].equals("imagen");
-
-                // Verificar si necesitamos el archivo
-                String hashLocal = hashesLocales.get(nombre);
-                if (hashLocal != null && hashLocal.equals(hashServidor)) {
-                    System.out.println("Archivo " + nombre + " sin cambios. Omitiendo...");
-                    continue;
+                if (metadata == null) {
+                    throw new IOException("Metadata nula para archivo " + (i + 1));
                 }
 
-                archivos.add(nombre);
-                byte[] contenido = (byte[]) socketCliente.recibirObjeto();
-                if (contenido == null) continue;
+                String[] partes = metadata.split("\\|");
+                if (partes.length != 2) {
+                    throw new IOException("Formato de metadata inválido para archivo " + (i + 1));
+                }
 
+                archivos.add(partes[1]);
+                System.out.println("Procesando archivo: " + partes[1]);
+
+                byte[] contenido = (byte[]) socketCliente.recibirObjeto();
+                if (contenido == null) {
+                    throw new IOException("Contenido nulo para archivo " + partes[1]);
+                }
+
+                boolean esImagen = partes[0].equals("imagen");
                 String rutaBase = esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
-                Path rutaLocal = Paths.get(rutaBase, nombre);
+                Path rutaLocal = Paths.get(rutaBase, partes[1]);
                 Files.createDirectories(rutaLocal.getParent());
                 Files.write(rutaLocal, contenido);
+                System.out.println("Guardado archivo: " + rutaLocal);
 
-                // Actualizar hash local
-                hashesLocales.put(nombre, hashServidor);
-                hashesServidor.put(nombre, hashServidor);
-
+                // Si es imagen, guardar copia
                 if (esImagen) {
-                    Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, nombre);
+                    Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, partes[1]);
                     Files.createDirectories(rutaCopia.getParent());
                     Files.copy(rutaLocal, rutaCopia, StandardCopyOption.REPLACE_EXISTING);
                 }
