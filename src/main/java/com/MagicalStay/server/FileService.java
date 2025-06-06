@@ -6,7 +6,7 @@ import java.nio.file.*;
 import java.util.*;
 
 public class FileService {
-    private static final String FILES_DIR = "C:\\Users\\Admin\\Documents\\ULTIMA FASE\\server\\";
+    private static final String FILES_DIR = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\";
 
     static {
         try {

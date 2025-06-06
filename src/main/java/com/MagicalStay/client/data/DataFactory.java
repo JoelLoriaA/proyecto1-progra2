@@ -1,5 +1,6 @@
 package com.MagicalStay.client.data;
 
+import com.MagicalStay.shared.config.ConfiguracionApp;
 import com.MagicalStay.shared.data.*;
 
 import java.io.IOException;
@@ -11,7 +12,7 @@ public class DataFactory {
     private static HotelData hotelData;
     private static RoomData roomData;
     private static ImageStorage imageStorage;
-    private static final String DATA_DIRECTORY = "C:\\Users\\Admin\\Documents\\ULTIMA FASE\\server\\";
+    private static final String DATA_DIRECTORY = ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
     
     static {
         try {
