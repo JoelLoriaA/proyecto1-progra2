@@ -20,28 +20,33 @@ public class ClientHandler implements Runnable {
         this.socket = socket;
     }
 
-    @Override
+   @Override
     public void run() {
         try {
-            // Importante: crear primero la salida y luego la entrada
             salida = new ObjectOutputStream(socket.getOutputStream());
             salida.flush();
             entrada = new ObjectInputStream(socket.getInputStream());
 
-            // Enviar mensaje de bienvenida
             enviarMensaje("WELCOME|Conectado al servidor MagicalStay");
 
             while (ejecutando && !socket.isClosed()) {
-                Object mensaje = entrada.readObject();
-
-                if (mensaje instanceof String) {
-                    handleMessage((String) mensaje);
-                } else {
-                    enviarMensaje("Error: tipo de mensaje no soportado");
+                try {
+                    Object mensaje = entrada.readObject();
+                    if (mensaje instanceof String) {
+                        String comandoStr = (String) mensaje;
+                        handleMessage(comandoStr);
+                    } else {
+                        System.out.println("Mensaje no reconocido: " + mensaje.getClass());
+                    }
+                } catch (EOFException e) {
+                    break; // Conexión cerrada normalmente
+                } catch (IOException | ClassNotFoundException e) {
+                    if (ejecutando) {
+                        System.err.println("Error procesando mensaje: " + e.getMessage());
+                    }
+                    break;
                 }
             }
-        } catch (EOFException e) {
-            System.out.println("Cliente desconectado normalmente");
         } catch (Exception e) {
             System.err.println("Error en ClientHandler: " + e.getMessage());
         } finally {

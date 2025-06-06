@@ -31,39 +31,43 @@ public class SocketCliente {
         new Thread(() -> {
             try {
                 socket = new Socket();
+                socket.setKeepAlive(true);
+                socket.setSoTimeout(30000); // 30 segundos timeout
                 socket.connect(new InetSocketAddress(host, puerto), TIMEOUT_CONEXION);
-                salida = new ObjectOutputStream(socket.getOutputStream());
-                entrada = new ObjectInputStream(socket.getInputStream());
-                conectado = true;
 
-                // Leer mensaje de bienvenida primero
+                salida = new ObjectOutputStream(socket.getOutputStream());
+                salida.flush();
+                entrada = new ObjectInputStream(socket.getInputStream());
+
+                conectado = true;
+                Platform.runLater(() -> callback.onConexionEstablecida());
+
+                // Leer mensaje de bienvenida
                 String mensajeBienvenida = (String) entrada.readObject();
                 Platform.runLater(() -> callback.onMensajeRecibido(mensajeBienvenida));
 
-                // Iniciar sincronización después del mensaje de bienvenida
-                FileClient fileClient = new FileClient(this);
-                fileClient.sincronizarBidireccional();
-
-                Platform.runLater(() -> callback.onConexionEstablecida());
+                // Iniciar sincronización en un hilo separado
+                new Thread(() -> {
+                    try {
+                        FileClient fileClient = new FileClient(this);
+                        fileClient.sincronizarBidireccional();
+                    } catch (Exception e) {
+                        Platform.runLater(() -> callback.onError("Error en sincronización: " + e.getMessage()));
+                    }
+                }).start();
 
                 // Bucle principal de recepción
-                while (conectado) {
+                while (conectado && !socket.isClosed()) {
                     Object mensaje = entrada.readObject();
                     if (mensaje instanceof String) {
                         String mensajeStr = (String) mensaje;
                         Platform.runLater(() -> callback.onMensajeRecibido(mensajeStr));
                     }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 conectado = false;
                 Platform.runLater(() -> {
                     callback.onError("Error de conexión: " + e.getMessage());
-                    callback.onDesconexion();
-                });
-            } catch (ClassNotFoundException e) {
-                conectado = false;
-                Platform.runLater(() -> {
-                    callback.onError("Error de protocolo: " + e.getMessage());
                     callback.onDesconexion();
                 });
             }

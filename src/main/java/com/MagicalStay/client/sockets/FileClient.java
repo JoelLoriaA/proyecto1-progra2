@@ -92,7 +92,7 @@ public class FileClient {
         socketCliente.enviarObjeto(datos);
     }
 
-   private void enviarArchivosDesdeDirectorio(String directorio, boolean sonImagenes) throws IOException {
+  private void enviarArchivosDesdeDirectorio(String directorio, boolean sonImagenes) throws IOException {
         File dir = new File(directorio);
         if (!dir.exists() || !dir.isDirectory()) return;
 
@@ -107,15 +107,15 @@ public class FileClient {
 
             try {
                 byte[] datos = Files.readAllBytes(archivo.toPath());
-                // Esperar un breve momento entre envíos
-                Thread.sleep(100);
+                System.out.println((sonImagenes ? "Enviando imagen: " : "Enviando archivo: ") + nombre);
                 subirArchivo(nombre, datos, sonImagenes);
                 archivosEnviados.add(obtenerIdentificadorArchivo(nombre, archivo));
-            } catch (IOException e) {
-                System.err.println("Error al enviar archivo " + nombre + ": " + e.getMessage());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
+
+                // Esperar confirmación del servidor
+                Thread.sleep(500); // Pequeña pausa entre archivos
+
+            } catch (Exception e) {
+                System.err.println("Error al enviar " + nombre + ": " + e.getMessage());
             }
         }
     }
