@@ -157,28 +157,42 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
         }
     }
 
-    @Override
+  @Override
     public void onError(String error) {
-        statusLabel.setText("Error: " + error);
-        connectButton.setDisable(false);
-        updateConnectionStatus(false);
+        Platform.runLater(() -> {
+            statusLabel.setText("Error: " + error);
+            connectButton.setDisable(false);
+            updateConnectionStatus(false);
 
-        showAlert("Error de Conexión", "No se pudo conectar al servidor",
-                error, Alert.AlertType.ERROR);
+            // Usar Alert directamente en lugar de showAlert()
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error de Conexión");
+            alert.setHeaderText("No se pudo conectar al servidor");
+            alert.setContentText(error);
+            alert.show(); // Usar show() en lugar de showAndWait()
+        });
     }
 
     @Override
     public void onConexionEstablecida() {
-        statusLabel.setText("Conectado al servidor");
-        updateConnectionStatus(true);
+        Platform.runLater(() -> {
+            statusLabel.setText("Conectado al servidor");
+            updateConnectionStatus(true);
 
-        if (connectionStatusLabel != null) {
-            connectionStatusLabel.setText("Estado: Servidor Conectado");
-        }
+            if (connectionStatusLabel != null) {
+                connectionStatusLabel.setText("Conectado");
+            }
 
-        showAlert("Conexión Exitosa", "¡Conectado al servidor!",
-                "La conexión se ha establecido correctamente.", Alert.AlertType.INFORMATION);
+            // Usar Alert directamente
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Conexión Exitosa");
+            alert.setHeaderText("¡Conectado al servidor!");
+            alert.setContentText("La conexión se ha establecido correctamente.");
+            alert.show(); // Usar show() en lugar de showAndWait()
+        });
     }
+
+
 
     @Override
     public void onDesconexion() {

@@ -120,15 +120,44 @@ public class SocketCliente {
         return conectado;
     }
 
-    public void enviarObjeto(Object obj) {
+   public void enviarObjeto(Object obj) {
         if (!conectado) {
             callback.onError("No conectado al servidor");
             return;
         }
+
         new Thread(() -> {
             try {
-                salida.writeObject(obj);
-                salida.flush();
+                // Si es un array de bytes, enviar en chunks
+                if (obj instanceof byte[]) {
+                    byte[] datos = (byte[]) obj;
+                    int tamanoChunk = 1024;
+
+                    // Enviar primero el tamaño total
+                    salida.writeInt(datos.length);
+                    salida.flush();
+
+                    // Enviar los datos en chunks
+                    for (int offset = 0; offset < datos.length; offset += tamanoChunk) {
+                        int tamanoActual = Math.min(tamanoChunk, datos.length - offset);
+                        byte[] chunk = new byte[tamanoActual];
+                        System.arraycopy(datos, offset, chunk, 0, tamanoActual);
+
+                        // Enviar tamaño del chunk actual
+                        salida.writeInt(tamanoActual);
+                        // Enviar el chunk
+                        salida.write(chunk, 0, tamanoActual);
+                        salida.flush();
+                    }
+
+                    // Marca de fin de transmisión
+                    salida.writeInt(-1);
+                    salida.flush();
+                } else {
+                    // Para otros tipos de objetos, enviar directamente
+                    salida.writeObject(obj);
+                    salida.flush();
+                }
             } catch (IOException e) {
                 Platform.runLater(() -> {
                     callback.onError("Error enviando objeto: " + e.getMessage());
