@@ -117,7 +117,7 @@ package com.MagicalStay.client.sockets;
             return archivos;
         }
 
-     public void sincronizarBidireccional() throws IOException {
+    public void sincronizarBidireccional() throws IOException {
             try {
                 // Esperar mensaje de bienvenida
                 String bienvenida = (String) socketCliente.recibirObjeto();
@@ -126,10 +126,7 @@ package com.MagicalStay.client.sockets;
                 }
                 System.out.println(bienvenida.split("\\|")[1]);
 
-                // Enviar confirmación
-                socketCliente.enviarMensaje("READY");
-
-                // Iniciar sincronización
+                // Iniciar sincronización directamente sin enviar READY
                 System.out.println("Iniciando sincronización bidireccional...");
 
                 // Primero recibir archivos del servidor
