@@ -28,17 +28,23 @@ public class FileClient {
     }
 
     public void subirArchivo(String nombre, byte[] datos, boolean esImagen) throws IOException {
+        // Enviar al servidor
         String comando = esImagen ? "subir_imagen" : "subir_archivo";
         socketCliente.enviarMensaje(comando + "|" + nombre);
         socketCliente.enviarObjeto(datos);
 
         if (esImagen) {
-            // Solo guardar en el directorio de copias si es una imagen seleccionada por el usuario
-            Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, nombre);
-            Files.createDirectories(rutaCopia.getParent());
-            Files.write(rutaCopia, datos);
+            // Guardar en el directorio de imágenes si no existe
+            Path rutaImagen = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombre);
+            if (!Files.exists(rutaImagen)) {
+                Files.createDirectories(rutaImagen.getParent());
+                Files.write(rutaImagen, datos);
+                System.out.println("Nueva imagen guardada en: " + rutaImagen);
+            } else {
+                System.out.println("La imagen ya existe en: " + rutaImagen);
+            }
         } else {
-            // Archivos normales se manejan igual
+            // Los archivos normales se guardan en su directorio
             Path rutaArchivo = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombre);
             Files.createDirectories(rutaArchivo.getParent());
             Files.write(rutaArchivo, datos);
