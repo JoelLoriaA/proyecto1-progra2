@@ -118,7 +118,9 @@ public class FileClient {
     private void enviarArchivosLocales() throws IOException {
         System.out.println("Enviando archivos locales al servidor...");
         enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, false);
-        enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, true);
+        // Enviar imágenes del directorio principal pero sin duplicarlas
+        enviarImagenesOriginales(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR);
+        // Enviar solo las copias seleccionadas por el usuario
         enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, true);
     }
 
@@ -166,5 +168,46 @@ public class FileClient {
 
     private String obtenerIdentificadorArchivo(String nombreArchivo, File archivo) {
         return nombreArchivo + "_" + archivo.length() + "_" + archivo.lastModified();
+    }
+
+
+    private void enviarImagenesOriginales (String directorio){
+        File dir = new File(directorio);
+        if (dir.exists()) {
+            File[] archivos = dir.listFiles();
+            if (archivos != null) {
+                for (File archivo : archivos) {
+                    if (archivo.isFile()) {
+                        try {
+                            final String nombreArchivo = archivo.getName();
+
+                            // Verificar si el archivo ya fue enviado
+                            if (archivoYaEnviado(nombreArchivo, archivo)) {
+                                System.out.println("Omitiendo imagen duplicada: " + nombreArchivo);
+                                continue;
+                            }
+
+                            // Verificar si ya existe en el directorio de copias
+                            File archivoEnCopias = new File(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, nombreArchivo);
+                            if (archivoEnCopias.exists()) {
+                                System.out.println("Omitiendo imagen que ya existe en copias: " + nombreArchivo);
+                                continue;
+                            }
+
+                            byte[] datos = Files.readAllBytes(archivo.toPath());
+                            Platform.runLater(() -> {
+                                // Enviar al servidor sin crear copia
+                                socketCliente.enviarMensaje("subir_imagen|" + nombreArchivo);
+                                socketCliente.enviarObjeto(datos);
+                                archivosEnviados.add(obtenerIdentificadorArchivo(nombreArchivo, archivo));
+                                System.out.println("Enviada imagen original: " + nombreArchivo);
+                            });
+                        } catch (IOException e) {
+                            System.err.println("Error leyendo imagen " + archivo.getName() + ": " + e.getMessage());
+                        }
+                    }
+                }
+            }
+        }
     }
 }
