@@ -56,6 +56,7 @@ public class FileClient {
                             nombre
                     );
 
+                    // Solo guardar si el archivo no existe
                     if (!Files.exists(rutaDestino)) {
                         Files.createDirectories(rutaDestino.getParent());
                         Files.write(rutaDestino, datos);
@@ -67,11 +68,13 @@ public class FileClient {
                 System.out.println("Recibidos " + cantidadArchivos + " archivos del servidor");
             }
 
-            // Luego enviar archivos locales al servidor
+            // Enviar solo archivos .dat
             System.out.println("Enviando archivos locales al servidor...");
             enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, false);
-            enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, true);
 
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Error durante la sincronización: " + e.getMessage());
+            throw e;
         } finally {
             sincronizando = false;
         }
