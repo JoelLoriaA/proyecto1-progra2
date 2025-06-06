@@ -57,12 +57,34 @@ public class ClientHandler implements Runnable {
 
             switch (accion) {
                 case "listar_archivos":
-                    File[] archivos = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
-                    salida.writeObject(archivos.length);
-                    for (File archivo : archivos) {
-                        salida.writeObject(archivo.getName());
-                        byte[] contenido = Files.readAllBytes(archivo.toPath());
-                        salida.writeObject(contenido);
+                    File[] archivosNormales = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
+                    File[] imagenes = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();
+
+                    // Enviar primero la cantidad total de archivos
+                    int totalArchivos = (archivosNormales != null ? archivosNormales.length : 0) +
+                            (imagenes != null ? imagenes.length : 0);
+                    salida.writeObject(totalArchivos);
+
+                    // Enviar archivos normales
+                    if (archivosNormales != null) {
+                        for (File archivo : archivosNormales) {
+                            if (archivo.isFile()) {
+                                salida.writeObject("archivo|" + archivo.getName());
+                                byte[] contenido = Files.readAllBytes(archivo.toPath());
+                                salida.writeObject(contenido);
+                            }
+                        }
+                    }
+
+                    // Enviar imágenes
+                    if (imagenes != null) {
+                        for (File imagen : imagenes) {
+                            if (imagen.isFile()) {
+                                salida.writeObject("imagen|" + imagen.getName());
+                                byte[] contenido = Files.readAllBytes(imagen.toPath());
+                                salida.writeObject(contenido);
+                            }
+                        }
                     }
                     return "Lista de archivos enviada";
 
