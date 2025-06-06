@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 
 public class ClientHandler implements Runnable {
@@ -60,10 +61,22 @@ public class ClientHandler implements Runnable {
                     File[] archivosNormales = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
                     File[] imagenes = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();
 
-                    // Enviar primero la cantidad total de archivos
-                    int totalArchivos = (archivosNormales != null ? archivosNormales.length : 0) +
-                            (imagenes != null ? imagenes.length : 0);
-                    salida.writeObject(totalArchivos);
+                    // Contar archivos válidos
+                    int totalArchivos = 0;
+                    if (archivosNormales != null) {
+                        totalArchivos += Arrays.stream(archivosNormales)
+                                .filter(File::isFile)
+                                .count();
+                    }
+                    if (imagenes != null) {
+                        totalArchivos += Arrays.stream(imagenes)
+                                .filter(File::isFile)
+                                .count();
+                    }
+
+                    // Enviar número como String para evitar problemas de casting
+                    salida.writeObject(String.valueOf(totalArchivos));
+                    System.out.println("Enviando " + totalArchivos + " archivos...");
 
                     // Enviar archivos normales
                     if (archivosNormales != null) {
@@ -72,6 +85,7 @@ public class ClientHandler implements Runnable {
                                 salida.writeObject("archivo|" + archivo.getName());
                                 byte[] contenido = Files.readAllBytes(archivo.toPath());
                                 salida.writeObject(contenido);
+                                System.out.println("Enviado archivo: " + archivo.getName());
                             }
                         }
                     }
@@ -83,6 +97,7 @@ public class ClientHandler implements Runnable {
                                 salida.writeObject("imagen|" + imagen.getName());
                                 byte[] contenido = Files.readAllBytes(imagen.toPath());
                                 salida.writeObject(contenido);
+                                System.out.println("Enviada imagen: " + imagen.getName());
                             }
                         }
                     }
