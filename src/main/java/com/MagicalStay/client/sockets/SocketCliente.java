@@ -36,16 +36,31 @@ public class SocketCliente {
                 entrada = new ObjectInputStream(socket.getInputStream());
                 conectado = true;
 
-                // Usar la sincronización bidireccional
+                // Leer mensaje de bienvenida primero
+                String mensajeBienvenida = (String) entrada.readObject();
+                callback.onMensajeRecibido(mensajeBienvenida);
+
+                // Iniciar sincronización después del mensaje de bienvenida
                 FileClient fileClient = new FileClient(this);
                 fileClient.sincronizarBidireccional();
 
-                Platform.runLater(() -> callback.onConexionEstablecida());
-                escucharMensajes();
+                callback.onConexionEstablecida();
+
+                // Bucle principal de recepción
+                while (conectado) {
+                    Object mensaje = entrada.readObject();
+                    if (mensaje instanceof String) {
+                        callback.onMensajeRecibido((String) mensaje);
+                    }
+                }
             } catch (IOException e) {
-                Platform.runLater(() -> callback.onError("Error de conexión: " + e.getMessage()));
+                conectado = false;
+                callback.onError("Error de conexión: " + e.getMessage());
+                callback.onDesconexion();
             } catch (ClassNotFoundException e) {
-                throw new RuntimeException(e);
+                conectado = false;
+                callback.onError("Error de protocolo: " + e.getMessage());
+                callback.onDesconexion();
             }
         }).start();
     }
