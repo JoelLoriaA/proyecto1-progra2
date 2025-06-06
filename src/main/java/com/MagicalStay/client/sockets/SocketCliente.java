@@ -44,6 +44,8 @@ public class SocketCliente {
                 escucharMensajes();
             } catch (IOException e) {
                 Platform.runLater(() -> callback.onError("Error de conexión: " + e.getMessage()));
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
             }
         }).start();
     }
