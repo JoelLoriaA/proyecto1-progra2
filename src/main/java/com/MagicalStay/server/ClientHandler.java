@@ -26,11 +26,18 @@ public class ClientHandler implements Runnable {
             handleConnect();
 
             while (!socket.isClosed()) {
-                String comando = (String) entrada.readObject();
-                handleMessage(comando);
+                Object mensaje = entrada.readObject();
 
-                if (comando.equalsIgnoreCase("salir")) {
-                    break;
+                if (mensaje instanceof String) {
+                    String comandoStr = (String) mensaje;
+                    handleMessage(comandoStr);
+
+                    if (comandoStr.equalsIgnoreCase("salir")) {
+                        break;
+                    }
+                } else if (mensaje instanceof byte[]) {
+                    // Manejar datos binarios (archivos)
+                    handleBinaryData((byte[]) mensaje);
                 }
             }
         } catch (EOFException e) {
@@ -44,10 +51,36 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    private void handleBinaryData(byte[] datos) throws IOException, ClassNotFoundException {
+        // Aquí procesamos los datos binarios recibidos
+        String comando = (String) entrada.readObject();
+        if (comando.startsWith("subir_archivo|") || comando.startsWith("subir_imagen|")) {
+            String[] partes = comando.split("\\|");
+            String tipo = partes[0];
+            String nombre = partes[1];
+
+            String rutaBase = tipo.equals("subir_imagen") ?
+                    ConfiguracionApp.RUTA_IMAGENES_SERVIDOR :
+                    ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
+
+            Path rutaDestino = Paths.get(rutaBase, nombre);
+            Files.createDirectories(rutaDestino.getParent());
+            Files.write(rutaDestino, datos);
+
+            salida.writeObject("Archivo recibido: " + nombre);
+            salida.flush();
+        }
+    }
+
     private void handleMessage(String comando) throws IOException {
-        String respuesta = procesarComando(comando);
-        salida.writeObject(respuesta);
-        salida.flush();
+        try {
+            String respuesta = procesarComando(comando);
+            salida.writeObject(respuesta);
+            salida.flush();
+        } catch (ClassCastException e) {
+            salida.writeObject("Error: " + e.getMessage());
+            salida.flush();
+        }
     }
 
     private String procesarComando(String comando) {
