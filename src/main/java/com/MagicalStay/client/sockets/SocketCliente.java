@@ -116,4 +116,11 @@ public class SocketCliente {
             }
         }).start();
     }
+
+    public Object recibirObjeto() throws IOException, ClassNotFoundException {
+        if (!conectado) {
+            throw new IOException("No conectado al servidor");
+        }
+        return entrada.readObject();
+    }
 }

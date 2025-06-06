@@ -12,7 +12,7 @@ public class DataFactory {
     private static HotelData hotelData;
     private static RoomData roomData;
     private static ImageStorage imageStorage;
-    private static final String DATA_DIRECTORY = ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
+    public static final String DATA_DIRECTORY = ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
     
     static {
         try {
