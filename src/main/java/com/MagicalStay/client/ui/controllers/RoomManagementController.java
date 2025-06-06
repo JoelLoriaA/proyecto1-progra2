@@ -1,5 +1,6 @@
 package com.MagicalStay.client.ui.controllers;
 
+import com.MagicalStay.client.sockets.FileClient;
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.client.data.DataFactory;
 import com.MagicalStay.shared.config.ConfiguracionApp;
@@ -56,34 +57,55 @@ import java.io.File;
 
 
 public class RoomManagementController implements Closeable {
-    @FXML private ComboBox<Hotel> hotelComboBox;
-    @FXML private TextField searchTextField;
-    @FXML public TextField numberTextField;
-    @FXML public TextField priceTextField;
-    @FXML public ComboBox<RoomType> typeComboBox;
-    @FXML public ComboBox<RoomCondition> statusComboBox;
-    @FXML public TextArea descriptionTextArea;
-    @FXML public TextArea featuresTextArea;
-    @FXML public Spinner<Integer> capacitySpinner;
-    @FXML private Button addButton, editButton, deleteButton;
-    @FXML private Button closeButton;
-    @FXML public Button saveButton;
-    @FXML public Button cancelButton;
-    @FXML private Button searchButton;
-    @FXML public Label statusLabel; 
-    @FXML public ListView<Room> roomListView;
-    @FXML private TableColumn<Room, String> roomNumberColumn, roomTypeColumn, roomStatusColumn;
-    @FXML private TableColumn<Room, Integer> roomCapacityColumn;
-    @FXML private TableColumn<Room, Double> roomPriceColumn;
-    @FXML private Button selectImageButton;
-    @FXML private ImageView roomImageView;
+    @FXML
+    private ComboBox<Hotel> hotelComboBox;
+    @FXML
+    private TextField searchTextField;
+    @FXML
+    public TextField numberTextField;
+    @FXML
+    public TextField priceTextField;
+    @FXML
+    public ComboBox<RoomType> typeComboBox;
+    @FXML
+    public ComboBox<RoomCondition> statusComboBox;
+    @FXML
+    public TextArea descriptionTextArea;
+    @FXML
+    public TextArea featuresTextArea;
+    @FXML
+    public Spinner<Integer> capacitySpinner;
+    @FXML
+    private Button addButton, editButton, deleteButton;
+    @FXML
+    private Button closeButton;
+    @FXML
+    public Button saveButton;
+    @FXML
+    public Button cancelButton;
+    @FXML
+    private Button searchButton;
+    @FXML
+    public Label statusLabel;
+    @FXML
+    public ListView<Room> roomListView;
+    @FXML
+    private TableColumn<Room, String> roomNumberColumn, roomTypeColumn, roomStatusColumn;
+    @FXML
+    private TableColumn<Room, Integer> roomCapacityColumn;
+    @FXML
+    private TableColumn<Room, Double> roomPriceColumn;
+    @FXML
+    private Button selectImageButton;
+    @FXML
+    private ImageView roomImageView;
     private File selectedImageFile;
     public String selectedImagePath;
     public RoomData roomData;
-    private HotelData hotelData; 
+    private HotelData hotelData;
     public static ObjectMapper objectMapper;
     public static ObservableList<Room> roomList = FXCollections.observableArrayList();
-    private ObservableList<Hotel> hotelList = FXCollections.observableArrayList(); 
+    private ObservableList<Hotel> hotelList = FXCollections.observableArrayList();
     public Room selectedRoom;
     public Hotel selectedHotel;
     public boolean editMode = false;
@@ -94,20 +116,27 @@ public class RoomManagementController implements Closeable {
     private TableColumn imagePathColumn;
     @FXML
     private TableColumn imageNameColumn;
-  
+
 
     public RoomManagementController() {
         socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
-            @Override public void onMensajeRecibido(String mensaje) {
+            @Override
+            public void onMensajeRecibido(String mensaje) {
                 Platform.runLater(() -> procesarRespuestaServidor(mensaje));
             }
-            @Override public void onError(String error) {
+
+            @Override
+            public void onError(String error) {
                 Platform.runLater(() -> FXUtility.alertError("Error de comunicación", error).show());
             }
-            @Override public void onConexionEstablecida() {
+
+            @Override
+            public void onConexionEstablecida() {
                 Platform.runLater(() -> loadRoomsFromServer());
             }
-            @Override public void onDesconexion() {
+
+            @Override
+            public void onDesconexion() {
                 Platform.runLater(() -> FXUtility.alertError("Desconexión", "Se perdió la conexión con el servidor").show());
             }
         });
@@ -117,7 +146,7 @@ public class RoomManagementController implements Closeable {
     private void initialize() {
         try {
             roomData = DataFactory.getRoomData();
-            hotelData = DataFactory.getHotelData(); 
+            hotelData = DataFactory.getHotelData();
             objectMapper = new ObjectMapper();
 
             System.out.println("Ruta del archivo: " + new File("rooms.dat").getAbsolutePath());
@@ -126,13 +155,15 @@ public class RoomManagementController implements Closeable {
             setFieldsEnabled(false);
             roomListView.setItems(roomList);
 
-            hotelComboBox.setItems(hotelList); 
+            hotelComboBox.setItems(hotelList);
             hotelComboBox.setConverter(new StringConverter<Hotel>() {
-                @Override public String toString(Hotel hotel) {
+                @Override
+                public String toString(Hotel hotel) {
                     return hotel != null ? hotel.getName() : "";
                 }
 
-                @Override public Hotel fromString(String string) {
+                @Override
+                public Hotel fromString(String string) {
                     return null;
                 }
             });
@@ -142,7 +173,7 @@ public class RoomManagementController implements Closeable {
                 roomImageView.setImage(null);
             });
 
-            loadHotels(); 
+            loadHotels();
 
             roomListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
                 selectedRoom = newVal;
@@ -150,39 +181,40 @@ public class RoomManagementController implements Closeable {
             });
 
             roomListView.setCellFactory(listView -> new ListCell<Room>() {
-            @Override
-            protected void updateItem(Room room, boolean empty) {
-                super.updateItem(room, empty);
-                if (empty || room == null) {
-                    setText(null);
-                    setGraphic(null);
-                } else {
-                    String priceString = priceTextField.getText();
-                    Label number = new Label("🛏️ " + room.getRoomNumber());
-                    number.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+                @Override
+                protected void updateItem(Room room, boolean empty) {
+                    super.updateItem(room, empty);
+                    if (empty || room == null) {
+                        setText(null);
+                        setGraphic(null);
+                    } else {
+                        String priceString = priceTextField.getText();
+                        Label number = new Label("🛏️ " + room.getRoomNumber());
+                        number.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
-                    Label type = new Label("Tipo: " + room.getRoomType());
-                    Label capacity = new Label("Capacidad: " + room.getCapacity());
-                    Label status = new Label("Estado: " + room.getRoomCondition());
-                    Label price = new Label(String.format("Precio: 💲%.2f", room.getPrice()));                    price.setStyle("-fx-font-weight: bold;");
+                        Label type = new Label("Tipo: " + room.getRoomType());
+                        Label capacity = new Label("Capacidad: " + room.getCapacity());
+                        Label status = new Label("Estado: " + room.getRoomCondition());
+                        Label price = new Label(String.format("Precio: 💲%.2f", room.getPrice()));
+                        price.setStyle("-fx-font-weight: bold;");
 
-                    VBox leftBox = new VBox(number, type, capacity);
-                    leftBox.setSpacing(2);
+                        VBox leftBox = new VBox(number, type, capacity);
+                        leftBox.setSpacing(2);
 
-                    VBox rightBox = new VBox(status, price);
-                    rightBox.setSpacing(2);
-                    rightBox.setAlignment(Pos.CENTER_RIGHT);
+                        VBox rightBox = new VBox(status, price);
+                        rightBox.setSpacing(2);
+                        rightBox.setAlignment(Pos.CENTER_RIGHT);
 
-                    HBox hBox = new HBox(leftBox, new Region(), rightBox);
-                    HBox.setHgrow(hBox.getChildren().get(1), Priority.ALWAYS); 
-                    hBox.setSpacing(10);
-                    hBox.setPadding(new Insets(5));
-                    hBox.setStyle("-fx-background-color: #f9f9f9; -fx-background-radius: 5px;");
+                        HBox hBox = new HBox(leftBox, new Region(), rightBox);
+                        HBox.setHgrow(hBox.getChildren().get(1), Priority.ALWAYS);
+                        hBox.setSpacing(10);
+                        hBox.setPadding(new Insets(5));
+                        hBox.setStyle("-fx-background-color: #f9f9f9; -fx-background-radius: 5px;");
 
-                    setGraphic(hBox);
+                        setGraphic(hBox);
+                    }
                 }
-            }
-        });
+            });
 
             searchTextField.textProperty().addListener((obs, oldVal, newVal) -> handleSearch());
 
@@ -190,25 +222,26 @@ public class RoomManagementController implements Closeable {
             FXUtility.alertError("Error de Inicialización", "No se pudieron cargar los datos: " + e.getMessage()).show();
         }
     }
-    
+
 
     private void loadHotels() {
         try {
             String json = hotelData.retrieveAll();
             JsonResponse response = objectMapper.readValue(json, JsonResponse.class);
             if (response.isSuccess()) {
-                List<Hotel> hotels = objectMapper.convertValue(response.getData(), new TypeReference<List<Hotel>>() {});
+                List<Hotel> hotels = objectMapper.convertValue(response.getData(), new TypeReference<List<Hotel>>() {
+                });
                 hotelList.setAll(hotels);
-    
+
                 if (!hotelList.isEmpty()) {
-                    hotelComboBox.getSelectionModel().selectFirst(); 
+                    hotelComboBox.getSelectionModel().selectFirst();
                 }
             }
         } catch (Exception e) {
             FXUtility.alertError("Error", "No se pudieron cargar los hoteles: " + e.getMessage()).show();
         }
     }
-    
+
 
     private void setupControls() {
         typeComboBox.setItems(FXCollections.observableArrayList(RoomType.values()));
@@ -222,45 +255,45 @@ public class RoomManagementController implements Closeable {
     }
 
     public void loadRoomsFromFile() {
-    if (selectedHotel == null) {
-        FXUtility.alertError("Error", "No hay hotel seleccionado.").show();
-        return;
-    }
-
-    try {
-        String jsonResponse = roomData.readAll();
-        DataResponse response = parseDataResponse(jsonResponse);
-
-        if (response.isSuccess()) {
-            
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> roomMaps = (List<Map<String, Object>>) response.getData();
-            List<Room> allRooms = new ArrayList<>();
-
-            for (Map<String, Object> map : roomMaps) {
-                Room room = objectMapper.convertValue(map, Room.class);
-                allRooms.add(room);
-            }
-
-            System.out.println("Habitaciones encontradas: " + allRooms.size());
-
-            List<Room> filteredRooms = allRooms.stream()
-                .filter(r -> r.getHotel() != null && r.getHotel().getHotelId() == selectedHotel.getHotelId())
-                .collect(Collectors.toList());
-
-            System.out.println("Habitaciones filtradas para hotel ID " + selectedHotel.getHotelId() + ": " + filteredRooms.size());
-
-            roomList.setAll(filteredRooms);
-        } else {
-            roomList.clear();
-            statusLabel.setText("No se encontraron habitaciones: " + response.getMessage());
+        if (selectedHotel == null) {
+            FXUtility.alertError("Error", "No hay hotel seleccionado.").show();
+            return;
         }
-    } catch (Exception e) {
-        roomList.clear();
-        statusLabel.setText("Error al cargar habitaciones: " + e.getMessage());
-        e.printStackTrace();
+
+        try {
+            String jsonResponse = roomData.readAll();
+            DataResponse response = parseDataResponse(jsonResponse);
+
+            if (response.isSuccess()) {
+
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> roomMaps = (List<Map<String, Object>>) response.getData();
+                List<Room> allRooms = new ArrayList<>();
+
+                for (Map<String, Object> map : roomMaps) {
+                    Room room = objectMapper.convertValue(map, Room.class);
+                    allRooms.add(room);
+                }
+
+                System.out.println("Habitaciones encontradas: " + allRooms.size());
+
+                List<Room> filteredRooms = allRooms.stream()
+                        .filter(r -> r.getHotel() != null && r.getHotel().getHotelId() == selectedHotel.getHotelId())
+                        .collect(Collectors.toList());
+
+                System.out.println("Habitaciones filtradas para hotel ID " + selectedHotel.getHotelId() + ": " + filteredRooms.size());
+
+                roomList.setAll(filteredRooms);
+            } else {
+                roomList.clear();
+                statusLabel.setText("No se encontraron habitaciones: " + response.getMessage());
+            }
+        } catch (Exception e) {
+            roomList.clear();
+            statusLabel.setText("Error al cargar habitaciones: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
-}
 
     @FXML
     private void handleAddRoom() {
@@ -285,19 +318,19 @@ public class RoomManagementController implements Closeable {
             FXUtility.alertError("Error", "No hay habitación seleccionada.").show();
             return;
         }
-    
+
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirmar Eliminación");
         alert.setHeaderText(null);
         alert.setContentText("¿Está seguro que desea eliminar la habitación \"" +
-                             selectedRoom.getRoomNumber() + "\"?");
-    
+                selectedRoom.getRoomNumber() + "\"?");
+
         Optional<ButtonType> result = alert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             try {
                 String jsonResponse = roomData.delete(selectedRoom.getRoomNumber());
                 DataResponse response = parseDataResponse(jsonResponse);
-    
+
                 if (response.isSuccess()) {
                     loadRoomsFromFile();
                     roomListView.setItems(roomList);
@@ -305,13 +338,13 @@ public class RoomManagementController implements Closeable {
 
                     roomImageView.setImage(null);
 
-    
+
                     selectedRoom = null;
                     statusLabel.setText("Habitación eliminada con éxito.");
-    
+
                     editButton.setDisable(true);
                     deleteButton.setDisable(true);
-                    
+
 
                 } else {
                     showAlert(Alert.AlertType.ERROR, "Error",
@@ -323,14 +356,14 @@ public class RoomManagementController implements Closeable {
                 e.printStackTrace();
             }
         }
-    }    
-    
+    }
+
     @FXML
     public void handleSave() {
 
         if (selectedHotel == null || hotelComboBox.getValue() == null) {
-                showAlert(Alert.AlertType.ERROR, "Error", "Debe seleccionar un hotel antes de guardar.");
-                return;
+            showAlert(Alert.AlertType.ERROR, "Error", "Debe seleccionar un hotel antes de guardar.");
+            return;
         }
         if (!validateFields()) return;
 
@@ -340,26 +373,26 @@ public class RoomManagementController implements Closeable {
             FXUtility.alertError("Error", "No hay hotel seleccionado.").show();
             return;
         }
-        
+
         try {
             Room room = new Room(
-                numberTextField.getText(),
-                selectedHotel,
-                typeComboBox.getValue(),
-                statusComboBox.getValue(),
-                Double.parseDouble(priceTextField.getText()),
-                capacitySpinner.getValue(),
-                featuresTextArea.getText(),
-                descriptionTextArea.getText(),
-                selectedImagePath
+                    numberTextField.getText(),
+                    selectedHotel,
+                    typeComboBox.getValue(),
+                    statusComboBox.getValue(),
+                    Double.parseDouble(priceTextField.getText()),
+                    capacitySpinner.getValue(),
+                    featuresTextArea.getText(),
+                    descriptionTextArea.getText(),
+                    selectedImagePath
             );
 
             String jsonResponse;
-                    if (editMode) {
-                        jsonResponse = roomData.update(room);
-                    } else {
-                        jsonResponse = roomData.create(room);
-                    }
+            if (editMode) {
+                jsonResponse = roomData.update(room);
+            } else {
+                jsonResponse = roomData.create(room);
+            }
 
             DataResponse response = parseDataResponse(jsonResponse);
 
@@ -375,7 +408,7 @@ public class RoomManagementController implements Closeable {
 
                 for (Room r : roomList) {
                     if (r.getRoomNumber().equals(room.getRoomNumber())
-                        && r.getHotel().getHotelId() == room.getHotel().getHotelId()) {
+                            && r.getHotel().getHotelId() == room.getHotel().getHotelId()) {
                         roomListView.getSelectionModel().select(r);
                         break;
                     }
@@ -384,25 +417,25 @@ public class RoomManagementController implements Closeable {
                 statusLabel.setText("Habitación guardada con éxito.");
 
                 System.out.println("[handleSave] Habitación guardada: " + room.getRoomNumber() +
-                                " | Hotel ID: " + room.getHotel().getHotelId() +
-                                " | Tipo: " + room.getRoomType() +
-                                " | Estado: " + room.getRoomCondition() + 
-                                " | Path " + room.getImagePath());
+                        " | Hotel ID: " + room.getHotel().getHotelId() +
+                        " | Tipo: " + room.getRoomType() +
+                        " | Estado: " + room.getRoomCondition() +
+                        " | Path " + room.getImagePath());
 
                 System.out.println("[handleSave] Lista actual de habitaciones:");
                 for (Room r : roomList) {
                     System.out.println("- " + r.getRoomNumber() + " | hotelId: " +
-                        (r.getHotel() != null ? r.getHotel().getHotelId() : "null"));
+                            (r.getHotel() != null ? r.getHotel().getHotelId() : "null"));
                 }
 
             } else {
                 showAlert(Alert.AlertType.ERROR, "Error",
-                    "No se pudo guardar la habitación: " + response.getMessage());
+                        "No se pudo guardar la habitación: " + response.getMessage());
             }
 
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Error",
-                "Error al guardar la habitación: " + e.getMessage());
+                    "Error al guardar la habitación: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -435,19 +468,19 @@ public class RoomManagementController implements Closeable {
                 if (imageFile.exists()) {
                     roomImageView.setImage(new Image(imageFile.toURI().toString()));
                 } else {
-                    roomImageView.setImage(null); 
+                    roomImageView.setImage(null);
                 }
             } else {
                 roomImageView.setImage(null);
             }
 
-            selectedImagePath = selectedRoom.getImagePath();           
+            selectedImagePath = selectedRoom.getImagePath();
 
             editButton.setDisable(false);
             deleteButton.setDisable(false);
         }
     }
-    
+
     private void clearFields() {
         numberTextField.clear();
         typeComboBox.setValue(null);
@@ -509,11 +542,11 @@ public class RoomManagementController implements Closeable {
             roomListView.setItems(roomList);
         } else {
             ObservableList<Room> filtered = roomList.filtered(room ->
-                room.getRoomNumber().toLowerCase().contains(query) ||
-                room.getRoomType().name().toLowerCase().contains(query) ||
-                room.getRoomCondition().name().toLowerCase().contains(query) ||
-                String.valueOf(room.getCapacity()).contains(query) ||
-                String.valueOf(room.getPrice()).contains(query)
+                    room.getRoomNumber().toLowerCase().contains(query) ||
+                            room.getRoomType().name().toLowerCase().contains(query) ||
+                            room.getRoomCondition().name().toLowerCase().contains(query) ||
+                            String.valueOf(room.getCapacity()).contains(query) ||
+                            String.valueOf(room.getPrice()).contains(query)
             );
             roomListView.setItems(filtered);
         }
@@ -576,14 +609,29 @@ public class RoomManagementController implements Closeable {
         private String message;
         private Object data;
 
-        public boolean isSuccess() { return success; }
-        public void setSuccess(boolean success) { this.success = success; }
+        public boolean isSuccess() {
+            return success;
+        }
 
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
+        public void setSuccess(boolean success) {
+            this.success = success;
+        }
 
-        public Object getData() { return data; }
-        public void setData(Object data) { this.data = data; }
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public Object getData() {
+            return data;
+        }
+
+        public void setData(Object data) {
+            this.data = data;
+        }
     }
 
     private void showAlert(Alert.AlertType type, String title, String message) {
@@ -594,19 +642,14 @@ public class RoomManagementController implements Closeable {
         alert.showAndWait();
     }
 
+
     @FXML
     private void handleSelectImage() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Seleccionar Imagen de Habitación");
         fileChooser.getExtensionFilters().addAll(
-            new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
+                new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
         );
-
-        File initialDir = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR);
-        if (!initialDir.exists()) {
-            initialDir.mkdirs();
-        }
-        fileChooser.setInitialDirectory(initialDir);
 
         Stage stage = (Stage) selectImageButton.getScene().getWindow();
         File selectedFile = fileChooser.showOpenDialog(stage);
@@ -615,22 +658,48 @@ public class RoomManagementController implements Closeable {
             try {
                 String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
                 String newFileName = "habitacion_" + System.currentTimeMillis() + extension;
-                File destFile = new File(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, newFileName);
 
+                // Solo guardar en el directorio de copias
+                File destFile = new File(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, newFileName);
+                Files.createDirectories(destFile.getParentFile().toPath());
                 Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
+                // Mostrar la imagen en la UI
                 roomImageView.setImage(new Image(destFile.toURI().toString()));
+                selectedImagePath = destFile.getAbsolutePath();
 
-                selectedImagePath = ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR + newFileName;
+                // Enviar la imagen usando FileClient
+                FileClient fileClient = new FileClient(new SocketCliente(new SocketCliente.ClienteCallback() {
+                    @Override
+                    public void onMensajeRecibido(String mensaje) {
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Platform.runLater(() -> FXUtility.alertError("Error", error).show());
+                    }
+
+                    @Override
+                    public void onConexionEstablecida() {
+                    }
+
+                    @Override
+                    public void onDesconexion() {
+                    }
+                }));
+
+                // Leer y enviar la imagen
+                byte[] imageData = Files.readAllBytes(destFile.toPath());
+                fileClient.subirArchivo(newFileName, imageData, true);
 
                 System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
 
             } catch (IOException e) {
-                FXUtility.alertError("Error", "No se pudo copiar la imagen: " + e.getMessage()).show();
+                FXUtility.alertError("Error", "No se pudo procesar la imagen: " + e.getMessage()).show();
                 e.printStackTrace();
             }
         }
-    }
 
+    }
 }
 

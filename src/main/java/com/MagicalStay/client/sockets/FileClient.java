@@ -33,17 +33,12 @@ public class FileClient {
         socketCliente.enviarObjeto(datos);
 
         if (esImagen) {
-            // Guardar primero en el directorio de copias
+            // Solo guardar en el directorio de copias
             Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, nombre);
             Files.createDirectories(rutaCopia.getParent());
             Files.write(rutaCopia, datos);
-
-            // Luego copiar a la carpeta general de imágenes
-            Path rutaImagen = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombre);
-            Files.createDirectories(rutaImagen.getParent());
-            Files.copy(rutaCopia, rutaImagen, StandardCopyOption.REPLACE_EXISTING);
         } else {
-            // Si no es imagen, guardar en la carpeta de archivos normal
+            // Archivos normales se manejan igual
             Path rutaArchivo = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombre);
             Files.createDirectories(rutaArchivo.getParent());
             Files.write(rutaArchivo, datos);
