@@ -43,6 +43,12 @@ public class FileClient {
                 int cantidadArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
                 System.out.println("Se recibirán " + cantidadArchivos + " archivos");
 
+                // Enviar archivos .dat y imágenes
+                System.out.println("Enviando archivos locales al servidor...");
+                enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, false);
+                enviarArchivosDesdeDirectorio(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, true);
+
+
                 // Recibir archivos
                 for (int i = 0; i < cantidadArchivos; i++) {
                     String fileInfo = (String) socketCliente.recibirObjeto();
@@ -86,7 +92,7 @@ public class FileClient {
         socketCliente.enviarObjeto(datos);
     }
 
-    private void enviarArchivosDesdeDirectorio(String directorio, boolean sonImagenes) throws IOException {
+   private void enviarArchivosDesdeDirectorio(String directorio, boolean sonImagenes) throws IOException {
         File dir = new File(directorio);
         if (!dir.exists() || !dir.isDirectory()) return;
 
@@ -94,22 +100,22 @@ public class FileClient {
         if (archivos == null) return;
 
         for (File archivo : archivos) {
-            if (!archivo.isFile()) continue;
+            if (!archivo.isFile() || !esArchivoValido(archivo, sonImagenes)) continue;
 
             String nombre = archivo.getName();
             if (archivoYaEnviado(nombre, archivo)) continue;
 
             try {
                 byte[] datos = Files.readAllBytes(archivo.toPath());
+                // Esperar un breve momento entre envíos
+                Thread.sleep(100);
                 subirArchivo(nombre, datos, sonImagenes);
-                if (sonImagenes) {
-                    System.out.println("Enviada imagen: " + nombre);
-                } else {
-                    System.out.println("Enviado archivo: " + nombre);
-                }
                 archivosEnviados.add(obtenerIdentificadorArchivo(nombre, archivo));
             } catch (IOException e) {
                 System.err.println("Error al enviar archivo " + nombre + ": " + e.getMessage());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
             }
         }
     }
@@ -120,5 +126,15 @@ public class FileClient {
 
     private String obtenerIdentificadorArchivo(String nombre, File archivo) {
         return nombre + "_" + archivo.length() + "_" + archivo.lastModified();
+    }
+
+    private boolean esArchivoValido(File archivo, boolean sonImagenes) {
+        String nombre = archivo.getName().toLowerCase();
+        if (sonImagenes) {
+            return nombre.endsWith(".jpg") || nombre.endsWith(".jpeg") ||
+                   nombre.endsWith(".png") || nombre.endsWith(".gif");
+        } else {
+            return nombre.endsWith(".dat");
+        }
     }
 }

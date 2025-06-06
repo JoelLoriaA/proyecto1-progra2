@@ -125,51 +125,39 @@ public class SocketCliente {
         return conectado;
     }
 
-   public void enviarObjeto(Object obj) {
+  public synchronized void enviarObjeto(Object obj) {
         if (!conectado) {
-            callback.onError("No conectado al servidor");
+            Platform.runLater(() -> callback.onError("No conectado al servidor"));
             return;
         }
 
-        new Thread(() -> {
-            try {
-                // Si es un array de bytes, enviar en chunks
-                if (obj instanceof byte[]) {
-                    byte[] datos = (byte[]) obj;
-                    int tamanoChunk = 1024;
+        try {
+            if (obj instanceof byte[]) {
+                byte[] datos = (byte[]) obj;
+                salida.writeInt(datos.length);
+                salida.flush();
 
-                    // Enviar primero el tamaño total
-                    salida.writeInt(datos.length);
-                    salida.flush();
-
-                    // Enviar los datos en chunks
-                    for (int offset = 0; offset < datos.length; offset += tamanoChunk) {
-                        int tamanoActual = Math.min(tamanoChunk, datos.length - offset);
-                        byte[] chunk = new byte[tamanoActual];
-                        System.arraycopy(datos, offset, chunk, 0, tamanoActual);
-
-                        // Enviar tamaño del chunk actual
-                        salida.writeInt(tamanoActual);
-                        // Enviar el chunk
-                        salida.write(chunk, 0, tamanoActual);
-                        salida.flush();
-                    }
-
-                    // Marca de fin de transmisión
-                    salida.writeInt(-1);
-                    salida.flush();
-                } else {
-                    // Para otros tipos de objetos, enviar directamente
-                    salida.writeObject(obj);
+                int tamanoChunk = 8192;
+                for (int offset = 0; offset < datos.length; offset += tamanoChunk) {
+                    int tamanoActual = Math.min(tamanoChunk, datos.length - offset);
+                    byte[] chunk = new byte[tamanoActual];
+                    System.arraycopy(datos, offset, chunk, 0, tamanoActual);
+                    salida.writeInt(tamanoActual);
+                    salida.write(chunk, 0, tamanoActual);
                     salida.flush();
                 }
-            } catch (IOException e) {
-                Platform.runLater(() -> {
-                    callback.onError("Error enviando objeto: " + e.getMessage());
-                    desconectar();
-                });
+                salida.writeInt(-1);
+                salida.flush();
+            } else {
+                salida.writeObject(obj);
+                salida.flush();
             }
-        }).start();
+        } catch (IOException e) {
+            Platform.runLater(() -> {
+                callback.onError("Error enviando objeto: " + e.getMessage());
+                desconectar();
+            });
+        }
     }
 
     public Object recibirObjeto() throws IOException, ClassNotFoundException {

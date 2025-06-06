@@ -3,15 +3,18 @@ package com.MagicalStay.server;
 import com.MagicalStay.shared.config.ConfiguracionApp;
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
 
 public class ClientHandler implements Runnable {
-    private Socket socket;
+    private final Socket socket;
     private ObjectInputStream entrada;
     private ObjectOutputStream salida;
+    private volatile boolean ejecutando = true;
 
     public ClientHandler(Socket socket) {
         this.socket = socket;
@@ -20,177 +23,145 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
+            // Importante: crear primero la salida y luego la entrada
             salida = new ObjectOutputStream(socket.getOutputStream());
+            salida.flush();
             entrada = new ObjectInputStream(socket.getInputStream());
 
-            handleConnect();
+            // Enviar mensaje de bienvenida
+            enviarMensaje("WELCOME|Conectado al servidor MagicalStay");
 
-            while (!socket.isClosed()) {
+            while (ejecutando && !socket.isClosed()) {
                 Object mensaje = entrada.readObject();
 
                 if (mensaje instanceof String) {
-                    String comandoStr = (String) mensaje;
-                    handleMessage(comandoStr);
-
-                    if (comandoStr.equalsIgnoreCase("salir")) {
-                        break;
-                    }
-                } else if (mensaje instanceof byte[]) {
-                    // Manejar datos binarios (archivos)
-                    handleBinaryData((byte[]) mensaje);
+                    handleMessage((String) mensaje);
+                } else {
+                    enviarMensaje("Error: tipo de mensaje no soportado");
                 }
             }
         } catch (EOFException e) {
-            System.out.println("Cliente desconectado: " + socket.getInetAddress());
+            System.out.println("Cliente desconectado normalmente");
         } catch (Exception e) {
-            System.err.println("Error en la comunicación con el cliente: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error en ClientHandler: " + e.getMessage());
         } finally {
-            cerrarRecursos();
-            handleDisconnect();
+            cerrarConexion();
         }
     }
 
-    private void handleBinaryData(byte[] datos) throws IOException, ClassNotFoundException {
-        // Aquí procesamos los datos binarios recibidos
-        String comando = (String) entrada.readObject();
-        if (comando.startsWith("subir_archivo|") || comando.startsWith("subir_imagen|")) {
+    private void handleMessage(String mensaje) throws IOException {
+        try {
+            if (mensaje.equals("listar_archivos")) {
+                enviarListaArchivos();
+            } else if (mensaje.startsWith("subir_archivo|") || mensaje.startsWith("subir_imagen|")) {
+                recibirArchivo(mensaje);
+            } else {
+                procesarComandoEstandar(mensaje);
+            }
+        } catch (Exception e) {
+            enviarMensaje("Error: " + e.getMessage());
+        }
+    }
+
+    private void enviarListaArchivos() throws IOException {
+        List<Path> archivos = new ArrayList<>();
+
+        // Recolectar archivos de ambos directorios
+        try (Stream<Path> archivosNormales = Files.walk(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR))) {
+            archivosNormales
+                .filter(Files::isRegularFile)
+                .forEach(archivos::add);
+        }
+
+        try (Stream<Path> imagenes = Files.walk(Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR))) {
+            imagenes
+                .filter(Files::isRegularFile)
+                .forEach(archivos::add);
+        }
+
+        // Enviar conteo total
+        enviarMensaje("FILE_COUNT|" + archivos.size());
+
+        // Enviar cada archivo
+        for (Path archivo : archivos) {
+            String tipo = archivo.toString().contains("images") ? "imagen" : "archivo";
+            String nombre = archivo.getFileName().toString();
+
+            // Enviar metadata
+            enviarMensaje(tipo + "|" + nombre);
+
+            // Enviar contenido
+            byte[] datos = Files.readAllBytes(archivo);
+            salida.writeObject(datos);
+            salida.flush();
+        }
+
+        enviarMensaje("Lista de archivos enviada");
+    }
+
+  private void recibirArchivo(String comando) throws IOException {
+        try {
             String[] partes = comando.split("\\|");
+            if (partes.length != 2) {
+                throw new IllegalArgumentException("Formato de comando inválido");
+            }
+
             String tipo = partes[0];
             String nombre = partes[1];
 
+            int tamanoTotal = entrada.readInt();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(tamanoTotal);
+            byte[] buffer = new byte[8192];
+
+            while (true) {
+                int tamanoChunk = entrada.readInt();
+                if (tamanoChunk == -1) break;
+
+                int bytesLeidos = 0;
+                while (bytesLeidos < tamanoChunk) {
+                    int leidos = entrada.read(buffer, 0, Math.min(buffer.length, tamanoChunk - bytesLeidos));
+                    if (leidos == -1) break;
+                    baos.write(buffer, 0, leidos);
+                    bytesLeidos += leidos;
+                }
+            }
+
             String rutaBase = tipo.equals("subir_imagen") ?
-                    ConfiguracionApp.RUTA_IMAGENES_SERVIDOR :
-                    ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
+                ConfiguracionApp.RUTA_IMAGENES_SERVIDOR :
+                ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
 
             Path rutaDestino = Paths.get(rutaBase, nombre);
             Files.createDirectories(rutaDestino.getParent());
-            Files.write(rutaDestino, datos);
+            Files.write(rutaDestino, baos.toByteArray());
 
-            salida.writeObject("Archivo recibido: " + nombre);
-            salida.flush();
-        }
-    }
-
-    private void handleMessage(String comando) throws IOException {
-        try {
-            String respuesta = procesarComando(comando);
-            salida.writeObject(respuesta);
-            salida.flush();
-        } catch (ClassCastException e) {
-            salida.writeObject("Error: " + e.getMessage());
-            salida.flush();
-        }
-    }
-
-    private String procesarComando(String comando) {
-        try {
-            String[] partes = comando.split("\\|");
-            String accion = partes[0].toLowerCase();
-
-            switch (accion) {
-                case "ready":
-                    return "OK";
-
-                case "listar_archivos":
-                    File[] archivosNormales = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
-                    File[] imagenes = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();
-
-                    // Contar archivos válidos
-                    int totalArchivos = 0;
-                    if (archivosNormales != null) {
-                        totalArchivos += Arrays.stream(archivosNormales)
-                                .filter(File::isFile)
-                                .count();
-                    }
-                    if (imagenes != null) {
-                        totalArchivos += Arrays.stream(imagenes)
-                                .filter(File::isFile)
-                                .count();
-                    }
-
-                    // Enviar comando y número
-                    salida.writeObject("FILE_COUNT|" + totalArchivos);
-                    System.out.println("Enviando " + totalArchivos + " archivos...");
-
-                    // Enviar archivos normales
-                    if (archivosNormales != null) {
-                        for (File archivo : archivosNormales) {
-                            if (archivo.isFile()) {
-                                salida.writeObject("archivo|" + archivo.getName());
-                                byte[] contenido = Files.readAllBytes(archivo.toPath());
-                                salida.writeObject(contenido);
-                                System.out.println("Enviado archivo: " + archivo.getName());
-                            }
-                        }
-                    }
-
-                    // Enviar imágenes
-                    if (imagenes != null) {
-                        for (File imagen : imagenes) {
-                            if (imagen.isFile()) {
-                                salida.writeObject("imagen|" + imagen.getName());
-                                byte[] contenido = Files.readAllBytes(imagen.toPath());
-                                salida.writeObject(contenido);
-                                System.out.println("Enviada imagen: " + imagen.getName());
-                            }
-                        }
-                    }
-                    return "Lista de archivos enviada";
-
-                case "subir_archivo":
-                    String nombreArchivo = partes[1];
-                    byte[] datos = (byte[]) entrada.readObject();
-                    Path rutaArchivo = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
-                    Files.createDirectories(rutaArchivo.getParent());
-                    Files.write(rutaArchivo, datos);
-                    return "Archivo guardado: " + nombreArchivo;
-
-                case "subir_imagen":
-                    String nombreImagen = partes[1];
-                    byte[] datosImagen = (byte[]) entrada.readObject();
-                    Path rutaImagen = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreImagen);
-                    Files.createDirectories(rutaImagen.getParent());
-                    Files.write(rutaImagen, datosImagen);
-                    return "Imagen guardada: " + nombreImagen;
-
-                case "obtener_archivo":
-                    String nombre = partes[1];
-                    Path ruta = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombre);
-                    if (Files.exists(ruta)) {
-                        byte[] contenido = Files.readAllBytes(ruta);
-                        salida.writeObject(contenido);
-                        return "Archivo enviado";
-                    }
-                    return "Archivo no encontrado";
-
-                default:
-                    return "Comando no reconocido";
-            }
+            enviarMensaje("Archivo recibido: " + nombre);
         } catch (Exception e) {
-            e.printStackTrace();
-            return "Error: " + e.getMessage();
+            String error = "Error al recibir archivo: " + e.getMessage();
+            System.err.println(error);
+            enviarMensaje("Error: " + error);
         }
     }
 
-    private void handleConnect() throws IOException {
-        System.out.println("Cliente conectado desde: " + socket.getInetAddress());
-        // Enviar mensaje de bienvenida con protocolo correcto
-        salida.writeObject("WELCOME|Conectado al servidor MagicalStay");
-        salida.flush();
+    private void procesarComandoEstandar(String comando) throws IOException {
+        // Procesar otros comandos estándar aquí
+        enviarMensaje("Comando procesado: " + comando);
     }
 
-    private void cerrarRecursos() {
+    private void enviarMensaje(String mensaje) throws IOException {
+        if (salida != null && !socket.isClosed()) {
+            salida.writeObject(mensaje);
+            salida.flush();
+        }
+    }
+
+    private void cerrarConexion() {
+        ejecutando = false;
         try {
-            if (entrada != null) entrada.close();
             if (salida != null) salida.close();
-            if (socket != null && !socket.isClosed()) socket.close();
+            if (entrada != null) entrada.close();
+            if (socket != null) socket.close();
         } catch (IOException e) {
-            System.err.println("Error cerrando recursos: " + e.getMessage());
+            System.err.println("Error al cerrar conexión: " + e.getMessage());
         }
-    }
-
-    private void handleDisconnect() {
-        System.out.println("Cliente desconectado: " + socket.getInetAddress());
     }
 }
