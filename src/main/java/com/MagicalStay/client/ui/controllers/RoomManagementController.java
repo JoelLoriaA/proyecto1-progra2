@@ -2,6 +2,7 @@ package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.client.data.DataFactory;
+import com.MagicalStay.server.FileTransferService;
 import com.MagicalStay.shared.config.ConfiguracionApp;
 import com.MagicalStay.shared.data.HotelData;
 import com.MagicalStay.shared.data.JsonResponse;
@@ -366,7 +367,7 @@ public class RoomManagementController implements Closeable {
             if (response.isSuccess()) {
                 loadRoomsFromFile();
                 roomListView.setItems(roomList);
-
+                sincronizarArchivos();
 
                 setFieldsEnabled(false);
                 clearFields();
@@ -629,6 +630,31 @@ public class RoomManagementController implements Closeable {
                 FXUtility.alertError("Error", "No se pudo copiar la imagen: " + e.getMessage()).show();
                 e.printStackTrace();
             }
+        }
+    }
+
+    private void sincronizarArchivos() {
+        try {
+            // Sincronizar archivo DAT
+            File datFile = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR + "rooms.dat");
+            if (datFile.exists()) {
+                byte[] datComprimido = FileTransferService.compressFile(datFile);
+                socketCliente.enviarMensaje("sincronizar_dat|rooms.dat");
+                socketCliente.enviarObjeto(datComprimido);
+            }
+
+            // Sincronizar imagen si existe
+            if (selectedImagePath != null) {
+                File imageFile = new File(selectedImagePath);
+                if (imageFile.exists()) {
+                    byte[] imageData = Files.readAllBytes(imageFile.toPath());
+                    String imageName = imageFile.getName();
+                    socketCliente.enviarMensaje("sincronizar_imagen|" + imageName);
+                    socketCliente.enviarObjeto(imageData);
+                }
+            }
+        } catch (Exception e) {
+            FXUtility.alertError("Error", "Error al sincronizar archivos: " + e.getMessage()).show();
         }
     }
 

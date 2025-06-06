@@ -1,7 +1,12 @@
 package com.MagicalStay.server;
 
+import com.MagicalStay.shared.config.ConfiguracionApp;
+
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 public class ClientHandler implements Runnable {
@@ -67,6 +72,19 @@ private void cerrarRecursos() {
             String accion = partes[0].toLowerCase();
 
             switch (accion) {
+                case "sincronizar_dat":
+                    String nombreArchivo = partes[1];
+                    byte[] datosArchivo = (byte[]) entrada.readObject();
+                    Path rutaDestino = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
+                    FileTransferService.decompressFile(datosArchivo, rutaDestino.getParent());
+                    return "Archivo DAT sincronizado correctamente";
+
+                case "sincronizar_imagen":
+                    String nombreImagen = partes[1];
+                    byte[] datosImagen = (byte[]) entrada.readObject();
+                    Path rutaImagen = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreImagen);
+                    Files.write(rutaImagen, datosImagen);
+                    return "Imagen sincronizada correctamente";
                 case "subirarchivo":
                     // Espera nombre y datos del archivo
                     String nombre = partes[1];

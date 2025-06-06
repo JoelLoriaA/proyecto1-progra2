@@ -1,8 +1,14 @@
 
 package com.MagicalStay.server;
 
+import com.MagicalStay.shared.config.ConfiguracionApp;
+
 import java.io.*;
-import java.nio.file.*;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 public class FileService {
@@ -11,8 +17,9 @@ public class FileService {
     static {
         try {
             Files.createDirectories(Paths.get(FILES_DIR));
+            Files.createDirectories(Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR));
         } catch (IOException e) {
-            System.err.println("No se pudo crear el directorio de archivos: " + e.getMessage());
+            System.err.println("No se pudieron crear los directorios: " + e.getMessage());
         }
     }
 
@@ -32,5 +39,10 @@ public class FileService {
         } catch (Exception e) {
             return Collections.emptyList();
         }
+    }
+
+    public static void sincronizarArchivo(String nombre, byte[] datos, boolean esImagen) throws IOException {
+        Path ruta = Paths.get(esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : FILES_DIR, nombre);
+        Files.write(ruta, datos, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
     }
 }
