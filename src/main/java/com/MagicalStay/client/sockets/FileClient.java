@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FileClient {
+    private static final int BUFFER_SIZE = 8192;
     private final SocketCliente socketCliente;
     private List<String> archivosEnviados = new ArrayList<>();
 
@@ -28,13 +29,36 @@ public class FileClient {
     }
 
     public void subirArchivo(String nombre, byte[] datos, boolean esImagen) throws IOException {
-        // Enviar al servidor
-        String comando = esImagen ? "subir_imagen" : "subir_archivo";
-        socketCliente.enviarMensaje(comando + "|" + nombre);
-        socketCliente.enviarObjeto(datos);
+        // Validar si el archivo ya fue enviado
+        File archivoExistente = new File(
+                esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
+                nombre
+        );
+
+        if (archivoYaEnviado(nombre, archivoExistente)) {
+            System.out.println("Archivo ya enviado anteriormente: " + nombre);
+            return;
+        }
+
+        // Enviar en chunks si es necesario
+        int offset = 0;
+        while (offset < datos.length) {
+            int length = Math.min(BUFFER_SIZE, datos.length - offset);
+            byte[] chunk = new byte[length];
+            System.arraycopy(datos, offset, chunk, 0, length);
+
+            String comando = esImagen ? "subir_imagen" : "subir_archivo";
+            socketCliente.enviarMensaje(comando + "|" + nombre + "|" + offset + "|" + datos.length);
+            socketCliente.enviarObjeto(chunk);
+
+            offset += length;
+        }
+
+        // Marcar como enviado
+        archivosEnviados.add(obtenerIdentificadorArchivo(nombre, archivoExistente));
 
         if (esImagen) {
-            // Guardar en el directorio de imágenes si no existe
+            // Solo guardar si no existe
             Path rutaImagen = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombre);
             if (!Files.exists(rutaImagen)) {
                 Files.createDirectories(rutaImagen.getParent());
@@ -44,7 +68,6 @@ public class FileClient {
                 System.out.println("La imagen ya existe en: " + rutaImagen);
             }
         } else {
-            // Los archivos normales se guardan en su directorio
             Path rutaArchivo = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombre);
             Files.createDirectories(rutaArchivo.getParent());
             Files.write(rutaArchivo, datos);
@@ -167,13 +190,13 @@ public class FileClient {
         }
     }
 
-    private boolean archivoYaEnviado(String nombreArchivo, File archivo) {
-        String identificador = obtenerIdentificadorArchivo(nombreArchivo, archivo);
+    private boolean archivoYaEnviado(String nombre, File archivo) {
+        String identificador = obtenerIdentificadorArchivo(nombre, archivo);
         return archivosEnviados.contains(identificador);
     }
 
-    private String obtenerIdentificadorArchivo(String nombreArchivo, File archivo) {
-        return nombreArchivo + "_" + archivo.length() + "_" + archivo.lastModified();
+    private String obtenerIdentificadorArchivo(String nombre, File archivo) {
+        return nombre + "_" + archivo.length() + "_" + archivo.lastModified();
     }
 
 
