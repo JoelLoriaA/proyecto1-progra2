@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import jakarta.xml.bind.DatatypeConverter;
+import java.security.MessageDigest;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
@@ -55,51 +57,63 @@ public class ClientHandler implements Runnable {
             String accion = partes[0].toLowerCase();
 
             switch (accion) {
-                case "listar_archivos":
-                    File[] archivosNormales = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
-                    File[] imagenes = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();
+               case "listar_archivos":
+                        System.out.println("Procesando comando listar_archivos");
 
-                    // Contar archivos válidos
-                    int totalArchivos = 0;
-                    if (archivosNormales != null) {
-                        totalArchivos += (int) Arrays.stream(archivosNormales)
-                                .filter(File::isFile)
-                                .count();
-                    }
-                    if (imagenes != null) {
-                        totalArchivos += (int) Arrays.stream(imagenes)
-                                .filter(File::isFile)
-                                .count();
-                    }
+                        File[] archivosNormales = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
+                        File[] imagenes = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();
 
-                    // Enviar comando y número
-                    salida.writeObject("FILE_COUNT|" + totalArchivos);
-                    System.out.println("Enviando " + totalArchivos + " archivos...");
+                        // Contar archivos válidos
+                        int totalArchivos = 0;
+                        if (archivosNormales != null) {
+                            totalArchivos += (int) Arrays.stream(archivosNormales)
+                                    .filter(File::isFile)
+                                    .count();
+                        }
+                        if (imagenes != null) {
+                            totalArchivos += (int) Arrays.stream(imagenes)
+                                    .filter(File::isFile)
+                                    .count();
+                        }
 
-                    // Enviar archivos normales
-                    if (archivosNormales != null) {
-                        for (File archivo : archivosNormales) {
-                            if (archivo.isFile()) {
-                                salida.writeObject("archivo|" + archivo.getName());
-                                byte[] contenido = Files.readAllBytes(archivo.toPath());
-                                salida.writeObject(contenido);
-                                System.out.println("Enviado archivo: " + archivo.getName());
+                        // Enviar conteo de archivos
+                        String fileCountMessage = "FILE_COUNT|" + totalArchivos;
+                        System.out.println("Enviando conteo: " + fileCountMessage);
+                        salida.writeObject(fileCountMessage);
+                        salida.flush();
+
+                        // Enviar archivos normales
+                        if (archivosNormales != null) {
+                            for (File archivo : archivosNormales) {
+                                if (archivo.isFile()) {
+                                    String metadata = "archivo|" + archivo.getName() + "|" + calcularMD5(archivo);
+                                    System.out.println("Enviando metadata: " + metadata);
+                                    salida.writeObject(metadata);
+
+                                    byte[] contenido = Files.readAllBytes(archivo.toPath());
+                                    salida.writeObject(contenido);
+                                    salida.flush();
+                                    System.out.println("Enviado archivo: " + archivo.getName());
+                                }
                             }
                         }
-                    }
 
-                    // Enviar imágenes
-                    if (imagenes != null) {
-                        for (File imagen : imagenes) {
-                            if (imagen.isFile()) {
-                                salida.writeObject("imagen|" + imagen.getName());
-                                byte[] contenido = Files.readAllBytes(imagen.toPath());
-                                salida.writeObject(contenido);
-                                System.out.println("Enviada imagen: " + imagen.getName());
+                        // Enviar imágenes
+                        if (imagenes != null) {
+                            for (File imagen : imagenes) {
+                                if (imagen.isFile()) {
+                                    String metadata = "imagen|" + imagen.getName() + "|" + calcularMD5(imagen);
+                                    System.out.println("Enviando metadata: " + metadata);
+                                    salida.writeObject(metadata);
+
+                                    byte[] contenido = Files.readAllBytes(imagen.toPath());
+                                    salida.writeObject(contenido);
+                                    salida.flush();
+                                    System.out.println("Enviada imagen: " + imagen.getName());
+                                }
                             }
                         }
-                    }
-                    return "Lista de archivos enviada";
+                        return "OK";
 
                 case "subir_archivo":
                     String nombreArchivo = partes[1];
@@ -136,9 +150,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleConnect() throws IOException {
+   private void handleConnect() throws IOException {
         System.out.println("Cliente conectado desde: " + socket.getInetAddress());
-        salida.writeObject("WELCOME|Conectado al servidor MagicalStay");
+        String welcomeMessage = "WELCOME|Conectado al servidor MagicalStay";
+        System.out.println("Enviando mensaje de bienvenida: " + welcomeMessage);
+        salida.writeObject(welcomeMessage);
         salida.flush();
     }
 
@@ -154,5 +170,17 @@ public class ClientHandler implements Runnable {
 
     private void handleDisconnect() {
         System.out.println("Cliente desconectado: " + socket.getInetAddress());
+    }
+
+    private String calcularMD5(File file) {
+        try {
+            byte[] datos = Files.readAllBytes(file.toPath());
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] hash = md.digest(datos);
+            return DatatypeConverter.printHexBinary(hash).toLowerCase();
+        } catch (Exception e) {
+            System.err.println("Error calculando MD5: " + e.getMessage());
+            return "";
+        }
     }
 }
