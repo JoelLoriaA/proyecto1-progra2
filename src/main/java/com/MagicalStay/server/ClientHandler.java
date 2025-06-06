@@ -76,6 +76,7 @@ public class ClientHandler implements Runnable {
                 case "obtener_archivo" -> handleFileDownload(partes);
                 case "obtener_imagen" -> handleImageDownload(partes);
                 case "listar_archivos" -> handleListFiles();
+                case "verificar_archivo" -> handleVerifyFile(partes);
                 case "consultar" -> handleQuery();
                 case "reservar" -> handleBooking(partes);
                 case "cancelar" -> handleCancellation(partes);
@@ -87,7 +88,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private String handleFileUpload(String[] partes) throws IOException {
+   private String handleFileUpload(String[] partes) throws IOException {
         if (partes.length < 2) return "Error: Nombre de archivo requerido";
         String nombreArchivo = partes[1];
 
@@ -96,7 +97,7 @@ public class ClientHandler implements Runnable {
         Files.createDirectories(rutaDestino.getParent());
         Files.write(rutaDestino, datos);
 
-        return "Archivo subido exitosamente";
+        return "OK|Archivo subido exitosamente";
     }
 
     private String handleImageUpload(String[] partes) throws IOException {
@@ -104,15 +105,18 @@ public class ClientHandler implements Runnable {
         String nombreImagen = partes[1];
 
         byte[] datos = (byte[]) recibirObjeto();
-        Path rutaDestino = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreImagen);
+
+        // Guardar en el directorio principal de imágenes
+        Path rutaPrincipal = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreImagen);
+        Files.createDirectories(rutaPrincipal.getParent());
+        Files.write(rutaPrincipal, datos);
+
+        // Crear copia automática
         Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, nombreImagen);
-
-        Files.createDirectories(rutaDestino.getParent());
         Files.createDirectories(rutaCopia.getParent());
-        Files.write(rutaDestino, datos);
-        Files.copy(rutaDestino, rutaCopia, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(rutaPrincipal, rutaCopia, StandardCopyOption.REPLACE_EXISTING);
 
-        return "Imagen subida exitosamente";
+        return "OK|Imagen subida exitosamente";
     }
 
     private String handleFileDownload(String[] partes) throws IOException {
@@ -145,14 +149,20 @@ public class ClientHandler implements Runnable {
 
     private String handleListFiles() throws IOException {
         List<String> archivos = new ArrayList<>();
-        try (DirectoryStream<Path> streamArchivos = Files.newDirectoryStream(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR));
-             DirectoryStream<Path> streamImagenes = Files.newDirectoryStream(Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR))) {
 
+        // Listar archivos regulares
+        try (DirectoryStream<Path> streamArchivos = Files.newDirectoryStream(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR))) {
             streamArchivos.forEach(path -> archivos.add("archivo|" + path.getFileName()));
+        }
+
+        // Listar imágenes
+        try (DirectoryStream<Path> streamImagenes = Files.newDirectoryStream(Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR))) {
             streamImagenes.forEach(path -> archivos.add("imagen|" + path.getFileName()));
         }
 
         salida.writeObject("FILE_COUNT|" + archivos.size());
+
+        // Enviar cada archivo
         for (String archivo : archivos) {
             String[] partes = archivo.split("\\|");
             Path ruta = Paths.get(
@@ -161,10 +171,28 @@ public class ClientHandler implements Runnable {
                             ConfiguracionApp.RUTA_IMAGENES_SERVIDOR,
                     partes[1]
             );
+
             salida.writeObject(archivo);
             salida.writeObject(Files.readAllBytes(ruta));
         }
+
         return "OK";
+    }
+
+    private String handleVerifyFile(String[] partes) throws IOException {
+        if (partes.length < 3) return "Error: Parámetros insuficientes";
+
+        String tipo = partes[1];
+        String nombre = partes[2];
+
+        Path ruta = Paths.get(
+                tipo.equals("archivo") ?
+                        ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR :
+                        ConfiguracionApp.RUTA_IMAGENES_SERVIDOR,
+                nombre
+        );
+
+        return Files.exists(ruta) ? "OK|EXISTS" : "OK|NOT_EXISTS";
     }
 
     private String handleQuery() {

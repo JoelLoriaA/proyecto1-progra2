@@ -1,9 +1,7 @@
-
 package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.client.data.DataFactory;
-import com.MagicalStay.shared.config.ConfiguracionApp;
 import com.MagicalStay.shared.data.HotelData;
 import com.MagicalStay.shared.data.JsonResponse;
 import com.MagicalStay.shared.data.RoomData;
@@ -36,8 +34,6 @@ import javafx.util.StringConverter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
@@ -597,66 +593,43 @@ public class RoomManagementController implements Closeable {
         alert.showAndWait();
     }
 
-   @FXML
+    @FXML
     private void handleSelectImage() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Seleccionar Imagen de Habitación");
         fileChooser.getExtensionFilters().addAll(
-            new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
+                new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg")
         );
 
-        File selectedFile = fileChooser.showOpenDialog((Stage) selectImageButton.getScene().getWindow());
+        File initialDir = new File("\"D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\images\"");
+        if (!initialDir.exists()) {
+            initialDir.mkdirs();
+        }
+        fileChooser.setInitialDirectory(initialDir);
+
+        Stage stage = (Stage) selectImageButton.getScene().getWindow();
+        File selectedFile = fileChooser.showOpenDialog(stage);
+
         if (selectedFile != null) {
             try {
-                // Generar nombre único para la imagen
                 String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
-                String newFileName = "room_" + System.currentTimeMillis() + extension;
+                String newFileName = "habitacion_" + System.currentTimeMillis() + extension;
+                File destFile = new File("D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\images\\copy", newFileName);
 
-                // Leer los datos de la imagen
-                byte[] imageData = Files.readAllBytes(selectedFile.toPath());
+                Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-                // Enviar la imagen al servidor
-                socketCliente.enviarMensaje("subir_imagen|" + newFileName);
-                socketCliente.enviarObjeto(imageData);
+                roomImageView.setImage(new Image(destFile.toURI().toString()));
 
-                // Actualizar la vista
-                roomImageView.setImage(new Image(selectedFile.toURI().toString()));
-                selectedImagePath = ConfiguracionApp.RUTA_IMAGENES_SERVIDOR + newFileName;
+                selectedImagePath = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\images\\copy" + newFileName;
+
+                System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
 
             } catch (IOException e) {
-                FXUtility.alertError("Error", "No se pudo procesar la imagen: " + e.getMessage()).show();
+                FXUtility.alertError("Error", "No se pudo copiar la imagen: " + e.getMessage()).show();
                 e.printStackTrace();
             }
         }
     }
 
-    private void cargarImagen(String nombreImagen) {
-        if (nombreImagen == null || nombreImagen.isEmpty()) {
-            roomImageView.setImage(null);
-            return;
-        }
-
-        try {
-            socketCliente.enviarMensaje("obtener_imagen|" + nombreImagen);
-            byte[] imageData = (byte[]) socketCliente.recibirObjeto();
-
-            // Guardar en el directorio local
-            Path rutaLocal = Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, nombreImagen);
-            Files.createDirectories(rutaLocal.getParent());
-            Files.write(rutaLocal, imageData);
-
-            // Crear copia
-            Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, nombreImagen);
-            Files.createDirectories(rutaCopia.getParent());
-            Files.copy(rutaLocal, rutaCopia, StandardCopyOption.REPLACE_EXISTING);
-
-            // Mostrar la imagen
-            roomImageView.setImage(new Image(rutaLocal.toUri().toString()));
-
-        } catch (Exception e) {
-            FXUtility.alertError("Error", "No se pudo cargar la imagen: " + e.getMessage()).show();
-            e.printStackTrace();
-        }
-    }
-
 }
+
