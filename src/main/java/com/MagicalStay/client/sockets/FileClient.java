@@ -37,12 +37,6 @@ public class FileClient {
         Files.createDirectories(rutaLocal.getParent());
         Files.write(rutaLocal, datos);
 
-        // Si es imagen, guardar también en el directorio de copias
-        if (esImagen) {
-            Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, nombre);
-            Files.createDirectories(rutaCopia.getParent());
-            Files.copy(rutaLocal, rutaCopia, StandardCopyOption.REPLACE_EXISTING);
-        }
     }
 
     public List<String> listarArchivos() throws IOException {

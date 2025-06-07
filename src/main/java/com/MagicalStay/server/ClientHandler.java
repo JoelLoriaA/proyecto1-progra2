@@ -56,6 +56,9 @@ public class ClientHandler implements Runnable {
             String accion = partes[0].toLowerCase();
 
             switch (accion) {
+                case "ready":
+                    return "OK";
+
                 case "listar_archivos":
                     File[] archivosNormales = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
                     File[] imagenes = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();
@@ -142,15 +145,6 @@ public class ClientHandler implements Runnable {
         // Enviar mensaje de bienvenida con protocolo correcto
         salida.writeObject("WELCOME|Conectado al servidor MagicalStay");
         salida.flush();
-        // Esperar confirmación del cliente
-        try {
-            String confirmacion = (String) entrada.readObject();
-            if (!confirmacion.equals("READY")) {
-                throw new IOException("Protocolo de conexión incorrecto");
-            }
-        } catch (ClassNotFoundException e) {
-            throw new IOException("Error en protocolo de conexión");
-        }
     }
 
     private void cerrarRecursos() {
