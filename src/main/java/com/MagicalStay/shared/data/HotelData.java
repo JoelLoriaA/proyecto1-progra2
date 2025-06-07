@@ -6,7 +6,6 @@ import com.MagicalStay.shared.domain.Room;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public class HotelData extends JsonDataResponse {
@@ -158,7 +157,7 @@ public class HotelData extends JsonDataResponse {
             String guestInfo = "";
             if (i < guests.size() && guests.get(i) != null) {
                 guestInfo = padRight(
-                        guests.get(i).getName() + ";" + guests.get(i).getId(),
+                        guests.get(i).getName() + ";" + guests.get(i).getDni(),
                         GUEST_LENGTH
                 );
             }

@@ -121,7 +121,7 @@ public class GuestManagementController {
             // Setup table columns
             tableNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
             tableLastNameColumn.setCellValueFactory(new PropertyValueFactory<>("lastName"));
-            tableDniColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
+            tableDniColumn.setCellValueFactory(new PropertyValueFactory<>("dni"));
             tableEmailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
 
             // Setup search type combo box
@@ -220,7 +220,7 @@ public class GuestManagementController {
             // Fill the fields with guest data
             nameField.setText(selectedGuest.getName());
             lastNameField.setText(selectedGuest.getLastName());
-            dniField.setText(String.valueOf(selectedGuest.getId()));
+            dniField.setText(String.valueOf(selectedGuest.getDni()));
             phoneNumberField.setText(String.valueOf(selectedGuest.getPhoneNumber()));
             emailField.setText(selectedGuest.getEmail());
             addressField.setText(selectedGuest.getAddress());
@@ -320,13 +320,15 @@ public class GuestManagementController {
         validationLabel.setText("Complete todos los campos requeridos");
     }
 
-    @FXML
+   @FXML
     private void handleEdit(ActionEvent event) {
         if (selectedGuest != null) {
             setFieldsEnabled(true);
-            editMode = true;
+            // Asegúrate de que estos campos estén habilitados
+            nameField.setDisable(false);
+            dniField.setDisable(false);
 
-            // Enable update button, disable save button
+            editMode = true;
             saveButton.setDisable(true);
             updateButton.setDisable(false);
 
@@ -347,7 +349,7 @@ public class GuestManagementController {
             Optional<ButtonType> result = alert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
                 try {
-                    String jsonResponse = guestData.delete(selectedGuest.getId());
+                    String jsonResponse = guestData.delete(selectedGuest.getDni());
                     DataResponse response = parseDataResponse(jsonResponse);
 
                     if (response.isSuccess()) {
@@ -407,7 +409,7 @@ public class GuestManagementController {
 
                     // Select the saved guest
                     for (Guest g : guestList) {
-                        if (g.getId() == guest.getId()) {
+                        if (g.getDni() == guest.getDni()) {
                             guestTableView.getSelectionModel().select(g);
                             break;
                         }
@@ -433,14 +435,14 @@ public class GuestManagementController {
     private void handleUpdate(ActionEvent event) {
         if (selectedGuest != null && validateFields()) {
             try {
-                int dni = Integer.parseInt(dniField.getText().trim());
+                int id = Integer.parseInt(dniField.getText().trim());
                 int phoneNumber = Integer.parseInt(phoneNumberField.getText().trim());
 
                 // Create updated guest object
                 Guest updatedGuest = new Guest(
                         nameField.getText().trim(),
                         lastNameField.getText().trim(),
-                        dni,
+                        id,
                         phoneNumber,
                         emailField.getText().trim(),
                         addressField.getText().trim(),
@@ -462,7 +464,7 @@ public class GuestManagementController {
 
                     // Select the updated guest
                     for (Guest g : guestList) {
-                        if (g.getId() == updatedGuest.getId()) {
+                        if (g.getDni() == updatedGuest.getDni()) {
                             guestTableView.getSelectionModel().select(g);
                             break;
                         }

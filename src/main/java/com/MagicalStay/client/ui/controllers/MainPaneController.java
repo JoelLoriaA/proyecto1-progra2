@@ -60,20 +60,6 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
     }
 
     @FXML
-    private void handleConnect() {
-        if (!isConnected) {
-            statusLabel.setText("Conectando al servidor...");
-            connectButton.setDisable(true);
-
-            // Mostrar diálogo de rol
-            showRoleDialog();
-
-            // Intentar conexión al servidor
-            socketCliente.conectar(ConfiguracionApp.HOST_SERVIDOR, ConfiguracionApp.PUERTO_SERVIDOR);
-        }
-    }
-
-    @FXML
     private void handleExit() {
         if (isConnected) {
             socketCliente.desconectar();
@@ -171,28 +157,42 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
         }
     }
 
-    @Override
+  @Override
     public void onError(String error) {
-        statusLabel.setText("Error: " + error);
-        connectButton.setDisable(false);
-        updateConnectionStatus(false);
+        Platform.runLater(() -> {
+            statusLabel.setText("Error: " + error);
+            connectButton.setDisable(false);
+            updateConnectionStatus(false);
 
-        showAlert("Error de Conexión", "No se pudo conectar al servidor",
-                error, Alert.AlertType.ERROR);
+            // Usar Alert directamente en lugar de showAlert()
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error de Conexión");
+            alert.setHeaderText("No se pudo conectar al servidor");
+            alert.setContentText(error);
+            alert.show(); // Usar show() en lugar de showAndWait()
+        });
     }
 
     @Override
     public void onConexionEstablecida() {
-        statusLabel.setText("Conectado al servidor");
-        updateConnectionStatus(true);
+        Platform.runLater(() -> {
+            statusLabel.setText("Conectado al servidor");
+            updateConnectionStatus(true);
 
-        if (connectionStatusLabel != null) {
-            connectionStatusLabel.setText("Estado: Servidor Conectado");
-        }
+            if (connectionStatusLabel != null) {
+                connectionStatusLabel.setText("Conectado");
+            }
 
-        showAlert("Conexión Exitosa", "¡Conectado al servidor!",
-                "La conexión se ha establecido correctamente.", Alert.AlertType.INFORMATION);
+            // Usar Alert directamente
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Conexión Exitosa");
+            alert.setHeaderText("¡Conectado al servidor!");
+            alert.setContentText("La conexión se ha establecido correctamente.");
+            alert.show(); // Usar show() en lugar de showAndWait()
+        });
     }
+
+
 
     @Override
     public void onDesconexion() {
@@ -204,10 +204,9 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
         }
     }
 
-    @FXML
-    private void showRoleDialog() {
+   // Cambia showRoleDialog para que devuelva boolean
+    private boolean showRoleDialog() {
         try {
-            // Verificar si hay recepcionistas registrados
             String jsonResponse = DataFactory.getFrontDeskData().retrieveAll();
             JsonResponse response = objectMapper.readValue(jsonResponse, JsonResponse.class);
             boolean hasReceptionists = response.isSuccess() && response.getData() != null;
@@ -216,17 +215,15 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
             alert.setTitle("Selección de Rol");
 
             if (!hasReceptionists) {
-                // Si no hay recepcionistas, solo permitir acceso como administrador
                 alert.setHeaderText("No hay recepcionistas registrados.");
                 alert.setContentText("Debe ingresar como administrador para registrar recepcionistas.");
                 alert.getButtonTypes().setAll(ButtonType.OK);
                 alert.showAndWait();
                 currentRole = UserRole.ADMIN;
                 updateUIBasedOnRole();
-                return;
+                return true;
             }
 
-            // Si hay recepcionistas, mostrar opciones
             alert.setHeaderText("Seleccione su rol:");
             ButtonType buttonTypeAdmin = new ButtonType("Administrador");
             ButtonType buttonTypeFrontDesk = new ButtonType("Recepcionista");
@@ -237,8 +234,9 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
                 if (result.get() == buttonTypeAdmin) {
                     currentRole = UserRole.ADMIN;
                     updateUIBasedOnRole();
+                    return true;
                 } else if (result.get() == buttonTypeFrontDesk) {
-                    showLoginDialog();
+                    return showLoginDialog();
                 }
             }
         } catch (Exception e) {
@@ -246,19 +244,18 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
             showAlert("Error", "Error al verificar recepcionistas",
                     e.getMessage(), Alert.AlertType.ERROR);
         }
+        return false;
     }
 
-    private void showLoginDialog() {
-        // Crear el diálogo personalizado
+    // Cambia showLoginDialog para que devuelva boolean
+    private boolean showLoginDialog() {
         Dialog<Pair<String, String>> dialog = new Dialog<>();
         dialog.setTitle("Inicio de Sesión");
         dialog.setHeaderText("Ingrese sus credenciales de recepcionista");
 
-        // Configurar los botones
         ButtonType loginButtonType = new ButtonType("Iniciar Sesión", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(loginButtonType, ButtonType.CANCEL);
 
-        // Crear los campos de texto
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
@@ -276,7 +273,6 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
 
         dialog.getDialogPane().setContent(grid);
 
-        // Convertir el resultado
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == loginButtonType) {
                 return new Pair<>(username.getText(), password.getText());
@@ -285,27 +281,47 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
         });
 
         Optional<Pair<String, String>> result = dialog.showAndWait();
-        result.ifPresent(credentials -> {
+        if (result.isPresent()) {
             try {
-                // Autenticar usando el FrontDeskData
                 String jsonResponse = DataFactory.getFrontDeskData().authenticate(
-                    credentials.getKey(), credentials.getValue());
+                    result.get().getKey(), result.get().getValue());
                 JsonResponse response = objectMapper.readValue(jsonResponse, JsonResponse.class);
 
                 if (response.isSuccess()) {
                     currentRole = UserRole.FRONTDESK;
                     updateUIBasedOnRole();
+                    return true;
                 } else {
-                    // Para errores
                     showAlert("Error", "Error de Autenticación", response.getMessage(), Alert.AlertType.ERROR);
-                    showRoleDialog(); // Volver a mostrar el diálogo de rol
+                    return showLoginDialog(); // Vuelve a pedir login
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 showAlert("Error", "Error de Autenticación", e.getMessage(), Alert.AlertType.ERROR);
-                showRoleDialog();
+                return showLoginDialog();
             }
-        });
+        } else {
+            // Si cancela, vuelve a mostrar el diálogo de rol
+            return false;
+        }
+    }
+
+    // Modifica handleConnect para solo conectar si el rol fue seleccionado/autenticado
+    @FXML
+    private void handleConnect() {
+        if (!isConnected) {
+            statusLabel.setText("Conectando al servidor...");
+            connectButton.setDisable(true);
+
+            boolean rolSeleccionado = showRoleDialog();
+
+            if (rolSeleccionado) {
+                socketCliente.conectar(ConfiguracionApp.HOST_SERVIDOR, ConfiguracionApp.PUERTO_SERVIDOR);
+            } else {
+                statusLabel.setText("Conexión cancelada.");
+                connectButton.setDisable(false);
+            }
+        }
     }
 
     private void showAlert(String title, String header, String content, Alert.AlertType type) {

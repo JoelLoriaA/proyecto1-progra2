@@ -5,7 +5,7 @@ import java.util.List;
 public class Guest {
     private String name;
     private String lastName;
-    private int id;
+    private int dni;
     private int phoneNumber;
     private String email;
     private String address;
@@ -16,20 +16,20 @@ public class Guest {
     public Guest() {
     }
 
-    public Guest(String name, String lastName, int id, int phoneNumber, String email, String address, String nationality) {
+    public Guest(String name, String lastName, int dni, int phoneNumber, String email, String address, String nationality) {
         this.name = name;
         this.lastName = lastName;
-        this.id = id;
+        this.dni = dni;
         this.phoneNumber = phoneNumber;
         this.email = email;
         this.address = address;
         this.nationality = nationality;
     }
 
-    public Guest(String name, String lastName, int id, int phoneNumber, String email, String address, String nationality, List<Room> rooms, List<Booking> bookings) {
+    public Guest(String name, String lastName, int dni, int phoneNumber, String email, String address, String nationality, List<Room> rooms, List<Booking> bookings) {
         this.name = name;
         this.lastName = lastName;
-        this.id = id;
+        this.dni = dni;
         this.phoneNumber = phoneNumber;
         this.email = email;
         this.address = address;
@@ -57,12 +57,12 @@ public class Guest {
         this.lastName = lastName;
     }
 
-    public int getId() {
-        return id;
+    public int getDni() {
+        return dni;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setDni(int dni) {
+        this.dni = dni;
     }
 
     public int getPhoneNumber() {
@@ -118,7 +118,7 @@ public class Guest {
         return "Guest{" +
                 "name='" + name + '\'' +
                 ", lastName='" + lastName + '\'' +
-                ", dni=" + id +
+                ", dni=" + dni +
                 ", phoneNumber=" + phoneNumber +
                 ", email='" + email + '\'' +
                 ", address='" + address + '\'' +

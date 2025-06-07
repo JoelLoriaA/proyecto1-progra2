@@ -6,6 +6,8 @@ module com.magicalstay.progra2 {
         requires com.fasterxml.jackson.datatype.jsr310;
         requires java.logging;
         requires com.fasterxml.jackson.core;
+        requires jakarta.xml.bind;
+
 
         // Exports
         exports com.MagicalStay.client.ui.controllers to javafx.fxml, javafx.graphics;
