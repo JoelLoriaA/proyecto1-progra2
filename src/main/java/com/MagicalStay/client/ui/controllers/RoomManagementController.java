@@ -1,3 +1,4 @@
+
 package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.client.sockets.SocketCliente;
@@ -55,7 +56,7 @@ import javafx.stage.Stage;
 import java.io.File;
 
 
-public class RoomManagementController {
+public class RoomManagementController implements Closeable {
     @FXML private ComboBox<Hotel> hotelComboBox;
     @FXML private TextField searchTextField;
     @FXML public TextField numberTextField;
@@ -87,6 +88,7 @@ public class RoomManagementController {
     public Room selectedRoom;
     public Hotel selectedHotel;
     public boolean editMode = false;
+    private final SocketCliente socketCliente;
     @FXML
     private TableView imagesTableView;
     @FXML
@@ -94,6 +96,23 @@ public class RoomManagementController {
     @FXML
     private TableColumn imageNameColumn;
 
+
+    public RoomManagementController() {
+        socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
+            @Override public void onMensajeRecibido(String mensaje) {
+                Platform.runLater(() -> procesarRespuestaServidor(mensaje));
+            }
+            @Override public void onError(String error) {
+                Platform.runLater(() -> FXUtility.alertError("Error de comunicación", error).show());
+            }
+            @Override public void onConexionEstablecida() {
+                Platform.runLater(() -> loadRoomsFromServer());
+            }
+            @Override public void onDesconexion() {
+                Platform.runLater(() -> FXUtility.alertError("Desconexión", "Se perdió la conexión con el servidor").show());
+            }
+        });
+    }
 
     @FXML
     private void initialize() {
@@ -309,13 +328,6 @@ public class RoomManagementController {
 
     @FXML
     public void handleSave() {
-
-        if (selectedHotel == null || hotelComboBox.getValue() == null) {
-            showAlert(Alert.AlertType.ERROR, "Error", "Debe seleccionar un hotel antes de guardar.");
-            return;
-        }
-        if (!validateFields()) return;
-
         if (!validateFields()) return;
 
         if (selectedHotel == null) {
@@ -459,26 +471,12 @@ public class RoomManagementController {
 
     private boolean validateFields() {
         StringBuilder sb = new StringBuilder();
-
-        // Validar hotel seleccionado primero
-        if (selectedHotel == null || hotelComboBox.getValue() == null) {
-            sb.append("Debe seleccionar un hotel.\n");
-        }
-        if (numberTextField.getText().isEmpty()) {
-            sb.append("Número de habitación obligatorio.\n");
-        }
-        if (typeComboBox.getValue() == null) {
-            sb.append("Tipo de habitación obligatorio.\n");
-        }
-        if (statusComboBox.getValue() == null) {
-            sb.append("Estado de habitación obligatorio.\n");
-        }
-        if (priceTextField.getText().isEmpty() || !priceTextField.getText().matches("\\d+(\\.\\d+)?")) {
-            sb.append("Precio debe ser un número válido.\n");
-        }
+        if (numberTextField.getText().isEmpty()) sb.append("Número obligatorio.\n");
+        if (typeComboBox.getValue() == null) sb.append("Tipo obligatorio.\n");
+        if (statusComboBox.getValue() == null) sb.append("Estado obligatorio.\n");
 
         if (sb.length() > 0) {
-            showAlert(Alert.AlertType.ERROR, "Campos Inválidos", sb.toString());
+            FXUtility.alertError("Campos inválidos", sb.toString()).show();
             return false;
         }
         return true;
@@ -521,6 +519,32 @@ public class RoomManagementController {
         roomListView.setItems(roomList);
         roomListView.refresh();
         statusLabel.setText(rooms.isEmpty() ? "Sin habitaciones." : "");
+    }
+
+    private void loadRoomsFromServer() {
+        if (!socketCliente.estaConectado()) {
+            FXUtility.alertError("Error", "Sin conexión al servidor").show();
+            return;
+        }
+        socketCliente.enviarMensaje("OBTENER_HABITACIONES|" + selectedHotel.getHotelId());
+    }
+
+    @FXML
+    public void handleClose(ActionEvent e) throws IOException {
+        DataFactory.closeAll();
+
+        Stage stage = (Stage) closeButton.getScene().getWindow();
+        stage.close();
+    }
+
+    @Override
+    public void close() {
+        try {
+            if (roomData != null) roomData.close();
+            if (socketCliente != null) socketCliente.desconectar();
+        } catch (Exception e) {
+            FXUtility.alertError("Error", "Error al cerrar: " + e.getMessage()).show();
+        }
     }
 
     private DataResponse parseDataResponse(String jsonResponse) throws Exception {
@@ -589,4 +613,3 @@ public class RoomManagementController {
     }
 
 }
-
