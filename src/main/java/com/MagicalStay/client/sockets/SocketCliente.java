@@ -26,6 +26,8 @@ public class SocketCliente {
     }
 
 
+
+
     public void conectar(String host, int puerto) {
         if (conectado) return;
 
@@ -35,28 +37,31 @@ public class SocketCliente {
                 socket.connect(new InetSocketAddress(host, puerto), TIMEOUT_CONEXION);
                 salida = new ObjectOutputStream(socket.getOutputStream());
                 entrada = new ObjectInputStream(socket.getInputStream());
+
                 conectado = true;
 
-//                // Usar la sincronización bidireccional
-//                FileClient fileClient = new FileClient(this);
-//                fileClient.sincronizarBidireccional();
+                // Esperar y consumir el mensaje de bienvenida
+                Object bienvenida = entrada.readObject();
+                if (bienvenida instanceof String && ((String) bienvenida).startsWith("WELCOME|")) {
+                    Platform.runLater(() -> callback.onConexionEstablecida());
+                }
 
-                Platform.runLater(() -> callback.onConexionEstablecida());
                 escucharMensajes();
-            } catch (IOException e) {
+            } catch (IOException | ClassNotFoundException e) {
                 Platform.runLater(() -> callback.onError("Error de conexión: " + e.getMessage()));
             }
         }).start();
     }
 
-    // En SocketCliente.java
     public void iniciarSincronizacionBidireccional() {
-        FileClient fileClient = new FileClient(this);
-        try {
-            fileClient.sincronizarBidireccional();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        new Thread(() -> {
+            try {
+                FileClient fileClient = new FileClient(this);
+                fileClient.sincronizarBidireccional();
+            } catch (Exception e) {
+                Platform.runLater(() -> callback.onError("Error en sincronización: " + e.getMessage()));
+            }
+        }).start();
     }
 
 

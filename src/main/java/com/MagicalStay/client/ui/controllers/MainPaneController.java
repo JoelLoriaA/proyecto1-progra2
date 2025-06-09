@@ -188,11 +188,12 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
                 socketCliente.iniciarSincronizacionBidireccional();
             }
 
+            // Usar Alert directamente
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Conexión Exitosa");
             alert.setHeaderText("¡Conectado al servidor!");
             alert.setContentText("La conexión se ha establecido correctamente.");
-            alert.show();
+            alert.show(); // Usar show() en lugar de showAndWait()
         });
     }
 
