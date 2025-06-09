@@ -13,6 +13,7 @@ public class SocketCliente {
     private ObjectInputStream entrada;
     private volatile boolean conectado;
     private final ClienteCallback callback;
+    private Thread sincronizacionThread;
 
     public interface ClienteCallback {
         void onMensajeRecibido(String mensaje);
@@ -37,9 +38,8 @@ public class SocketCliente {
                 entrada = new ObjectInputStream(socket.getInputStream());
                 conectado = true;
 
-                // Usar la sincronización bidireccional
-                FileClient fileClient = new FileClient(this);
-                fileClient.sincronizarBidireccional();
+                // Iniciar sincronización periódica
+                iniciarSincronizacion();
 
                 Platform.runLater(() -> callback.onConexionEstablecida());
                 escucharMensajes();
@@ -47,6 +47,24 @@ public class SocketCliente {
                 Platform.runLater(() -> callback.onError("Error de conexión: " + e.getMessage()));
             }
         }).start();
+    }
+
+    private void iniciarSincronizacion() {
+        sincronizacionThread = new Thread(() -> {
+            FileClient fileClient = new FileClient(this);
+            while (conectado) {
+                try {
+                    fileClient.sincronizarBidireccional();
+                    Thread.sleep(5000); // Espera 5 segundos entre sincronizaciones
+                } catch (InterruptedException e) {
+                    break;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+        sincronizacionThread.setDaemon(true);
+        sincronizacionThread.start();
     }
 
 
@@ -90,6 +108,9 @@ public class SocketCliente {
         if (!conectado) return;
 
         conectado = false;
+        if (sincronizacionThread != null) {
+            sincronizacionThread.interrupt();
+        }
         try {
             if (salida != null) salida.close();
             if (entrada != null) entrada.close();

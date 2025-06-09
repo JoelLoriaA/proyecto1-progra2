@@ -99,8 +99,6 @@ public class HotelManagementController {
     private GuestData guestData;
     private ObjectMapper objectMapper;
 
-    //TODO, adaptar la tableview de Guests
-
     @FXML
     private TableView guestsTableView;
     @FXML
