@@ -183,19 +183,25 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
                 connectionStatusLabel.setText("Conectado");
             }
 
-            // Iniciar sincronización automática al conectar
-            if (socketCliente != null) {
-                socketCliente.iniciarSincronizacionBidireccional();
-            }
+            // Sincronizar archivos primero
+            new Thread(() -> {
+                try {
+                    socketCliente.iniciarSincronizacionBidireccional();
+                    // Cuando termine la sincronización, iniciar la escucha de mensajes
+                    socketCliente.iniciarEscuchaMensajes();
+                } catch (Exception e) {
+                    Platform.runLater(() -> {
+                        showAlert("Error", "Error en sincronización", e.getMessage(), Alert.AlertType.ERROR);
+                        updateConnectionStatus(false);
+                    });
+                }
+            }).start();
 
-            socketCliente.iniciarEscuchaMensajes();
-
-            // Usar Alert directamente
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Conexión Exitosa");
             alert.setHeaderText("¡Conectado al servidor!");
             alert.setContentText("La conexión se ha establecido correctamente.");
-            alert.show(); // Usar show() en lugar de showAndWait()
+            alert.show();
         });
     }
 
