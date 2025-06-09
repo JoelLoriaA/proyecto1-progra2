@@ -41,10 +41,6 @@ public class SocketCliente {
                 FileClient fileClient = new FileClient(this);
                 fileClient.sincronizarBidireccional();
 
-                new Thread(new DirectoryWatcher(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, fileClient, false)).start();
-                new Thread(new DirectoryWatcher(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR, fileClient, true)).start();
-                new Thread(new DirectoryWatcher(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, fileClient, true)).start();
-
 
                 Platform.runLater(() -> callback.onConexionEstablecida());
                 escucharMensajes();

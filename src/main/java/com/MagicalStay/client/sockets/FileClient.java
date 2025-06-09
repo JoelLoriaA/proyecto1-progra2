@@ -82,18 +82,18 @@ public class FileClient {
                 }
 
                 boolean esImagen = partes[0].equals("imagen");
-                String rutaBase = esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR  : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
+                String rutaBase = esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
                 Path rutaLocal = Paths.get(rutaBase, partes[1]);
                 Files.createDirectories(rutaLocal.getParent());
                 Files.write(rutaLocal, contenido);
                 System.out.println("Guardado archivo: " + rutaLocal);
 
-                // Si es imagen, guardar copia
+                // Si es copia enviar al directorio de copias
                 if (esImagen) {
                     Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, partes[1]);
                     Files.createDirectories(rutaCopia.getParent());
-                    Files.write(rutaLocal, contenido);
-                    System.out.println("Guardada copia de imagen: " + rutaCopia);
+                    Files.write(rutaCopia,contenido);
+
                 }
             }
         } catch (ClassNotFoundException e) {
@@ -139,8 +139,15 @@ public class FileClient {
                         try {
                             final String nombreArchivo = archivo.getName();
                             byte[] datos = Files.readAllBytes(archivo.toPath());
-                            subirArchivo(nombreArchivo, datos, esImagen);
-                            System.out.println("Enviado " + (esImagen ? "imagen: " : "archivo: ") + nombreArchivo);
+                            Platform.runLater(() -> {
+                                try {
+                                    subirArchivo(nombreArchivo, datos, esImagen);
+                                    System.out.println("Enviado " + (esImagen ? "imagen: " : "archivo: ") + nombreArchivo);
+                                } catch (IOException e) {
+                                    System.err.println("Error enviando " + (esImagen ? "imagen " : "archivo ") +
+                                            nombreArchivo + ": " + e.getMessage());
+                                }
+                            });
                         } catch (IOException e) {
                             System.err.println("Error leyendo " + (esImagen ? "imagen " : "archivo ") +
                                     archivo.getName() + ": " + e.getMessage());
