@@ -63,9 +63,23 @@ package com.MagicalStay.server;
             }
 
             private void handleMessage(String comando) throws IOException, ClassNotFoundException {
-                String respuesta = procesarComando(comando);
-                salida.writeObject(respuesta);
-                salida.flush();
+                String[] parts = comando.split("\\|");
+                if ("obtener_archivo".equals(parts[0])) {
+                    String nombre = parts[1];
+                    Path ruta = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombre);
+                    if (Files.exists(ruta)) {
+                        byte[] contenido = Files.readAllBytes(ruta);
+                        salida.writeObject(contenido);
+                        salida.flush();
+                    } else {
+                        salida.writeObject("Archivo no encontrado");
+                        salida.flush();
+                    }
+                } else {
+                    String respuesta = procesarComando(comando);
+                    salida.writeObject(respuesta);
+                    salida.flush();
+                }
             }
 
             private String procesarComando(String comando) throws IOException, ClassNotFoundException {
