@@ -46,11 +46,14 @@ public class SocketCliente {
                     Platform.runLater(() -> callback.onConexionEstablecida());
                 }
 
-                escucharMensajes();
             } catch (IOException | ClassNotFoundException e) {
                 Platform.runLater(() -> callback.onError("Error de conexión: " + e.getMessage()));
             }
         }).start();
+    }
+
+    public void iniciarEscuchaMensajes() {
+        escucharMensajes();
     }
 
     public void iniciarSincronizacionBidireccional() {

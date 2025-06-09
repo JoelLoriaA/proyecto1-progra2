@@ -188,6 +188,8 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
                 socketCliente.iniciarSincronizacionBidireccional();
             }
 
+            socketCliente.iniciarEscuchaMensajes();
+
             // Usar Alert directamente
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Conexión Exitosa");
