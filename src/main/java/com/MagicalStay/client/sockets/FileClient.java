@@ -104,22 +104,11 @@ public class FileClient {
     }
 
     public void sincronizarBidireccional() throws IOException {
-        try {
-            String bienvenida = (String) socketCliente.recibirObjeto();
-            if (!bienvenida.startsWith("WELCOME|")) {
-                throw new IOException("Protocolo de conexión incorrecto");
-            }
-            System.out.println(bienvenida.split("\\|")[1]);
+        System.out.println("Iniciando sincronización bidireccional...");
+        List<String> archivosServidor = listarArchivos();
+        System.out.println("Recibidos " + archivosServidor.size() + " archivos del servidor");
 
-            System.out.println("Iniciando sincronización bidireccional...");
-            List<String> archivosServidor = listarArchivos();
-            System.out.println("Recibidos " + archivosServidor.size() + " archivos del servidor");
-
-            enviarArchivosLocales();
-
-        } catch (ClassNotFoundException e) {
-            throw new IOException("Error en el protocolo de conexión: " + e.getMessage());
-        }
+        enviarArchivosLocales();
     }
 
     private void enviarArchivosLocales() throws IOException {
