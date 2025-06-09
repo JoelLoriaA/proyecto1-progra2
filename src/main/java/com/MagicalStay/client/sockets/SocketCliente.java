@@ -1,13 +1,10 @@
 
 package com.MagicalStay.client.sockets;
 
-import com.MagicalStay.shared.config.ConfiguracionApp;
 import javafx.application.Platform;
 import java.io.*;
 import java.net.Socket;
 import java.net.InetSocketAddress;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 public class SocketCliente {
     private static final int TIMEOUT_CONEXION = 5000;
@@ -15,7 +12,6 @@ public class SocketCliente {
     private ObjectOutputStream salida;
     private ObjectInputStream entrada;
     private volatile boolean conectado;
-    private volatile boolean desconectando = false;
     private final ClienteCallback callback;
 
     public interface ClienteCallback {
@@ -60,21 +56,7 @@ public class SocketCliente {
                 try {
                     Object mensaje = entrada.readObject();
                     if (mensaje instanceof String) {
-                        String msg = (String) mensaje;
-                        // Manejo de notificaciones de archivos
-                        if (msg.startsWith("NOTIFICACION|archivo_modificado|")) {
-                            String nombreArchivo = msg.split("\\|")[2];
-                            enviarMensaje("obtener_archivo|" + nombreArchivo);
-                            try {
-                                byte[] datos = (byte[]) recibirObjeto();
-                                // Guardar archivo actualizado localmente
-                                Files.write(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo), datos);
-                            } catch (Exception e) {
-                                System.err.println("Error descargando archivo modificado: " + e.getMessage());
-                            }
-                        } else {
-                            Platform.runLater(() -> callback.onMensajeRecibido(msg));
-                        }
+                        Platform.runLater(() -> callback.onMensajeRecibido((String) mensaje));
                     }
                 } catch (Exception e) {
                     if (conectado) {
@@ -105,8 +87,8 @@ public class SocketCliente {
     }
 
     public void desconectar() {
-        if (!conectado || desconectando) return;
-        desconectando = true;
+        if (!conectado) return;
+
         conectado = false;
         try {
             if (salida != null) salida.close();

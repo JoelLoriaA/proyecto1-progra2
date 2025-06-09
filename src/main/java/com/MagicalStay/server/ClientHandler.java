@@ -7,16 +7,12 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
     private ObjectInputStream entrada;
     private ObjectOutputStream salida;
-    public static List<ObjectOutputStream> clientesConectados = Collections.synchronizedList(new ArrayList<>());
 
     public ClientHandler(Socket socket) {
         this.socket = socket;
@@ -27,7 +23,7 @@ public class ClientHandler implements Runnable {
         try {
             salida = new ObjectOutputStream(socket.getOutputStream());
             entrada = new ObjectInputStream(socket.getInputStream());
-            clientesConectados.add(salida);
+
             handleConnect();
 
             while (!socket.isClosed()) {
@@ -44,22 +40,8 @@ public class ClientHandler implements Runnable {
             System.err.println("Error en la comunicación con el cliente: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            clientesConectados.remove(salida);
             cerrarRecursos();
             handleDisconnect();
-        }
-    }
-
-    public static void notificarTodos(String mensaje) {
-        synchronized (clientesConectados) {
-            for (ObjectOutputStream out : clientesConectados) {
-                try {
-                    out.writeObject(mensaje);
-                    out.flush();
-                } catch (IOException e) {
-                    // Manejar cliente desconectado si es necesario
-                }
-            }
         }
     }
 

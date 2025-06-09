@@ -6,7 +6,8 @@ import com.MagicalStay.shared.config.ConfiguracionApp;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,28 +33,6 @@ public class ServerApp {
         System.out.println("- Archivos: " + ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR);
         System.out.println("- Imágenes: " + ConfiguracionApp.RUTA_IMAGENES_SERVIDOR);
         System.out.println("- Copia de Imágenes: " + ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR);
-    }
-
-    public void iniciarWatcher() {
-        new Thread(() -> {
-            try {
-                WatchService watcher = FileSystems.getDefault().newWatchService();
-                Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
-                Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
-                Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR).register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
-
-                while (ejecutando) {
-                    WatchKey key = watcher.take();
-                    for (WatchEvent<?> event : key.pollEvents()) {
-                        String mensaje = "NOTIFICACION|Cambio en archivos: " + event.kind() + " - " + event.context();
-                        ClientHandler.notificarTodos(mensaje);
-                    }
-                    key.reset();
-                }
-            } catch (Exception e) {
-                System.err.println("Error en watcher: " + e.getMessage());
-            }
-        }).start();
     }
 
     public void iniciar() {
@@ -95,7 +74,6 @@ public class ServerApp {
             ServerApp servidor = new ServerApp(puerto);
             Runtime.getRuntime().addShutdownHook(new Thread(servidor::detener));
             servidor.iniciar();
-            servidor.iniciarWatcher();
         } catch (IOException e) {
             System.err.println("Error fatal: " + e.getMessage());
             System.exit(1);

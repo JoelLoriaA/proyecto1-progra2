@@ -235,7 +235,7 @@ public class HotelManagementController {
         }
     }
 
-  private void loadRoomsForHotel(Hotel hotel) {
+    private void loadRoomsForHotel(Hotel hotel) {
         try {
             if (hotel == null) {
                 roomsTableView.setItems(FXCollections.observableArrayList());
@@ -286,26 +286,26 @@ public class HotelManagementController {
         }
     }
 
-@FXML
-private void handleHotelSelection(MouseEvent event) {
-    selectedHotel = hotelListView.getSelectionModel().getSelectedItem();
-    if (selectedHotel != null) {
-        // Fill the fields with hotel data
-        hotelIdTextField.setText(String.valueOf(selectedHotel.getHotelId()));
-        nameTextField.setText(selectedHotel.getName());
-        addressTextArea.setText(selectedHotel.getAddress());
+    @FXML
+    private void handleHotelSelection(MouseEvent event) {
+        selectedHotel = hotelListView.getSelectionModel().getSelectedItem();
+        if (selectedHotel != null) {
+            // Fill the fields with hotel data
+            hotelIdTextField.setText(String.valueOf(selectedHotel.getHotelId()));
+            nameTextField.setText(selectedHotel.getName());
+            addressTextArea.setText(selectedHotel.getAddress());
 
-        loadRoomsForHotel(selectedHotel);
-        loadGuestsForHotel(selectedHotel);
+            loadRoomsForHotel(selectedHotel);
+            loadGuestsForHotel(selectedHotel);
 
-        // Enable buttons
-        editButton.setDisable(false);
-        deleteButton.setDisable(false);
-        manageRoomsButton.setDisable(false);
-        manageGuestsButton.setDisable(false);
+            // Enable buttons
+            editButton.setDisable(false);
+            deleteButton.setDisable(false);
+            manageRoomsButton.setDisable(false);
+            manageGuestsButton.setDisable(false);
 
+        }
     }
-}
 
     @FXML
     private void handleSearch(ActionEvent event) {
