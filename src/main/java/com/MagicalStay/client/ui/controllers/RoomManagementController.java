@@ -100,14 +100,7 @@ public class RoomManagementController implements Closeable {
     public RoomManagementController() {
         socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
             @Override public void onMensajeRecibido(String mensaje) {
-                Platform.runLater(() -> {
-                    if (mensaje.startsWith("NOTIFY|room_update")) {
-                        // Recargar habitaciones desde el servidor
-                        loadRoomsFromServer();
-                    } else {
-                        procesarRespuestaServidor(mensaje);
-                    }
-                });
+                Platform.runLater(() -> procesarRespuestaServidor(mensaje));
             }
             @Override public void onError(String error) {
                 Platform.runLater(() -> FXUtility.alertError("Error de comunicación", error).show());
@@ -315,7 +308,6 @@ public class RoomManagementController implements Closeable {
 
 
                     selectedRoom = null;
-                    socketCliente.enviarMensaje("NOTIFY|room_update");
                     statusLabel.setText("Habitación eliminada con éxito.");
 
                     editButton.setDisable(true);
@@ -383,7 +375,6 @@ public class RoomManagementController implements Closeable {
                     }
                 }
 
-                socketCliente.enviarMensaje("NOTIFY|room_update");
                 statusLabel.setText("Habitación guardada con éxito.");
 
                 System.out.println("[handleSave] Habitación guardada: " + room.getRoomNumber() +
@@ -613,7 +604,6 @@ public class RoomManagementController implements Closeable {
                 selectedImagePath = ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR + newFileName;
 
                 System.out.println("[Imagen seleccionada] Ruta guardada: " + selectedImagePath);
-                socketCliente.enviarMensaje("NOTIFY|room_update");
 
             } catch (IOException e) {
                 FXUtility.alertError("Error", "No se pudo copiar la imagen: " + e.getMessage()).show();

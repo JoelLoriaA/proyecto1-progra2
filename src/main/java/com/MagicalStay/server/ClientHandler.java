@@ -13,12 +13,9 @@ public class ClientHandler implements Runnable {
     private Socket socket;
     private ObjectInputStream entrada;
     private ObjectOutputStream salida;
-    private ServerApp serverApp;
 
-    public ClientHandler(Socket socket, ServerApp serverApp) {
+    public ClientHandler(Socket socket) {
         this.socket = socket;
-        this.serverApp = serverApp;
-        serverApp.registrarCliente(this);
     }
 
     @Override
@@ -26,6 +23,7 @@ public class ClientHandler implements Runnable {
         try {
             salida = new ObjectOutputStream(socket.getOutputStream());
             entrada = new ObjectInputStream(socket.getInputStream());
+
             handleConnect();
 
             while (!socket.isClosed()) {
@@ -40,18 +38,10 @@ public class ClientHandler implements Runnable {
             System.out.println("Cliente desconectado: " + socket.getInetAddress());
         } catch (Exception e) {
             System.err.println("Error en la comunicación con el cliente: " + e.getMessage());
+            e.printStackTrace();
         } finally {
             cerrarRecursos();
             handleDisconnect();
-        }
-    }
-
-    public void enviarNotificacion(String mensaje) {
-        try {
-            salida.writeObject("NOTIFY|" + mensaje);
-            salida.flush();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -169,7 +159,6 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleDisconnect() {
-        serverApp.eliminarCliente(this);
         System.out.println("Cliente desconectado: " + socket.getInetAddress());
     }
 }

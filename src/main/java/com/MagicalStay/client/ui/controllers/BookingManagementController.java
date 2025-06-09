@@ -782,6 +782,4 @@ public class BookingManagementController {
                     clerkComboBox.getValue() == null);
         }
     }
-
-
 }
