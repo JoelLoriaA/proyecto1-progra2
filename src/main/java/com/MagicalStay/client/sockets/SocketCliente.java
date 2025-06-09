@@ -50,13 +50,25 @@ public class SocketCliente {
     }
 
 
-    private void escucharMensajes() {
+   private void escucharMensajes() {
         new Thread(() -> {
             while (conectado) {
                 try {
                     Object mensaje = entrada.readObject();
                     if (mensaje instanceof String) {
-                        Platform.runLater(() -> callback.onMensajeRecibido((String) mensaje));
+                        String msg = (String) mensaje;
+                        if (msg.startsWith("ARCHIVO_CAMBIADO|")) {
+                            // Sincronizar archivos al recibir notificación
+                            Platform.runLater(() -> {
+                                try {
+                                    new FileClient(this).listarArchivos();
+                                } catch (IOException e) {
+                                    callback.onError("Error sincronizando archivos: " + e.getMessage());
+                                }
+                            });
+                        } else {
+                            Platform.runLater(() -> callback.onMensajeRecibido(msg));
+                        }
                     }
                 } catch (Exception e) {
                     if (conectado) {

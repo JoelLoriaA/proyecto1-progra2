@@ -40,68 +40,68 @@ public class FileClient {
     }
 
     public List<String> listarArchivos() throws IOException {
-        socketCliente.enviarMensaje("listar_archivos");
-        List<String> archivos = new ArrayList<>();
+            socketCliente.enviarMensaje("listar_archivos");
+            List<String> archivos = new ArrayList<>();
 
-        try {
-            String respuesta = (String) socketCliente.recibirObjeto();
-            if (respuesta == null) {
-                throw new IOException("No se recibió respuesta del servidor");
-            }
-
-            if (!respuesta.startsWith("FILE_COUNT|")) {
-                System.err.println("Respuesta recibida: " + respuesta);
-                throw new IOException("Protocolo de transferencia incorrecto: respuesta inválida");
-            }
-
-            int numArchivos;
             try {
-                numArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
-                System.out.println("Se recibirán " + numArchivos + " archivos");
-            } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-                throw new IOException("Formato de contador de archivos inválido");
+                String respuesta = (String) socketCliente.recibirObjeto();
+                if (respuesta == null) {
+                    throw new IOException("No se recibió respuesta del servidor");
+                }
+
+                if (!respuesta.startsWith("FILE_COUNT|")) {
+                    System.err.println("Respuesta recibida: " + respuesta);
+                    throw new IOException("Protocolo de transferencia incorrecto: respuesta inválida");
+                }
+
+                int numArchivos;
+                try {
+                    numArchivos = Integer.parseInt(respuesta.split("\\|")[1]);
+                    System.out.println("Se recibirán " + numArchivos + " archivos");
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+                    throw new IOException("Formato de contador de archivos inválido");
+                }
+
+                for (int i = 0; i < numArchivos; i++) {
+                    String metadata = (String) socketCliente.recibirObjeto();
+                    if (metadata == null) {
+                        throw new IOException("Metadata nula para archivo " + (i + 1));
+                    }
+
+                    String[] partes = metadata.split("\\|");
+                    if (partes.length != 2) {
+                        throw new IOException("Formato de metadata inválido para archivo " + (i + 1));
+                    }
+
+                    archivos.add(partes[1]);
+                    System.out.println("Procesando archivo: " + partes[1]);
+
+                    byte[] contenido = (byte[]) socketCliente.recibirObjeto();
+                    if (contenido == null) {
+                        throw new IOException("Contenido nulo para archivo " + partes[1]);
+                    }
+
+                    String tipo = partes[0];
+                    String rutaBase;
+                    if (tipo.equals("imagen")) {
+                        rutaBase = ConfiguracionApp.RUTA_IMAGENES_SERVIDOR;
+                    } else if (tipo.equals("copia_imagen")) {
+                        rutaBase = ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR;
+                    } else {
+                        rutaBase = ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
+                    }
+                    Path rutaLocal = Paths.get(rutaBase, partes[1]);
+                    Files.createDirectories(rutaLocal.getParent());
+                    Files.write(rutaLocal, contenido);
+                    System.out.println("Guardado archivo: " + rutaLocal);
+                }
+            } catch (ClassNotFoundException e) {
+                throw new IOException("Error listando archivos: " + e.getMessage());
             }
 
-            for (int i = 0; i < numArchivos; i++) {
-                String metadata = (String) socketCliente.recibirObjeto();
-                if (metadata == null) {
-                    throw new IOException("Metadata nula para archivo " + (i + 1));
-                }
-
-                String[] partes = metadata.split("\\|");
-                if (partes.length != 2) {
-                    throw new IOException("Formato de metadata inválido para archivo " + (i + 1));
-                }
-
-                archivos.add(partes[1]);
-                System.out.println("Procesando archivo: " + partes[1]);
-
-                byte[] contenido = (byte[]) socketCliente.recibirObjeto();
-                if (contenido == null) {
-                    throw new IOException("Contenido nulo para archivo " + partes[1]);
-                }
-
-                boolean esImagen = partes[0].equals("imagen");
-                String rutaBase = esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
-                Path rutaLocal = Paths.get(rutaBase, partes[1]);
-                Files.createDirectories(rutaLocal.getParent());
-                Files.write(rutaLocal, contenido);
-                System.out.println("Guardado archivo: " + rutaLocal);
-
-//                // Si es copia enviar al directorio de copias
-//                if (esImagen) {
-//                    Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, partes[1]);
-//                    Files.createDirectories(rutaCopia.getParent());
-//                    Files.write(rutaCopia,contenido);
-//
-//                }
-            }
-        } catch (ClassNotFoundException e) {
-            throw new IOException("Error listando archivos: " + e.getMessage());
-        }
-
-        return archivos;
+            return archivos;
     }
+
 
     public void sincronizarBidireccional() throws IOException {
         try {
