@@ -7,12 +7,13 @@ import java.net.Socket;
 import java.net.InetSocketAddress;
 
 public class SocketCliente {
-    private static final int TIMEOUT_CONEXION = 5000;
+    private static final int TIMEOUT_CONEXION = 200000;
     private Socket socket;
     private ObjectOutputStream salida;
     private ObjectInputStream entrada;
     private volatile boolean conectado;
     private final ClienteCallback callback;
+
 
     public interface ClienteCallback {
         void onMensajeRecibido(String mensaje);

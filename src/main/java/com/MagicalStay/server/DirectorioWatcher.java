@@ -32,8 +32,11 @@ public class DirectorioWatcher implements Runnable {
                     String fileName = event.context().toString();
                     String tipoEvento = event.kind().name();
                     synchronized (clientes) {
+                        // Suponiendo que tienes una lista de ClientHandler llamada clientes
                         for (ClientHandler cliente : clientes) {
-                            cliente.enviarMensaje("ARCHIVO_CAMBIADO|" + tipoEvento + "|" + fileName);
+                            if (!cliente.estaSincronizando()) {
+                                cliente.enviarMensaje("ARCHIVO_CAMBIADO|...");
+                            }
                         }
                     }
                 }

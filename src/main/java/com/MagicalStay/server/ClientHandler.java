@@ -15,6 +15,17 @@ package com.MagicalStay.server;
         private ObjectOutputStream salida;
         private final List<ClientHandler> clientes;
 
+        // Dentro de la clase ClientHandler
+        private volatile boolean sincronizando = true;
+
+        public void setSincronizando(boolean valor) {
+            this.sincronizando = valor;
+        }
+
+        public boolean estaSincronizando() {
+            return sincronizando;
+        }
+
         public ClientHandler(Socket socket, List<ClientHandler> clientes) {
             this.socket = socket;
             this.clientes = clientes;
@@ -104,6 +115,8 @@ package com.MagicalStay.server;
                                 }
                             }
                         }
+
+                        this.setSincronizando(false);
                         return "Lista de archivos enviada";
 
                     case "subir_archivo":
