@@ -1,10 +1,13 @@
 
 package com.MagicalStay.client.sockets;
 
+import com.MagicalStay.shared.config.ConfiguracionApp;
 import javafx.application.Platform;
 import java.io.*;
 import java.net.Socket;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class SocketCliente {
     private static final int TIMEOUT_CONEXION = 5000;
@@ -56,7 +59,21 @@ public class SocketCliente {
                 try {
                     Object mensaje = entrada.readObject();
                     if (mensaje instanceof String) {
-                        Platform.runLater(() -> callback.onMensajeRecibido((String) mensaje));
+                        String msg = (String) mensaje;
+                        // Manejo de notificaciones de archivos
+                        if (msg.startsWith("NOTIFICACION|archivo_modificado|")) {
+                            String nombreArchivo = msg.split("\\|")[2];
+                            enviarMensaje("obtener_archivo|" + nombreArchivo);
+                            try {
+                                byte[] datos = (byte[]) recibirObjeto();
+                                // Guardar archivo actualizado localmente
+                                Files.write(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo), datos);
+                            } catch (Exception e) {
+                                System.err.println("Error descargando archivo modificado: " + e.getMessage());
+                            }
+                        } else {
+                            Platform.runLater(() -> callback.onMensajeRecibido(msg));
+                        }
                     }
                 } catch (Exception e) {
                     if (conectado) {

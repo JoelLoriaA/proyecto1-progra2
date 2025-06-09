@@ -1,6 +1,8 @@
 package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.client.data.DataFactory;
+import com.MagicalStay.client.sockets.FileClient;
+import com.MagicalStay.client.sockets.FileWatcher;
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.shared.config.ConfiguracionApp;
 import com.MagicalStay.shared.data.JsonResponse;
@@ -183,12 +185,17 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
                 connectionStatusLabel.setText("Conectado");
             }
 
-            // Usar Alert directamente
+            // Iniciar el watcher de archivos para sincronización en tiempo real
+            FileClient fileClient = new FileClient(socketCliente);
+            Thread watcherThread = new Thread(new FileWatcher(fileClient));
+            watcherThread.setDaemon(true);
+            watcherThread.start();
+
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Conexión Exitosa");
             alert.setHeaderText("¡Conectado al servidor!");
             alert.setContentText("La conexión se ha establecido correctamente.");
-            alert.show(); // Usar show() en lugar de showAndWait()
+            alert.show();
         });
     }
 
