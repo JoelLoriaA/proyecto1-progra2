@@ -13,16 +13,11 @@ public class SocketCliente {
     private ObjectInputStream entrada;
     private volatile boolean conectado;
     private final ClienteCallback callback;
-    private Thread sincronizacionThread;
-    private final Object lock = new Object();
 
     public interface ClienteCallback {
         void onMensajeRecibido(String mensaje);
-
         void onError(String error);
-
         void onConexionEstablecida();
-
         void onDesconexion();
     }
 
@@ -42,8 +37,9 @@ public class SocketCliente {
                 entrada = new ObjectInputStream(socket.getInputStream());
                 conectado = true;
 
-                // Iniciar sincronización periódica
-                iniciarSincronizacion();
+                // Usar la sincronización bidireccional
+                FileClient fileClient = new FileClient(this);
+                fileClient.sincronizarBidireccional();
 
                 Platform.runLater(() -> callback.onConexionEstablecida());
                 escucharMensajes();
@@ -53,22 +49,13 @@ public class SocketCliente {
         }).start();
     }
 
-    private void iniciarSincronizacion() {
-        sincronizacionThread = new Thread(() -> {
+    public void estaConectadoActualizar() throws IOException {
+        if (estaConectado() && conectado) {
             FileClient fileClient = new FileClient(this);
-            while (conectado) {
-                try {
-                    fileClient.sincronizarBidireccional();
-                    Thread.sleep(5000); // Espera 5 segundos entre sincronizaciones
-                } catch (InterruptedException e) {
-                    break;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
-        sincronizacionThread.setDaemon(true);
-        sincronizacionThread.start();
+            fileClient.sincronizarBidireccional();
+        } else {
+            Platform.runLater(() -> callback.onError("No conectado al servidor"));
+        }
     }
 
 
@@ -96,28 +83,22 @@ public class SocketCliente {
             Platform.runLater(() -> callback.onError("No conectado al servidor"));
             return;
         }
-        new Thread(() -> {
-            synchronized (lock) {
-                try {
-                    salida.writeObject(mensaje);
-                    salida.flush();
-                } catch (IOException e) {
-                    Platform.runLater(() -> {
-                        callback.onError("Error enviando mensaje: " + e.getMessage());
-                        desconectar();
-                    });
-                }
-            }
-        }).start();
+
+        try {
+            salida.writeObject(mensaje);
+            salida.flush();
+        } catch (IOException e) {
+            Platform.runLater(() -> {
+                callback.onError("Error enviando mensaje: " + e.getMessage());
+                desconectar();
+            });
+        }
     }
 
     public void desconectar() {
         if (!conectado) return;
 
         conectado = false;
-        if (sincronizacionThread != null) {
-            sincronizacionThread.interrupt();
-        }
         try {
             if (salida != null) salida.close();
             if (entrada != null) entrada.close();
@@ -132,34 +113,28 @@ public class SocketCliente {
         return conectado;
     }
 
-
     public void enviarObjeto(Object obj) {
         if (!conectado) {
             callback.onError("No conectado al servidor");
             return;
         }
         new Thread(() -> {
-            synchronized (lock) {
-                try {
-                    salida.writeObject(obj);
-                    salida.flush();
-                } catch (IOException e) {
-                    Platform.runLater(() -> {
-                        callback.onError("Error enviando objeto: " + e.getMessage());
-                        desconectar();
-                    });
-                }
+            try {
+                salida.writeObject(obj);
+                salida.flush();
+            } catch (IOException e) {
+                Platform.runLater(() -> {
+                    callback.onError("Error enviando objeto: " + e.getMessage());
+                    desconectar();
+                });
             }
         }).start();
     }
-
 
     public Object recibirObjeto() throws IOException, ClassNotFoundException {
         if (!conectado) {
             throw new IOException("No conectado al servidor");
         }
-        synchronized (lock) {
-            return entrada.readObject();
-        }
+        return entrada.readObject();
     }
 }

@@ -142,6 +142,12 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
             if (connectButton != null) {
                 connectButton.setDisable(false);
             }
+
+            try {
+                socketCliente.estaConectadoActualizar();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
