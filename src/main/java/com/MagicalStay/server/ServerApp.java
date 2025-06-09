@@ -19,6 +19,7 @@ public class ServerApp {
     private final ServerSocket serverSocket;
     private final ExecutorService poolDeHilos;
     private volatile boolean ejecutando;
+    private final List<ClientHandler> clientesConectados = Collections.synchronizedList(new ArrayList<>());
 
     public ServerApp(int puerto) throws IOException {
         Files.createDirectories(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR));
@@ -44,7 +45,7 @@ public class ServerApp {
                 try {
                     Socket clientSocket = serverSocket.accept();
                     System.out.println("Cliente conectado desde: " + clientSocket.getInetAddress());
-                    ClientHandler handler = new ClientHandler(clientSocket);
+                    ClientHandler handler = new ClientHandler(clientSocket, this);
 
                     poolDeHilos.execute(handler);
                 } catch (IOException e) {
@@ -65,6 +66,22 @@ public class ServerApp {
             poolDeHilos.shutdown();
         } catch (IOException e) {
             System.err.println("Error al detener el servidor: " + e.getMessage());
+        }
+    }
+
+    public void registrarCliente(ClientHandler handler) {
+        clientesConectados.add(handler);
+    }
+
+    public void eliminarCliente(ClientHandler handler) {
+        clientesConectados.remove(handler);
+    }
+
+    public void notificarTodos(String mensaje) {
+        synchronized (clientesConectados) {
+            for (ClientHandler handler : clientesConectados) {
+                handler.enviarNotificacion(mensaje);
+            }
         }
     }
 

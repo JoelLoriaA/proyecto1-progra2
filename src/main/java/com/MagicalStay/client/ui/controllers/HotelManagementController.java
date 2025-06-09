@@ -1,6 +1,7 @@
 package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.client.data.DataFactory;
+import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.shared.data.GuestData;
 import com.MagicalStay.shared.data.HotelData;
 import com.MagicalStay.shared.data.RoomData;
@@ -121,6 +122,7 @@ public class HotelManagementController {
     private ComboBox searchTypeComboBox;
     @FXML
     private Button manageGuestsButton;
+    private SocketCliente socketCliente;
 
     @FXML
     private void initialize() {
@@ -197,6 +199,32 @@ public class HotelManagementController {
             });
 
             statusLabel.setText("Sistema inicializado correctamente");
+
+            socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
+                @Override
+                public void onMensajeRecibido(String mensaje) {
+                    if (mensaje.startsWith("NOTIFY|hotel_update")) {
+                        javafx.application.Platform.runLater(() -> loadHotelsFromFile());
+                    }
+                }
+                @Override
+                public void onError(String error) {
+                    javafx.application.Platform.runLater(() -> statusLabel.setText("❌ " + error));
+                }
+                @Override
+                public void onConexionEstablecida() {
+                    javafx.application.Platform.runLater(() -> loadHotelsFromFile());
+                }
+                @Override
+                public void onDesconexion() {
+                    javafx.application.Platform.runLater(() -> statusLabel.setText("❌ Desconectado del servidor"));
+                }
+            });
+
+            socketCliente.conectar(
+                    com.MagicalStay.shared.config.ConfiguracionApp.HOST_SERVIDOR,
+                    com.MagicalStay.shared.config.ConfiguracionApp.PUERTO_SERVIDOR
+            );
 
         } catch (IOException e) {
             showAlert(Alert.AlertType.ERROR, "Error de Inicialización",
@@ -414,7 +442,7 @@ private void handleHotelSelection(MouseEvent event) {
                         clearFields();
 
                         statusLabel.setText("Hotel eliminado con éxito");
-
+                        socketCliente.enviarMensaje("NOTIFY|hotel_update");
                         // Disable buttons
                         editButton.setDisable(true);
                         deleteButton.setDisable(true);
@@ -479,6 +507,8 @@ private void handleHotelSelection(MouseEvent event) {
                             break;
                         }
                     }
+
+                    socketCliente.enviarMensaje("NOTIFY|hotel_update");
 
                     statusLabel.setText("Hotel guardado con éxito");
                 } else {

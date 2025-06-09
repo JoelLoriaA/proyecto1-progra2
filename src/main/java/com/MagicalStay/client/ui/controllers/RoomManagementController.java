@@ -100,7 +100,14 @@ public class RoomManagementController implements Closeable {
     public RoomManagementController() {
         socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
             @Override public void onMensajeRecibido(String mensaje) {
-                Platform.runLater(() -> procesarRespuestaServidor(mensaje));
+                Platform.runLater(() -> {
+                    if (mensaje.startsWith("NOTIFY|room_update")) {
+                        // Recargar habitaciones desde el servidor
+                        loadRoomsFromServer();
+                    } else {
+                        procesarRespuestaServidor(mensaje);
+                    }
+                });
             }
             @Override public void onError(String error) {
                 Platform.runLater(() -> FXUtility.alertError("Error de comunicación", error).show());
@@ -308,6 +315,7 @@ public class RoomManagementController implements Closeable {
 
 
                     selectedRoom = null;
+                    socketCliente.enviarMensaje("NOTIFY|frontdesk_update");
                     statusLabel.setText("Habitación eliminada con éxito.");
 
                     editButton.setDisable(true);
@@ -375,6 +383,7 @@ public class RoomManagementController implements Closeable {
                     }
                 }
 
+                socketCliente.enviarMensaje("NOTIFY|frontdesk_update");
                 statusLabel.setText("Habitación guardada con éxito.");
 
                 System.out.println("[handleSave] Habitación guardada: " + room.getRoomNumber() +

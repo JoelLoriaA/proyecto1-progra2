@@ -1,6 +1,7 @@
 package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.client.data.DataFactory;
+import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.shared.data.GuestData;
 import com.MagicalStay.shared.domain.Guest;
 import com.MagicalStay.shared.domain.Hotel;
@@ -110,6 +111,8 @@ public class GuestManagementController {
     private GuestData guestData;
     private ObjectMapper objectMapper;
 
+    private SocketCliente socketCliente;
+
     @FXML
     private void initialize() {
         try {
@@ -146,6 +149,32 @@ public class GuestManagementController {
             editButton.setDisable(true);
             deleteButton.setDisable(true);
             updateButton.setDisable(true);
+
+            socketCliente = new SocketCliente(new SocketCliente.ClienteCallback() {
+                @Override
+                public void onMensajeRecibido(String mensaje) {
+                    if (mensaje.startsWith("NOTIFY|hotel_update")) {
+                        javafx.application.Platform.runLater(() -> loadGuestsFromFile());
+                    }
+                }
+                @Override
+                public void onError(String error) {
+                    javafx.application.Platform.runLater(() -> statusLabel.setText("❌ " + error));
+                }
+                @Override
+                public void onConexionEstablecida() {
+                    javafx.application.Platform.runLater(() -> loadGuestsFromFile());
+                }
+                @Override
+                public void onDesconexion() {
+                    javafx.application.Platform.runLater(() -> statusLabel.setText("❌ Desconectado del servidor"));
+                }
+            });
+
+            socketCliente.conectar(
+                    com.MagicalStay.shared.config.ConfiguracionApp.HOST_SERVIDOR,
+                    com.MagicalStay.shared.config.ConfiguracionApp.PUERTO_SERVIDOR
+            );
 
 
             // Set initial status
@@ -366,6 +395,8 @@ public class GuestManagementController {
                         deleteButton.setDisable(true);
                         updateButton.setDisable(true);
 
+                        socketCliente.enviarMensaje("NOTIFY|guest_update");
+
                         statusLabel.setText("Huésped eliminado con éxito");
                         validationLabel.setText("Complete todos los campos requeridos");
                     } else {
@@ -414,6 +445,8 @@ public class GuestManagementController {
                             break;
                         }
                     }
+
+                    socketCliente.enviarMensaje("NOTIFY|guest_update");
 
                     statusLabel.setText("Huésped guardado con éxito");
                     validationLabel.setText("Huésped creado correctamente");

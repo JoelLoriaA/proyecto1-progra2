@@ -62,7 +62,7 @@ public class MainApp extends Application {
 
     public static Socket createSocket() throws IOException {
         if (socket == null) {
-            socket = new Socket(ConfiguracionApp.HOST_SERVIDOR, ConfiguracionApp.PUERTO_SERVIDOR);// Usar el puerto definido en ServerApp
+            socket = new Socket(ConfiguracionApp.HOST_SERVIDOR, ConfiguracionApp.PUERTO_SERVIDOR);
         }
         return socket;
     }

@@ -56,7 +56,13 @@ public class SocketCliente {
                 try {
                     Object mensaje = entrada.readObject();
                     if (mensaje instanceof String) {
-                        Platform.runLater(() -> callback.onMensajeRecibido((String) mensaje));
+                        String msg = (String) mensaje;
+                        if (msg.startsWith("NOTIFY|")) {
+                            String cambio = msg.substring(7);
+                            Platform.runLater(() -> callback.onMensajeRecibido("NOTIFY|" + cambio));
+                        } else {
+                            Platform.runLater(() -> callback.onMensajeRecibido(msg));
+                        }
                     }
                 } catch (Exception e) {
                     if (conectado) {
