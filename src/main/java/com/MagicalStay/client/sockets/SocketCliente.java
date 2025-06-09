@@ -57,14 +57,13 @@ public class SocketCliente {
     }
 
     public void iniciarSincronizacionBidireccional() {
-        new Thread(() -> {
-            try {
-                FileClient fileClient = new FileClient(this);
-                fileClient.sincronizarBidireccional();
-            } catch (Exception e) {
-                Platform.runLater(() -> callback.onError("Error en sincronización: " + e.getMessage()));
-            }
-        }).start();
+        try{
+        FileClient fileClient = new FileClient(this);
+
+            fileClient.sincronizarBidireccional();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

@@ -105,6 +105,16 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
             Stage stage = new Stage();
             stage.setTitle(title);
             stage.setScene(new Scene(root));
+            stage.setOnHidden(event -> {
+                // Al cerrar la ventana, vuelve a sincronizar
+                new Thread(() -> {
+                    try {
+                        socketCliente.iniciarSincronizacionBidireccional();
+                    } catch (Exception e) {
+                        Platform.runLater(() -> showAlert("Error", "Error en sincronización", e.getMessage(), Alert.AlertType.ERROR));
+                    }
+                }).start();
+            });
             stage.show();
 
         } catch (IOException e) {
@@ -183,11 +193,10 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
                 connectionStatusLabel.setText("Conectado");
             }
 
-            // Sincronizar archivos primero
+            // Sincronizar archivos primero, luego iniciar escucha
             new Thread(() -> {
                 try {
                     socketCliente.iniciarSincronizacionBidireccional();
-                    // Cuando termine la sincronización, iniciar la escucha de mensajes
                     socketCliente.iniciarEscuchaMensajes();
                 } catch (Exception e) {
                     Platform.runLater(() -> {

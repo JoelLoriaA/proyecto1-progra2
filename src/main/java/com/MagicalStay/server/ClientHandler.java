@@ -1,4 +1,3 @@
-
 package com.MagicalStay.server;
 
 import com.MagicalStay.shared.config.ConfiguracionApp;
@@ -64,7 +63,6 @@ public class ClientHandler implements Runnable {
                     File[] archivosNormales = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
                     File[] imagenes = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();
 
-                    // Contar archivos válidos
                     int totalArchivos = 0;
                     if (archivosNormales != null) {
                         totalArchivos += Arrays.stream(archivosNormales)
@@ -77,11 +75,9 @@ public class ClientHandler implements Runnable {
                                 .count();
                     }
 
-                    // Enviar comando y número
                     salida.writeObject("FILE_COUNT|" + totalArchivos);
                     System.out.println("Enviando " + totalArchivos + " archivos...");
 
-                    // Enviar archivos normales
                     if (archivosNormales != null) {
                         for (File archivo : archivosNormales) {
                             if (archivo.isFile()) {
@@ -93,7 +89,6 @@ public class ClientHandler implements Runnable {
                         }
                     }
 
-                    // Enviar imágenes
                     if (imagenes != null) {
                         for (File imagen : imagenes) {
                             if (imagen.isFile()) {
@@ -105,6 +100,18 @@ public class ClientHandler implements Runnable {
                         }
                     }
                     return "Lista de archivos enviada";
+
+                case "listar_imagenes":
+                    File[] imagenesList = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();
+                    StringBuilder nombres = new StringBuilder();
+                    if (imagenesList != null) {
+                        for (File img : imagenesList) {
+                            if (img.isFile()) nombres.append(img.getName()).append(",");
+                        }
+                    }
+                    salida.writeObject("IMAGES_LIST|" + nombres.toString());
+                    salida.flush();
+                    return "Lista de imágenes enviada";
 
                 case "subir_archivo":
                     String nombreArchivo = partes[1];
@@ -143,7 +150,6 @@ public class ClientHandler implements Runnable {
 
     private void handleConnect() throws IOException {
         System.out.println("Cliente conectado desde: " + socket.getInetAddress());
-        // Enviar mensaje de bienvenida con protocolo correcto
         salida.writeObject("WELCOME|Conectado al servidor MagicalStay");
         salida.flush();
     }
