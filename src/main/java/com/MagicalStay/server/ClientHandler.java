@@ -62,6 +62,7 @@ package com.MagicalStay.server;
                 }
             }
 
+            java
             private void handleMessage(String comando) throws IOException, ClassNotFoundException {
                 String[] parts = comando.split("\\|");
                 if ("obtener_archivo".equals(parts[0])) {
