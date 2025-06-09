@@ -64,9 +64,14 @@ package com.MagicalStay.client.sockets;
                                     String nombreArchivo = msg.split("\\|")[2];
                                     enviarMensaje("obtener_archivo|" + nombreArchivo);
                                     try {
-                                        byte[] datos = (byte[]) recibirObjeto();
-                                        // Guardar archivo actualizado localmente
-                                        Files.write(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo), datos);
+                                        Object archivoData = recibirObjeto();
+                                        if (archivoData instanceof byte[]) {
+                                            byte[] datos = (byte[]) archivoData;
+                                            // Guardar archivo actualizado localmente
+                                            Files.write(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo), datos);
+                                        } else {
+                                            System.err.println("Error: Se esperaba un byte array pero se recibió: " + archivoData.getClass().getName());
+                                        }
                                     } catch (Exception e) {
                                         System.err.println("Error descargando archivo modificado: " + e.getMessage());
                                     }
