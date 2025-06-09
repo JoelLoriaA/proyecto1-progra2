@@ -82,18 +82,19 @@ public class FileClient {
                 }
 
                 boolean esImagen = partes[0].equals("imagen");
-                String rutaBase = esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
+                String rutaBase = esImagen ? ConfiguracionApp.RUTA_IMAGENES_SERVIDOR  : ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR;
                 Path rutaLocal = Paths.get(rutaBase, partes[1]);
                 Files.createDirectories(rutaLocal.getParent());
                 Files.write(rutaLocal, contenido);
                 System.out.println("Guardado archivo: " + rutaLocal);
 
-//                // Si es imagen, guardar copia
-//                if (esImagen) {
-//                    Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, partes[1]);
-//                    Files.createDirectories(rutaCopia.getParent());
-//                    Files.copy(rutaLocal, rutaCopia, StandardCopyOption.REPLACE_EXISTING);
-//                }
+                // Si es imagen, guardar copia
+                if (esImagen) {
+                    Path rutaCopia = Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR, partes[1]);
+                    Files.createDirectories(rutaCopia.getParent());
+                    Files.write(rutaLocal, contenido);
+                    System.out.println("Guardada copia de imagen: " + rutaCopia);
+                }
             }
         } catch (ClassNotFoundException e) {
             throw new IOException("Error listando archivos: " + e.getMessage());
