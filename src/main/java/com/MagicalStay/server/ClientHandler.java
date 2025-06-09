@@ -7,7 +7,7 @@ import java.util.logging.Logger;
 
 public class ClientHandler implements Runnable {
     private static final Logger LOGGER = Logger.getLogger(ClientHandler.class.getName());
-    private Socket socket;
+    private final Socket socket;
     private ObjectInputStream entrada;
     private ObjectOutputStream salida;
 
@@ -19,6 +19,7 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             salida = new ObjectOutputStream(socket.getOutputStream());
+            salida.flush();
             entrada = new ObjectInputStream(socket.getInputStream());
 
             handleConnect();
@@ -26,6 +27,7 @@ public class ClientHandler implements Runnable {
             while (!socket.isClosed()) {
                 try {
                     String comando = (String) entrada.readObject();
+                    if (comando == null) break;
                     handleMessage(comando);
 
                     if ("salir".equalsIgnoreCase(comando)) {
@@ -37,6 +39,7 @@ public class ClientHandler implements Runnable {
                 } catch (ClassNotFoundException | IOException e) {
                     LOGGER.log(Level.SEVERE, "Error procesando comando: {0}", e.getMessage());
                     enviarError("Error procesando comando: " + e.getMessage());
+                    break;
                 }
             }
         } catch (IOException e) {
@@ -50,8 +53,10 @@ public class ClientHandler implements Runnable {
     private void handleMessage(String comando) {
         try {
             String respuesta = procesarComando(comando);
-            salida.writeObject(respuesta);
-            salida.flush();
+            if (socket != null && !socket.isClosed()) {
+                salida.writeObject(respuesta);
+                salida.flush();
+            }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Error enviando respuesta al cliente: {0}", e.getMessage());
             enviarError("Error enviando respuesta: " + e.getMessage());
@@ -59,15 +64,16 @@ public class ClientHandler implements Runnable {
     }
 
     private String procesarComando(String comando) {
-        // Aquí implementa la lógica real de tus comandos
-        // Por ahora solo responde con un eco
+        // Implementa aquí la lógica real de tus comandos
         return "RESPUESTA|" + comando;
     }
 
     private void enviarError(String mensaje) {
         try {
-            salida.writeObject("ERROR|" + mensaje);
-            salida.flush();
+            if (socket != null && !socket.isClosed()) {
+                salida.writeObject("ERROR|" + mensaje);
+                salida.flush();
+            }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Error enviando mensaje de error: {0}", e.getMessage());
         }
@@ -76,18 +82,28 @@ public class ClientHandler implements Runnable {
     private void cerrarRecursos() {
         try {
             if (entrada != null) entrada.close();
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error cerrando entrada: {0}", e.getMessage());
+        }
+        try {
             if (salida != null) salida.close();
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error cerrando salida: {0}", e.getMessage());
+        }
+        try {
             if (socket != null && !socket.isClosed()) socket.close();
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error cerrando recursos: {0}", e.getMessage());
+            LOGGER.log(Level.SEVERE, "Error cerrando socket: {0}", e.getMessage());
         }
     }
 
     private void handleConnect() {
         try {
             LOGGER.log(Level.INFO, "Cliente conectado desde: {0}", socket.getInetAddress());
-            salida.writeObject("WELCOME|Conectado al servidor MagicalStay");
-            salida.flush();
+            if (socket != null && !socket.isClosed()) {
+                salida.writeObject("WELCOME|Conectado al servidor MagicalStay");
+                salida.flush();
+            }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Error enviando mensaje de bienvenida: {0}", e.getMessage());
         }
