@@ -138,15 +138,8 @@ public class FileClient {
                         try {
                             final String nombreArchivo = archivo.getName();
                             byte[] datos = Files.readAllBytes(archivo.toPath());
-                            Platform.runLater(() -> {
-                                try {
-                                    subirArchivo(nombreArchivo, datos, esImagen);
-                                    System.out.println("Enviado " + (esImagen ? "imagen: " : "archivo: ") + nombreArchivo);
-                                } catch (IOException e) {
-                                    System.err.println("Error enviando " + (esImagen ? "imagen " : "archivo ") +
-                                            nombreArchivo + ": " + e.getMessage());
-                                }
-                            });
+                            subirArchivo(nombreArchivo, datos, esImagen);
+                            System.out.println("Enviado " + (esImagen ? "imagen: " : "archivo: ") + nombreArchivo);
                         } catch (IOException e) {
                             System.err.println("Error leyendo " + (esImagen ? "imagen " : "archivo ") +
                                     archivo.getName() + ": " + e.getMessage());
