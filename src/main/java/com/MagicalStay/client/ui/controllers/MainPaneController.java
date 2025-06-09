@@ -142,12 +142,6 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
             if (connectButton != null) {
                 connectButton.setDisable(false);
             }
-
-            try {
-                socketCliente.estaConectadoActualizar();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
     }
 
@@ -189,12 +183,16 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
                 connectionStatusLabel.setText("Conectado");
             }
 
-            // Usar Alert directamente
+            // Iniciar sincronización automática al conectar
+            if (socketCliente != null) {
+                socketCliente.iniciarSincronizacionBidireccional();
+            }
+
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Conexión Exitosa");
             alert.setHeaderText("¡Conectado al servidor!");
             alert.setContentText("La conexión se ha establecido correctamente.");
-            alert.show(); // Usar show() en lugar de showAndWait()
+            alert.show();
         });
     }
 

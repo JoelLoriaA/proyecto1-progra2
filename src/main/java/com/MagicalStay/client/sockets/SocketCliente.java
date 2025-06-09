@@ -37,9 +37,9 @@ public class SocketCliente {
                 entrada = new ObjectInputStream(socket.getInputStream());
                 conectado = true;
 
-                // Usar la sincronización bidireccional
-                FileClient fileClient = new FileClient(this);
-                fileClient.sincronizarBidireccional();
+//                // Usar la sincronización bidireccional
+//                FileClient fileClient = new FileClient(this);
+//                fileClient.sincronizarBidireccional();
 
                 Platform.runLater(() -> callback.onConexionEstablecida());
                 escucharMensajes();
@@ -49,12 +49,13 @@ public class SocketCliente {
         }).start();
     }
 
-    public void estaConectadoActualizar() throws IOException {
-        if (estaConectado() && conectado) {
-            FileClient fileClient = new FileClient(this);
+    // En SocketCliente.java
+    public void iniciarSincronizacionBidireccional() {
+        FileClient fileClient = new FileClient(this);
+        try {
             fileClient.sincronizarBidireccional();
-        } else {
-            Platform.runLater(() -> callback.onError("No conectado al servidor"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
