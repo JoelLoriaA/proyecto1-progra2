@@ -50,26 +50,33 @@ public class SocketCliente {
         }).start();
     }
 
+    // Java
+    private void procesarMensaje(String mensaje) {
+        if (mensaje.startsWith("ARCHIVO_CAMBIADO|")) {
+            // Manejar notificación de cambio de archivo
+            Platform.runLater(() -> {
+                try {
+                    new FileClient(this).listarArchivos();
+                } catch (IOException e) {
+                    callback.onError("Error sincronizando archivos: " + e.getMessage());
+                }
+            });
+        } else if (mensaje.startsWith("WELCOME|")) {
+            // Manejar mensaje de bienvenida
+            Platform.runLater(() -> callback.onMensajeRecibido("Bienvenida: " + mensaje.split("\\|")[1]));
+        } else {
+            // Mensaje inesperado: registrar y continuar
+            System.err.println("Mensaje inesperado recibido: " + mensaje);
+        }
+    }
 
-   private void escucharMensajes() {
+    private void escucharMensajes() {
         new Thread(() -> {
             while (conectado) {
                 try {
                     Object mensaje = entrada.readObject();
                     if (mensaje instanceof String) {
-                        String msg = (String) mensaje;
-                        if (msg.startsWith("ARCHIVO_CAMBIADO|")) {
-                            // Sincronizar archivos al recibir notificación
-                            Platform.runLater(() -> {
-                                try {
-                                    new FileClient(this).listarArchivos();
-                                } catch (IOException e) {
-                                    callback.onError("Error sincronizando archivos: " + e.getMessage());
-                                }
-                            });
-                        } else {
-                            Platform.runLater(() -> callback.onMensajeRecibido(msg));
-                        }
+                        procesarMensaje((String) mensaje);
                     }
                 } catch (Exception e) {
                     if (conectado) {
