@@ -1,47 +1,62 @@
-
 package com.MagicalStay.client.sockets;
 
-import com.MagicalStay.shared.config.ConfiguracionApp;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.*;
+    import com.MagicalStay.shared.config.ConfiguracionApp;
+    import java.io.File;
+    import java.io.IOException;
+    import java.nio.file.*;
+    import java.util.HashSet;
+    import java.util.Set;
 
-public class FileWatcher implements Runnable {
-    private final FileClient fileClient;
-    private final String[] directorios = {
-        ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
-        ConfiguracionApp.RUTA_IMAGENES_SERVIDOR,
-        ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR
-    };
+    public class FileWatcher implements Runnable {
+        private final FileClient fileClient;
+        private final String[] directorios = {
+            ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR,
+            ConfiguracionApp.RUTA_IMAGENES_SERVIDOR,
+            ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR
+        };
 
-    public FileWatcher(FileClient fileClient) {
-        this.fileClient = fileClient;
-    }
+        private final Set<String> archivosIgnorados = new HashSet<>();
 
-    @Override
-    public void run() {
-        try {
-            WatchService watcher = FileSystems.getDefault().newWatchService();
-            for (String dir : directorios) {
-                Paths.get(dir).register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
+        public FileWatcher(FileClient fileClient) {
+            this.fileClient = fileClient;
+        }
+
+        public void ignorarArchivo(String ruta) {
+            synchronized (archivosIgnorados) {
+                archivosIgnorados.add(ruta);
             }
-            while (true) {
-                WatchKey key = watcher.take();
-                Path dir = (Path) key.watchable();
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    Path changed = dir.resolve((Path) event.context());
-                    File archivo = changed.toFile();
-                    if (archivo.isFile()) {
-                        boolean esImagen = dir.toString().contains("images");
-                        byte[] datos = Files.readAllBytes(archivo.toPath());
-                        fileClient.subirArchivo(archivo.getName(), datos, esImagen);
-                        System.out.println("Archivo sincronizado: " + archivo.getName());
-                    }
+        }
+
+        @Override
+        public void run() {
+            try {
+                WatchService watcher = FileSystems.getDefault().newWatchService();
+                for (String dir : directorios) {
+                    Paths.get(dir).register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
                 }
-                key.reset();
+                while (true) {
+                    WatchKey key = watcher.take();
+                    Path dir = (Path) key.watchable();
+                    for (WatchEvent<?> event : key.pollEvents()) {
+                        Path changed = dir.resolve((Path) event.context());
+                        String rutaAbsoluta = changed.toAbsolutePath().toString();
+                        synchronized (archivosIgnorados) {
+                            if (archivosIgnorados.remove(rutaAbsoluta)) {
+                                continue; // Ignora eventos causados por sincronización
+                            }
+                        }
+                        File archivo = changed.toFile();
+                        if (archivo.isFile()) {
+                            boolean esImagen = dir.toString().contains("images");
+                            byte[] datos = Files.readAllBytes(archivo.toPath());
+                            fileClient.subirArchivo(archivo.getName(), datos, esImagen);
+                            System.out.println("Archivo sincronizado: " + archivo.getName());
+                        }
+                    }
+                    key.reset();
+                }
+            } catch (Exception e) {
+                System.err.println("Error en FileWatcher: " + e.getMessage());
             }
-        } catch (Exception e) {
-            System.err.println("Error en FileWatcher: " + e.getMessage());
         }
     }
-}

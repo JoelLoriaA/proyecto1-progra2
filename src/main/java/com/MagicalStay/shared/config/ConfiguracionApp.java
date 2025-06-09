@@ -9,7 +9,7 @@ public class ConfiguracionApp {
     //Manejo de archivos en el servidor
     public static final String RUTA_ARCHIVOS_SERVIDOR = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\files\\"; // Ruta donde se almacenan los archivos en el servidor
     public static final String RUTA_IMAGENES_SERVIDOR = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\images\\"; // Ruta donde se almacenan los archivos en el cliente
-    public static final String RUTA_COPIA_IMAGENES_SERVIDOR = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\images\\copy\\"; // Ruta donde se almacenan las copias de los archivos en el servidor
+    public static final String RUTA_COPIA_IMAGENES_SERVIDOR = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\images\\copy\\"; // Ruta donde se almacenan las copias de las imagenes seleccionadas en el controller por el usuario
 
     // Configuración de la aplicación
     public static final String NOMBRE_APLICACION = "MagicalStay Hotel Management System";

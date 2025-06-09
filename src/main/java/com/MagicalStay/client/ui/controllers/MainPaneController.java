@@ -49,6 +49,11 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
     private BorderPane mdiContainer;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+
+    private FileClient fileClient;
+    private FileWatcher fileWatcher;
+    private Thread watcherThread;
+
     @FXML
     private void initialize() {
         socketCliente = new SocketCliente(this);
@@ -186,10 +191,16 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
             }
 
             // Iniciar el watcher de archivos para sincronización en tiempo real
-            FileClient fileClient = new FileClient(socketCliente);
-            Thread watcherThread = new Thread(new FileWatcher(fileClient));
-            watcherThread.setDaemon(true);
-            watcherThread.start();
+            if (fileClient == null) {
+                fileClient = new FileClient(socketCliente);
+            }
+            if (fileWatcher == null) {
+                fileWatcher = new FileWatcher(fileClient);
+                fileClient.setFileWatcher(fileWatcher);
+                watcherThread = new Thread(fileWatcher);
+                watcherThread.setDaemon(true);
+                watcherThread.start();
+            }
 
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Conexión Exitosa");

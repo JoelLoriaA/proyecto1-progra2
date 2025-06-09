@@ -15,6 +15,7 @@ public class SocketCliente {
     private ObjectOutputStream salida;
     private ObjectInputStream entrada;
     private volatile boolean conectado;
+    private volatile boolean desconectando = false;
     private final ClienteCallback callback;
 
     public interface ClienteCallback {
@@ -104,8 +105,8 @@ public class SocketCliente {
     }
 
     public void desconectar() {
-        if (!conectado) return;
-
+        if (!conectado || desconectando) return;
+        desconectando = true;
         conectado = false;
         try {
             if (salida != null) salida.close();
