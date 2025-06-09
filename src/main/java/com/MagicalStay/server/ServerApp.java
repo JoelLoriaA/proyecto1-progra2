@@ -19,7 +19,7 @@ public class ServerApp {
     private final ServerSocket serverSocket;
     private final ExecutorService poolDeHilos;
     private volatile boolean ejecutando;
-    private final List<ClientHandler> clientes = Collections.synchronizedList(new ArrayList<>());
+
     public ServerApp(int puerto) throws IOException {
         Files.createDirectories(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR));
         Files.createDirectories(Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR));
@@ -38,17 +38,19 @@ public class ServerApp {
     public void iniciar() {
         ejecutando = true;
         // Lanza el watcher de directorios
-        new Thread(new DirectorioWatcher(clientes)).start();
+
         while (ejecutando) {
-            try {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("Cliente conectado desde: " + clientSocket.getInetAddress());
-                ClientHandler handler = new ClientHandler(clientSocket, clientes); // Pasa la lista
-                clientes.add(handler);
-                poolDeHilos.execute(handler);
-            } catch (IOException e) {
-                if (ejecutando) {
-                    System.err.println("Error aceptando conexión: " + e.getMessage());
+            while (ejecutando) {
+                try {
+                    Socket clientSocket = serverSocket.accept();
+                    System.out.println("Cliente conectado desde: " + clientSocket.getInetAddress());
+                    ClientHandler handler = new ClientHandler(clientSocket);
+
+                    poolDeHilos.execute(handler);
+                } catch (IOException e) {
+                    if (ejecutando) {
+                        System.err.println("Error aceptando conexión: " + e.getMessage());
+                    }
                 }
             }
         }

@@ -1,3 +1,4 @@
+
 package com.MagicalStay.server;
 
 import com.MagicalStay.shared.config.ConfiguracionApp;
@@ -7,28 +8,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.List;
 
 public class ClientHandler implements Runnable {
-    private final Socket socket;
+    private Socket socket;
     private ObjectInputStream entrada;
     private ObjectOutputStream salida;
-    private final List<ClientHandler> clientes;
 
-    // Flag para controlar la sincronización inicial
-    private volatile boolean sincronizando = true;
-
-    public void setSincronizando(boolean valor) {
-        this.sincronizando = valor;
-    }
-
-    public boolean estaSincronizando() {
-        return sincronizando;
-    }
-
-    public ClientHandler(Socket socket, List<ClientHandler> clientes) {
+    public ClientHandler(Socket socket) {
         this.socket = socket;
-        this.clientes = clientes;
     }
 
     @Override
@@ -76,48 +63,47 @@ public class ClientHandler implements Runnable {
                 case "listar_archivos":
                     File[] archivosNormales = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR).listFiles();
                     File[] imagenes = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();
-                    File[] copiasImagenes = new File(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR).listFiles();
 
+                    // Contar archivos válidos
                     int totalArchivos = 0;
-                    if (archivosNormales != null)
-                        totalArchivos += Arrays.stream(archivosNormales).filter(File::isFile).count();
-                    if (imagenes != null)
-                        totalArchivos += Arrays.stream(imagenes).filter(File::isFile).count();
-                    if (copiasImagenes != null)
-                        totalArchivos += Arrays.stream(copiasImagenes).filter(File::isFile).count();
+                    if (archivosNormales != null) {
+                        totalArchivos += Arrays.stream(archivosNormales)
+                                .filter(File::isFile)
+                                .count();
+                    }
+                    if (imagenes != null) {
+                        totalArchivos += Arrays.stream(imagenes)
+                                .filter(File::isFile)
+                                .count();
+                    }
 
+                    // Enviar comando y número
                     salida.writeObject("FILE_COUNT|" + totalArchivos);
+                    System.out.println("Enviando " + totalArchivos + " archivos...");
 
+                    // Enviar archivos normales
                     if (archivosNormales != null) {
                         for (File archivo : archivosNormales) {
                             if (archivo.isFile()) {
                                 salida.writeObject("archivo|" + archivo.getName());
                                 byte[] contenido = Files.readAllBytes(archivo.toPath());
                                 salida.writeObject(contenido);
+                                System.out.println("Enviado archivo: " + archivo.getName());
                             }
                         }
                     }
+
+                    // Enviar imágenes
                     if (imagenes != null) {
                         for (File imagen : imagenes) {
                             if (imagen.isFile()) {
                                 salida.writeObject("imagen|" + imagen.getName());
                                 byte[] contenido = Files.readAllBytes(imagen.toPath());
                                 salida.writeObject(contenido);
+                                System.out.println("Enviada imagen: " + imagen.getName());
                             }
                         }
                     }
-                    if (copiasImagenes != null) {
-                        for (File copia : copiasImagenes) {
-                            if (copia.isFile()) {
-                                salida.writeObject("copia_imagen|" + copia.getName());
-                                byte[] contenido = Files.readAllBytes(copia.toPath());
-                                salida.writeObject(contenido);
-                            }
-                        }
-                    }
-
-                    // Marcar que ya terminó la sincronización inicial
-                    this.setSincronizando(false);
                     return "Lista de archivos enviada";
 
                 case "subir_archivo":
@@ -157,6 +143,7 @@ public class ClientHandler implements Runnable {
 
     private void handleConnect() throws IOException {
         System.out.println("Cliente conectado desde: " + socket.getInetAddress());
+        // Enviar mensaje de bienvenida con protocolo correcto
         salida.writeObject("WELCOME|Conectado al servidor MagicalStay");
         salida.flush();
     }
@@ -173,17 +160,5 @@ public class ClientHandler implements Runnable {
 
     private void handleDisconnect() {
         System.out.println("Cliente desconectado: " + socket.getInetAddress());
-        if (clientes != null) {
-            clientes.remove(this);
-        }
-    }
-
-    public void enviarMensaje(String mensaje) {
-        try {
-            salida.writeObject(mensaje);
-            salida.flush();
-        } catch (IOException e) {
-            System.err.println("Error enviando mensaje al cliente: " + e.getMessage());
-        }
     }
 }
