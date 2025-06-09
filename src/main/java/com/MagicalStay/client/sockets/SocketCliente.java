@@ -1,6 +1,6 @@
+
 package com.MagicalStay.client.sockets;
 
-import com.MagicalStay.shared.config.ConfiguracionApp;
 import javafx.application.Platform;
 import java.io.*;
 import java.net.Socket;
@@ -40,7 +40,6 @@ public class SocketCliente {
                 // Usar la sincronización bidireccional
                 FileClient fileClient = new FileClient(this);
                 fileClient.sincronizarBidireccional();
-
 
                 Platform.runLater(() -> callback.onConexionEstablecida());
                 escucharMensajes();
