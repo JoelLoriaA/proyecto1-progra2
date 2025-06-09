@@ -8,6 +8,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -16,12 +19,11 @@ public class ServerApp {
     private final ServerSocket serverSocket;
     private final ExecutorService poolDeHilos;
     private volatile boolean ejecutando;
-
+    private final List<ClientHandler> clientes = Collections.synchronizedList(new ArrayList<>());
     public ServerApp(int puerto) throws IOException {
         Files.createDirectories(Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR));
         Files.createDirectories(Paths.get(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR));
         Files.createDirectories(Paths.get(ConfiguracionApp.RUTA_COPIA_IMAGENES_SERVIDOR));
-
 
         serverSocket = new ServerSocket(puerto);
         poolDeHilos = Executors.newCachedThreadPool();
@@ -35,11 +37,14 @@ public class ServerApp {
 
     public void iniciar() {
         ejecutando = true;
+        // Lanza el watcher de directorios
+        new Thread(new DirectorioWatcher(clientes)).start();
         while (ejecutando) {
             try {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Cliente conectado desde: " + clientSocket.getInetAddress());
-                ClientHandler handler = new ClientHandler(clientSocket);
+                ClientHandler handler = new ClientHandler(clientSocket, clientes); // Pasa la lista
+                clientes.add(handler);
                 poolDeHilos.execute(handler);
             } catch (IOException e) {
                 if (ejecutando) {
