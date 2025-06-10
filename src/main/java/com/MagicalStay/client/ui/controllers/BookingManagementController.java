@@ -79,6 +79,18 @@
                                     showError("Error al inicializar: " + e.getMessage());
                                     e.printStackTrace();
                                 }
+                            }private <T> void selectComboBoxById(ComboBox<T> comboBox, T target, java.util.function.Predicate<T> matcher) {
+                                if (target == null) {
+                                    comboBox.setValue(null);
+                                    return;
+                                }
+                                for (T item : comboBox.getItems()) {
+                                    if (matcher.test(item)) {
+                                        comboBox.setValue(item);
+                                        return;
+                                    }
+                                }
+                                comboBox.setValue(null);
                             }
 
                             private void setupControls() {
@@ -541,39 +553,40 @@
                                         leavingDatePicker.getValue(),
                                         new ArrayList<>(reservedRooms)
                                 );
-                                // Solo nombre y apellido
-                                Guest selected = guestComboBox.getValue();
-                                if (selected != null) {
-                                    booking.setGuest(new Guest(selected.getName(), selected.getLastName()));
-                                }
+                                // Asigna el objeto completo seleccionado
+                                booking.setGuest(guestComboBox.getValue());
                                 booking.setFrontDeskClerk(clerkComboBox.getValue());
                                 booking.setHotel(hotelComboBox.getValue());
                                 return booking;
                             }
 
-                            // Java
                             private void loadBookingDetails(Booking booking) {
                                 if (booking == null) return;
                                 try {
                                     unbindControls();
                                     bookingIdTextField.setText(String.valueOf(booking.getBookingId()));
-                                    // Selecciona el hotel correspondiente
-                                    hotelComboBox.getSelectionModel().select(booking.getHotel());
-                                    // Selecciona el huésped correspondiente
-                                    guestComboBox.getSelectionModel().select(booking.getGuest());
-                                    // Selecciona el empleado correspondiente
-                                    clerkComboBox.getSelectionModel().select(booking.getFrontDeskClerk());
+
+                                    // Selecciona el hotel por ID
+                                    selectComboBoxById(hotelComboBox, booking.getHotel(),
+                                            h -> h != null && booking.getHotel() != null && ((Hotel)h).getHotelId() == booking.getHotel().getHotelId());
+
+                                    // Selecciona el huésped por nombre y apellido
+                                    selectComboBoxById(guestComboBox, booking.getGuest(),
+                                            g -> g != null && booking.getGuest() != null &&
+                                                    ((Guest)g).getName().equals(booking.getGuest().getName()) &&
+                                                    ((Guest)g).getLastName().equals(booking.getGuest().getLastName()));
+
+                                    // Selecciona el recepcionista por employeeId
+                                    selectComboBoxById(clerkComboBox, booking.getFrontDeskClerk(),
+                                            c -> c != null && booking.getFrontDeskClerk() != null &&
+                                                    ((FrontDeskClerk)c).getEmployeeId().equals(booking.getFrontDeskClerk().getEmployeeId()));
+
                                     startDatePicker.setValue(booking.getStartDate());
                                     leavingDatePicker.setValue(booking.getLeavingDate());
 
-                                    // Carga las habitaciones reservadas en el TableView
-                                    reservedRooms.clear();
-                                    if (booking.getReservedRooms() != null) {
-                                        reservedRooms.addAll(booking.getReservedRooms());
-                                        reservedRoomsTableView.setItems(null);
-                                        reservedRoomsTableView.setItems(reservedRooms);
-                                        reservedRoomsTableView.refresh();
-                                    }
+                                    reservedRooms.setAll(booking.getReservedRooms() != null ? booking.getReservedRooms() : new ArrayList<>());
+                                    reservedRoomsTableView.refresh();
+
                                     updateCalculations();
                                     availableRoomsComboBox.setDisable(true);
                                     setFieldsEnabled(false);
@@ -707,7 +720,14 @@
                                     if (response.isSuccess()) {
                                         showSuccess("Reserva actualizada exitosamente");
                                         loadInitialData();
-                                        clearForm();
+                                        // Selecciona la reserva editada en la lista
+                                        bookings.stream()
+                                                .filter(b -> b.getBookingId() == bookingId)
+                                                .findFirst()
+                                                .ifPresent(b -> bookingListView.getSelectionModel().select(b));
+                                        loadBookingDetails(booking);
+                                        setFieldsEnabled(false);
+                                        isEditing = false;
                                     } else {
                                         showError("Error al actualizar: " + response.getMessage());
                                     }
