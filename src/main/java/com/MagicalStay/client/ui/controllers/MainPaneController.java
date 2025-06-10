@@ -1,6 +1,7 @@
 package com.MagicalStay.client.ui.controllers;
 
 import com.MagicalStay.client.data.DataFactory;
+import com.MagicalStay.client.sockets.FileClient;
 import com.MagicalStay.client.sockets.SocketCliente;
 import com.MagicalStay.shared.config.ConfiguracionApp;
 import com.MagicalStay.shared.data.JsonResponse;
@@ -97,7 +98,6 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
         openWindow(ConfiguracionApp.FXML_FRONTDESK_MANAGEMENT, "Gestión de Recepcionistas");
     }
 
-    // Java
     private void openWindow(String fxmlPath, String title) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
@@ -106,22 +106,18 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
             Stage stage = new Stage();
             stage.setTitle(title);
             stage.setScene(new Scene(root));
-            stage.setOnHidden(event -> {
-                new Thread(() -> {
-                    if (socketCliente.estaConectado()) {
-                        try {
-                            socketCliente.detenerEscuchaMensajes();
-                            socketCliente.iniciarSincronizacionBidireccional();
-                            Platform.runLater(() -> socketCliente.iniciarEscuchaMensajes());
-                        } catch (Exception e) {
-                            Platform.runLater(() -> showAlert("Error", "Error en sincronización", e.getMessage(), Alert.AlertType.ERROR));
-                            // No desconectes aquí, solo muestra el error
-                        }
-                    } else {
-                        Platform.runLater(() -> showAlert("Advertencia", "Desconectado", "No se puede sincronizar porque la conexión se ha perdido.", Alert.AlertType.WARNING));
-                    }
-                }).start();
-            });
+//            stage.setOnHiding(event -> {
+//                new Thread(() -> {
+//                    try {
+//                        socketCliente.iniciarSincronizacionBidireccional();
+//                        socketCliente.iniciarEscuchaMensajes();
+//                    } catch (Exception e) {
+//                        Platform.runLater(() -> showAlert("Error", "Error en sincronización", e.getMessage(), Alert.AlertType.ERROR));
+//                    }
+//                }).start();
+//            });
+
+
             stage.show();
 
         } catch (IOException e) {
@@ -204,7 +200,7 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
             new Thread(() -> {
                 try {
                     socketCliente.iniciarSincronizacionBidireccional();
-                    Platform.runLater(() -> socketCliente.iniciarEscuchaMensajes());
+                    socketCliente.iniciarEscuchaMensajes();
                 } catch (Exception e) {
                     Platform.runLater(() -> {
                         showAlert("Error", "Error en sincronización", e.getMessage(), Alert.AlertType.ERROR);

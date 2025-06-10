@@ -10,9 +10,6 @@ import java.util.List;
 
 public class FileClient {
     private final SocketCliente socketCliente;
-    // src/main/java/com/MagicalStay/client/sockets/FileClient.java
-
-    private boolean imagenesEnviadas = false;
 
     public FileClient(SocketCliente socketCliente) {
         this.socketCliente = socketCliente;
@@ -151,25 +148,13 @@ public class FileClient {
         }
     }
 
- // Java
     public void sincronizarBidireccional() throws IOException {
         System.out.println("Iniciando sincronización bidireccional...");
-
-        // 1. Subir archivos locales primero
-        enviarArchivosDat(); // Sube todos los .dat locales
-
-        // 2. Descargar archivos del servidor solo si no existen localmente o si el local es más viejo
         List<String> archivosServidor = listarArchivos();
-        for (String nombreArchivo : archivosServidor) {
-            File archivoLocal = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
-            long ultimaModificacionLocal = archivoLocal.exists() ? archivoLocal.lastModified() : 0;
-            long ultimaModificacionServidor = obtenerUltimaModificacionServidor(nombreArchivo); // Implementa este método
+        System.out.println("Recibidos " + archivosServidor.size() + " archivos del servidor");
 
-            if (!archivoLocal.exists() || ultimaModificacionServidor > ultimaModificacionLocal) {
-                descargarArchivo(nombreArchivo); // Implementa este método para descargar y guardar el archivo
-                System.out.println("Archivo descargado del servidor: " + nombreArchivo);
-            }
-        }
+        enviarArchivosLocales();
+        enviarImagenesNoDuplicadas(); // Solo imágenes nuevas
     }
 
     private void enviarArchivosLocales() throws IOException {
@@ -192,63 +177,6 @@ public class FileClient {
                     }
                 }
             }
-        }
-    }
-
-    private void enviarArchivosDat() throws IOException {
-        System.out.println("Enviando archivos .dat locales al servidor...");
-        File dir = new File(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR);
-        if (dir.exists()) {
-            File[] archivos = dir.listFiles((d, name) -> name.endsWith(".dat"));
-            if (archivos != null) {
-                for (File archivo : archivos) {
-                    if (archivo.isFile()) {
-                        String nombreArchivo = archivo.getName();
-                        byte[] datos = Files.readAllBytes(archivo.toPath());
-                        subirArchivo(nombreArchivo, datos, false);
-                        System.out.println("Enviado archivo .dat: " + nombreArchivo);
-                    }
-                }
-            }
-        }
-    }
-
-    private long obtenerUltimaModificacionServidor(String nombreArchivo) throws IOException {
-        socketCliente.enviarMensaje("ultima_modificacion|" + nombreArchivo);
-        try {
-            Object respuesta = socketCliente.recibirObjeto();
-            if (respuesta instanceof Long) {
-                return (Long) respuesta;
-            } else if (respuesta instanceof String) {
-                // Si el archivo no existe en el servidor, retorna 0
-                return 0L;
-            } else {
-                throw new IOException("Respuesta inesperada al pedir última modificación");
-            }
-        } catch (ClassNotFoundException e) {
-            throw new IOException("Error recibiendo última modificación: " + e.getMessage());
-        }
-    }
-
-    private void descargarArchivo(String nombreArchivo) throws IOException {
-        socketCliente.enviarMensaje("descargar_archivo|" + nombreArchivo);
-        try {
-            Object respuesta = socketCliente.recibirObjeto();
-            if (respuesta instanceof byte[]) {
-                byte[] datos = (byte[]) respuesta;
-                Path rutaLocal = Paths.get(ConfiguracionApp.RUTA_ARCHIVOS_SERVIDOR, nombreArchivo);
-                Files.createDirectories(rutaLocal.getParent());
-                Files.write(rutaLocal, datos);
-            } else if (respuesta instanceof String) {
-                String msg = (String) respuesta;
-                if (msg.startsWith("ERROR")) {
-                    throw new IOException("No se pudo descargar el archivo: " + msg);
-                }
-            } else {
-                throw new IOException("Respuesta inesperada al descargar archivo");
-            }
-        } catch (ClassNotFoundException e) {
-            throw new IOException("Error recibiendo archivo: " + e.getMessage());
         }
     }
 }

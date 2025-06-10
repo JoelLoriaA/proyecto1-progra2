@@ -26,9 +26,6 @@ public class SocketCliente {
         this.callback = callback;
     }
 
-
-
-
     public void conectar(String host, int puerto) {
         if (conectado) return;
 
@@ -68,7 +65,7 @@ public class SocketCliente {
 
     public void iniciarSincronizacionBidireccional() {
         try{
-        FileClient fileClient = new FileClient(this);
+            FileClient fileClient = new FileClient(this);
 
             fileClient.sincronizarBidireccional();
         } catch (IOException e) {
@@ -77,21 +74,23 @@ public class SocketCliente {
     }
 
 
-   private void escucharMensajes() {
-        while (conectado) {
-            try {
-                Object mensaje = entrada.readObject();
-                if (mensaje instanceof String) {
-                    Platform.runLater(() -> callback.onMensajeRecibido((String) mensaje));
+    private void escucharMensajes() {
+        new Thread(() -> {
+            while (conectado) {
+                try {
+                    Object mensaje = entrada.readObject();
+                    if (mensaje instanceof String) {
+                        Platform.runLater(() -> callback.onMensajeRecibido((String) mensaje));
+                    }
+                } catch (Exception e) {
+                    if (conectado) {
+                        Platform.runLater(() -> callback.onError("Error: " + e.getMessage()));
+                        desconectar();
+                    }
+                    break;
                 }
-            } catch (Exception e) {
-                if (conectado) {
-                    Platform.runLater(() -> callback.onError("Error: " + e.getMessage()));
-                    desconectar();
-                }
-                break;
             }
-        }
+        }).start();
     }
 
     public void enviarMensaje(String mensaje) {
@@ -129,7 +128,7 @@ public class SocketCliente {
         return conectado;
     }
 
-  public void enviarObjeto(Object obj) {
+    public void enviarObjeto(Object obj) {
         if (!conectado) {
             callback.onError("No conectado al servidor");
             return;
