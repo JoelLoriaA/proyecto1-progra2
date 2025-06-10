@@ -4,6 +4,7 @@ import com.MagicalStay.client.data.DataFactory;
 import com.MagicalStay.shared.data.GuestData;
 import com.MagicalStay.shared.data.HotelData;
 import com.MagicalStay.shared.data.RoomData;
+import com.MagicalStay.shared.domain.Booking;
 import com.MagicalStay.shared.domain.Guest;
 import com.MagicalStay.shared.domain.Hotel;
 import com.MagicalStay.shared.domain.Room;
@@ -62,9 +63,6 @@ public class HotelManagementController {
     @FXML
     private Button cancelButton;
 
-    @FXML
-    private Button manageRoomsButton;
-
     // FXML elements for room table
     @FXML
     private TableView<Room> roomsTableView;
@@ -117,8 +115,6 @@ public class HotelManagementController {
     private TableColumn guestLastNameColumn;
     @FXML
     private ComboBox searchTypeComboBox;
-    @FXML
-    private Button manageGuestsButton;
 
     @FXML
     private void initialize() {
@@ -178,8 +174,6 @@ public class HotelManagementController {
             setFieldsEnabled(false);
             editButton.setDisable(true);
             deleteButton.setDisable(true);
-            manageRoomsButton.setDisable(true);
-            manageGuestsButton.setDisable(true);
 
             // Configurar listeners para selección
             hotelListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
@@ -189,8 +183,6 @@ public class HotelManagementController {
                     loadGuestsForHotel(newVal);
                     editButton.setDisable(false);
                     deleteButton.setDisable(false);
-                    manageRoomsButton.setDisable(false);
-                    manageGuestsButton.setDisable(false);
                 }
             });
 
@@ -262,25 +254,37 @@ public class HotelManagementController {
 
     private void loadGuestsForHotel(Hotel hotel) {
         try {
-            String jsonResponse = guestData.retrieveAll();
-            DataResponse response = parseDataResponse(jsonResponse);
+            if (hotel == null) {
+                guestsTableView.setItems(FXCollections.observableArrayList());
+                return;
+            }
 
-            if (response.isSuccess()) {
-                List<Guest> allGuests = objectMapper.convertValue(
-                        response.getData(),
-                        new TypeReference<List<Guest>>() {}
+            // Obtener todas las reservas
+            String bookingJson = DataFactory.getBookingData().retrieveAll();
+            DataResponse bookingResponse = parseDataResponse(bookingJson);
+
+            if (bookingResponse.isSuccess() && bookingResponse.getData() != null) {
+                List<Booking> bookings = objectMapper.convertValue(
+                    bookingResponse.getData(),
+                    new TypeReference<List<Booking>>() {}
                 );
 
-                ObservableList<Guest> hotelGuests = FXCollections.observableArrayList(allGuests);
-                guestsTableView.setItems(hotelGuests);
-                guestsTableView.refresh();
+                // Filtrar bookings por hotel y extraer huéspedes únicos
+                List<Guest> guests = bookings.stream()
+                    .filter(b -> b.getHotel() != null && b.getHotel().getHotelId() == hotel.getHotelId())
+                    .map(Booking::getGuest)
+                    .filter(g -> g != null)
+                    .distinct()
+                    .collect(Collectors.toList());
 
-                statusLabel.setText("Huéspedes cargados: " + hotelGuests.size());
+                guestsTableView.setItems(FXCollections.observableArrayList(guests));
+            } else {
+                guestsTableView.setItems(FXCollections.observableArrayList());
             }
         } catch (Exception e) {
             e.printStackTrace();
             showAlert(Alert.AlertType.ERROR, "Error",
-                    "Error al cargar huéspedes: " + e.getMessage());
+                    "Error al cargar huéspedes asociados al hotel: " + e.getMessage());
         }
     }
 
@@ -299,8 +303,6 @@ public class HotelManagementController {
             // Enable buttons
             editButton.setDisable(false);
             deleteButton.setDisable(false);
-            manageRoomsButton.setDisable(false);
-            manageGuestsButton.setDisable(false);
 
         }
     }
@@ -416,7 +418,6 @@ public class HotelManagementController {
                         // Disable buttons
                         editButton.setDisable(true);
                         deleteButton.setDisable(true);
-                        manageRoomsButton.setDisable(true);
                     } else {
                         showAlert(Alert.AlertType.ERROR, "Error",
                                 "No se pudo eliminar el hotel: " + response.getMessage());
@@ -507,33 +508,6 @@ public class HotelManagementController {
     }
 
     @FXML
-    private void handleManageRooms(ActionEvent event) {
-        if (selectedHotel != null) {
-            try {
-                // Load the room management FXML
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/room-management.fxml"));
-                Parent root = loader.load();
-
-                // Get the controller and pass the selected hotel
-                RoomManagementController controller = loader.getController();
-                controller.setSelectedHotel(selectedHotel);
-
-                // Create a new stage for the room management window
-                Stage roomStage = new Stage();
-                roomStage.setTitle("Gestión de Habitaciones - " + selectedHotel.getName());
-                roomStage.setScene(new Scene(root));
-                roomStage.initModality(Modality.WINDOW_MODAL);
-                roomStage.initOwner(manageRoomsButton.getScene().getWindow());
-                roomStage.show();
-            } catch (IOException e) {
-                showAlert(Alert.AlertType.ERROR, "Error",
-                        "No se pudo cargar la ventana de gestión de habitaciones: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-    }
-
-    @FXML
     private void handleClose(ActionEvent event) throws IOException {
         DataFactory.closeAll();
 
@@ -597,30 +571,6 @@ public class HotelManagementController {
 
     private DataResponse parseDataResponse(String jsonResponse) throws Exception {
         return objectMapper.readValue(jsonResponse, DataResponse.class);
-    }
-
-    @FXML
-    public void handleManageGuests(ActionEvent actionEvent) {
-        if (selectedHotel != null) {
-            try {
-                // Cargar el FXML de gestión de huéspedes
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/guest-management.fxml"));
-                Parent root = loader.load();
-
-                // Crear una nueva ventana para la gestión de huéspedes
-                Stage guestStage = new Stage();
-                guestStage.setTitle("Gestión de Huéspedes - " + selectedHotel.getName());
-                guestStage.setScene(new Scene(root));
-                guestStage.initModality(Modality.WINDOW_MODAL);
-                guestStage.initOwner(manageGuestsButton.getScene().getWindow());
-                guestStage.show();
-            } catch (IOException e) {
-                showAlert(Alert.AlertType.ERROR, "Error",
-                        "No se pudo cargar la ventana de gestión de huéspedes: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-
     }
 
     private static class DataResponse {

@@ -75,7 +75,7 @@ public class BookingData extends JsonDataResponse {
                 // Guest info (nombre;id)
                 String guestInfo = "";
                 if (booking.getGuest() != null) {
-                    guestInfo = booking.getGuest().getName() + ";" + booking.getGuest().getDni();
+                    guestInfo = booking.getGuest().getName() + ";" + booking.getGuest().getLastName();
                 }
                 writeString(padRight(guestInfo, GUEST_LENGTH), GUEST_LENGTH);
 
@@ -123,7 +123,7 @@ public class BookingData extends JsonDataResponse {
                 if (!guestInfo.isEmpty()) {
                     String[] guestParts = guestInfo.split(";");
                     if (guestParts.length == 2) {
-                        guest = new Guest(guestParts[1], guestParts[0]);
+                        guest = new Guest(guestParts[0], guestParts[1]);
                     }
                 }
 

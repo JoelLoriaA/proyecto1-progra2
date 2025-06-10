@@ -120,6 +120,7 @@
                     </GridPane>
 
                     <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                  <Button fx:id="updateBookingButton" onAction="#handleUpdateBooking" style="-fx-background-color: #2196F3; -fx-text-fill: white;" text="Actualizar" />
                         <Button fx:id="saveButton" onAction="#handleSave" style="-fx-background-color: #4CAF50; -fx-text-fill: white;" text="💾 Guardar" />
                         <Button onAction="#handleClear" style="-fx-background-color: #9E9E9E; -fx-text-fill: white;" text="🔄 Limpiar" />
                     </HBox>

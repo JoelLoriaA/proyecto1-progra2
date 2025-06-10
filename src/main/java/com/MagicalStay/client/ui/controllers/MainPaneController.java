@@ -106,16 +106,7 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
             Stage stage = new Stage();
             stage.setTitle(title);
             stage.setScene(new Scene(root));
-//            stage.setOnHiding(event -> {
-//                new Thread(() -> {
-//                    try {
-//                        socketCliente.iniciarSincronizacionBidireccional();
-//                        socketCliente.iniciarEscuchaMensajes();
-//                    } catch (Exception e) {
-//                        Platform.runLater(() -> showAlert("Error", "Error en sincronización", e.getMessage(), Alert.AlertType.ERROR));
-//                    }
-//                }).start();
-//            });
+
 
 
             stage.show();

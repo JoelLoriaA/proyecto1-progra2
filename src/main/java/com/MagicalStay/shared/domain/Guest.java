@@ -39,6 +39,8 @@ public class Guest {
     }
 
     public Guest(String name, String lastName) {
+        this.name = name;
+        this.lastName = lastName;
     }
 
     public String getName() {
