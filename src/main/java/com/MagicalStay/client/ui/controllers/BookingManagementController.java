@@ -1,4 +1,4 @@
-// src/main/java/com/MagicalStay/client/ui/controllers/BookingManagementController.java
+
                         package com.MagicalStay.client.ui.controllers;
 
                         import com.MagicalStay.client.data.DataFactory;
@@ -27,35 +27,63 @@
                             private static final double TAX_RATE = 0.12;
                             private static final double SERVICE_FEE = 10.0;
 
-                            @FXML private TextField totalPriceTextField;
-                            @FXML private TableView<Room> reservedRoomsTableView;
-                            @FXML private DatePicker leavingDatePicker;
-                            @FXML private ComboBox<Hotel> hotelComboBox;
-                            @FXML private ComboBox<FrontDeskClerk> clerkComboBox;
-                            @FXML private ComboBox<Room> availableRoomsComboBox;
-                            @FXML private TextField bookingIdTextField;
-                            @FXML private TextField totalNightsTextField;
-                            @FXML private TextField subtotalTextField;
-                            @FXML private DatePicker startDatePicker;
-                            @FXML private ComboBox<Guest> guestComboBox;
+                            @FXML
+                            private TextField totalPriceTextField;
+                            @FXML
+                            private TableView<Room> reservedRoomsTableView;
+                            @FXML
+                            private DatePicker leavingDatePicker;
+                            @FXML
+                            private ComboBox<Hotel> hotelComboBox;
+                            @FXML
+                            private ComboBox<FrontDeskClerk> clerkComboBox;
+                            @FXML
+                            private ComboBox<Room> availableRoomsComboBox;
+                            @FXML
+                            private TextField bookingIdTextField;
+                            @FXML
+                            private TextField totalNightsTextField;
+                            @FXML
+                            private TextField subtotalTextField;
+                            @FXML
+                            private DatePicker startDatePicker;
+                            @FXML
+                            private ComboBox<Guest> guestComboBox;
 
-                            @FXML private TableColumn<Room, String> reservedRoomNumberColumn;
-                            @FXML private TableColumn<Room, RoomType> reservedRoomTypeColumn;
-                            @FXML private TableColumn<Room, RoomCondition> reservedRoomConditionColumn;
-                            @FXML private TableColumn<Room, Double> reservedRoomPrice;
+                            @FXML
+                            private TableColumn<Room, String> reservedRoomNumberColumn;
+                            @FXML
+                            private TableColumn<Room, RoomType> reservedRoomTypeColumn;
+                            @FXML
+                            private TableColumn<Room, RoomCondition> reservedRoomConditionColumn;
+                            @FXML
+                            private TableColumn<Room, Double> reservedRoomPrice;
 
-                            @FXML private Button closeButton;
-                            @FXML private Button saveButton;
-                            @FXML private Button addRoomButton;
-                            @FXML private Label statusLabel;
-                            @FXML private Button checkAvailabilityButton;
-                            @FXML private Button deleteButton;
-                            @FXML private TextField searchTextField;
-                            @FXML private ComboBox<String> searchTypeComboBox;
-                            @FXML private Button addButton;
-                            @FXML private Button editButton;
-                            @FXML private ListView bookingListView;
-                            @FXML private Button updateBookingButton;
+                            @FXML
+                            private Button closeButton;
+                            @FXML
+                            private Button saveButton;
+                            @FXML
+                            private Button addRoomButton;
+                            @FXML
+                            private Label statusLabel;
+                            @FXML
+                            private Button checkAvailabilityButton;
+                            @FXML
+                            private Button deleteButton;
+                            @FXML
+                            private TextField searchTextField;
+                            @FXML
+                            private ComboBox<String> searchTypeComboBox;
+                            @FXML
+                            private Button addButton;
+                            @FXML
+                            private Button editButton;
+                            @FXML
+                            private ListView bookingListView;
+                            @FXML
+                            private Button updateBookingButton;
+                            private Booking currentEditingBooking = null;
 
                             private BookingData bookingData;
                             private final ObservableList<Room> reservedRooms = FXCollections.observableArrayList();
@@ -79,7 +107,9 @@
                                     showError("Error al inicializar: " + e.getMessage());
                                     e.printStackTrace();
                                 }
-                            }private <T> void selectComboBoxById(ComboBox<T> comboBox, T target, java.util.function.Predicate<T> matcher) {
+                            }
+
+                            private <T> void selectComboBoxById(ComboBox<T> comboBox, T target, java.util.function.Predicate<T> matcher) {
                                 if (target == null) {
                                     comboBox.setValue(null);
                                     return;
@@ -108,7 +138,7 @@
 
                             private void setupSearchControls() {
                                 searchTypeComboBox.setItems(FXCollections.observableArrayList(
-                                        "ID", "Huésped", "Hotel" , "Todos"
+                                        "ID", "Huésped", "Hotel", "Todos"
                                 ));
                                 searchTypeComboBox.setValue("ID");
                             }
@@ -161,7 +191,8 @@
 
                                     if (hotelDataResponse.isSuccess()) {
                                         List<Hotel> hotels = objectMapper.convertValue(hotelDataResponse.getData(),
-                                                new TypeReference<List<Hotel>>() {});
+                                                new TypeReference<List<Hotel>>() {
+                                                });
 
                                         hotelComboBox.setItems(FXCollections.observableArrayList(hotels));
                                         hotelComboBox.setCellFactory(param -> new ListCell<Hotel>() {
@@ -182,7 +213,8 @@
 
                                     if (guestDataResponse.isSuccess()) {
                                         List<Guest> guests = objectMapper.convertValue(guestDataResponse.getData(),
-                                                new TypeReference<List<Guest>>() {});
+                                                new TypeReference<List<Guest>>() {
+                                                });
                                         guestComboBox.setItems(FXCollections.observableArrayList(guests));
                                         guestComboBox.setCellFactory(param -> new ListCell<Guest>() {
                                             @Override
@@ -196,7 +228,8 @@
 
                                     if (clerkDataResponse.isSuccess()) {
                                         List<FrontDeskClerk> clerks = objectMapper.convertValue(clerkDataResponse.getData(),
-                                                new TypeReference<List<FrontDeskClerk>>() {});
+                                                new TypeReference<List<FrontDeskClerk>>() {
+                                                });
                                         clerkComboBox.setItems(FXCollections.observableArrayList(clerks));
                                         clerkComboBox.setCellFactory(param -> new ListCell<FrontDeskClerk>() {
                                             @Override
@@ -249,13 +282,13 @@
                                 });
 
                                 bookingListView.getSelectionModel().selectedItemProperty().addListener(
-                                    (obs, oldVal, newVal) -> {
-                                        if (newVal instanceof Booking) {
-                                            loadBookingDetails((Booking) newVal);
-                                        } else {
-                                            clearForm();
+                                        (obs, oldVal, newVal) -> {
+                                            if (newVal instanceof Booking) {
+                                                loadBookingDetails((Booking) newVal);
+                                            } else {
+                                                clearForm();
+                                            }
                                         }
-                                    }
                                 );
                                 bookingListView.setItems(bookings);
                             }
@@ -279,7 +312,8 @@
 
                                     if (response.isSuccess()) {
                                         List<Booking> bookingList = objectMapper.convertValue(response.getData(),
-                                                new TypeReference<List<Booking>>() {});
+                                                new TypeReference<List<Booking>>() {
+                                                });
                                         bookings.setAll(bookingList);
                                     } else {
                                         bookings.clear();
@@ -333,30 +367,48 @@
                                 try {
                                     String jsonResponse = bookingData.retrieveAll();
                                     DataResponse response = parseDataResponse(jsonResponse);
+
                                     if (response.isSuccess()) {
                                         List<Booking> existingBookings = objectMapper.convertValue(response.getData(),
                                                 new TypeReference<List<Booking>>() {});
+
+
                                         List<Booking> bookingsToCheck = existingBookings;
-                                        if (isEditing && bookingIdTextField.getText() != null && !bookingIdTextField.getText().isEmpty()) {
-                                            try {
-                                                int currentId = Integer.parseInt(bookingIdTextField.getText());
-                                                List<Booking> filtered = existingBookings.stream()
-                                                        .filter(b -> b.getBookingId() != currentId)
-                                                        .collect(Collectors.toList());
-                                                bookingsToCheck = filtered;
-                                            } catch (NumberFormatException ignored) {}
+                                        if (isEditing && currentEditingBooking != null) {
+                                            bookingsToCheck = existingBookings.stream()
+                                                    .filter(b -> b.getBookingId() != currentEditingBooking.getBookingId())
+                                                    .collect(Collectors.toList());
                                         }
+
+
                                         final List<Booking> finalBookingsToCheck = bookingsToCheck;
-                                        return allRooms.stream()
+                                        List<Room> availableRooms = allRooms.stream()
                                                 .filter(room -> isRoomAvailable(room, startDate, leavingDate, finalBookingsToCheck))
                                                 .collect(Collectors.toList());
+
+
+                                        if (isEditing && currentEditingBooking != null &&
+                                                currentEditingBooking.getReservedRooms() != null) {
+
+                                            for (Room reservedRoom : currentEditingBooking.getReservedRooms()) {
+                                                if (!availableRooms.contains(reservedRoom)) {
+                                                    availableRooms.add(reservedRoom);
+                                                }
+                                            }
+                                        }
+
+                                        return availableRooms;
                                     }
+
                                     return new ArrayList<>();
+
                                 } catch (Exception e) {
                                     showError("Error al verificar disponibilidad: " + e.getMessage());
                                     return new ArrayList<>();
                                 }
                             }
+
+
                             private boolean isRoomAvailable(Room room, LocalDate startDate, LocalDate leavingDate, List<Booking> existingBookings) {
                                 return existingBookings.stream()
                                         .noneMatch(booking ->
@@ -431,10 +483,11 @@
                                         DataResponse response = parseDataResponse(jsonResponse);
                                         if (response.isSuccess() && response.getData() != null) {
                                             List<Booking> allBookings = objectMapper.convertValue(response.getData(),
-                                                new TypeReference<List<Booking>>() {});
+                                                    new TypeReference<List<Booking>>() {
+                                                    });
                                             List<Booking> filteredBookings = allBookings.stream()
-                                                .filter(booking -> matchesSearch(booking, searchType, searchText))
-                                                .collect(Collectors.toList());
+                                                    .filter(booking -> matchesSearch(booking, searchType, searchText))
+                                                    .collect(Collectors.toList());
                                             if (!filteredBookings.isEmpty()) {
                                                 bookings.setAll(filteredBookings);
                                                 showSuccess("Búsqueda completada con éxito");
@@ -450,7 +503,8 @@
                                         List<Booking> foundBookings;
                                         if (response.getData() instanceof List) {
                                             foundBookings = objectMapper.convertValue(response.getData(),
-                                                new TypeReference<List<Booking>>() {});
+                                                    new TypeReference<List<Booking>>() {
+                                                    });
                                         } else {
                                             Booking booking = objectMapper.convertValue(response.getData(), Booking.class);
                                             foundBookings = Collections.singletonList(booking);
@@ -470,12 +524,12 @@
                                 switch (searchType) {
                                     case "Huésped":
                                         return booking.getGuest() != null &&
-                                               booking.getGuest().getName().toLowerCase()
-                                               .contains(searchText.toLowerCase());
+                                                booking.getGuest().getName().toLowerCase()
+                                                        .contains(searchText.toLowerCase());
                                     case "Hotel":
                                         return booking.getHotel() != null &&
-                                               booking.getHotel().getName().toLowerCase()
-                                               .contains(searchText.toLowerCase());
+                                                booking.getHotel().getName().toLowerCase()
+                                                        .contains(searchText.toLowerCase());
                                     default:
                                         return false;
                                 }
@@ -510,12 +564,12 @@
                                         loadInitialData();
                                         clearForm();
                                         bookingListView.getItems().stream()
-                                            .filter(b -> b instanceof Booking &&
-                                                    ((Booking)b).getBookingId() == booking.getBookingId())
-                                            .findFirst()
-                                            .ifPresent(b -> {
-                                                bookingListView.getSelectionModel().select(b);
-                                            });
+                                                .filter(b -> b instanceof Booking &&
+                                                        ((Booking) b).getBookingId() == booking.getBookingId())
+                                                .findFirst()
+                                                .ifPresent(b -> {
+                                                    bookingListView.getSelectionModel().select(b);
+                                                });
                                     } else {
                                         showError("Error al guardar: " + response.getMessage());
                                     }
@@ -553,7 +607,7 @@
                                         leavingDatePicker.getValue(),
                                         new ArrayList<>(reservedRooms)
                                 );
-                                // Asigna el objeto completo seleccionado
+
                                 booking.setGuest(guestComboBox.getValue());
                                 booking.setFrontDeskClerk(clerkComboBox.getValue());
                                 booking.setHotel(hotelComboBox.getValue());
@@ -562,38 +616,62 @@
 
                             private void loadBookingDetails(Booking booking) {
                                 if (booking == null) return;
+
                                 try {
                                     unbindControls();
+
+
                                     bookingIdTextField.setText(String.valueOf(booking.getBookingId()));
-
-                                    // Selecciona el hotel por ID
-                                    selectComboBoxById(hotelComboBox, booking.getHotel(),
-                                            h -> h != null && booking.getHotel() != null && ((Hotel)h).getHotelId() == booking.getHotel().getHotelId());
-
-                                    // Selecciona el huésped por nombre y apellido
-                                    selectComboBoxById(guestComboBox, booking.getGuest(),
-                                            g -> g != null && booking.getGuest() != null &&
-                                                    ((Guest)g).getName().equals(booking.getGuest().getName()) &&
-                                                    ((Guest)g).getLastName().equals(booking.getGuest().getLastName()));
-
-                                    // Selecciona el recepcionista por employeeId
-                                    selectComboBoxById(clerkComboBox, booking.getFrontDeskClerk(),
-                                            c -> c != null && booking.getFrontDeskClerk() != null &&
-                                                    ((FrontDeskClerk)c).getEmployeeId().equals(booking.getFrontDeskClerk().getEmployeeId()));
-
                                     startDatePicker.setValue(booking.getStartDate());
                                     leavingDatePicker.setValue(booking.getLeavingDate());
 
-                                    reservedRooms.setAll(booking.getReservedRooms() != null ? booking.getReservedRooms() : new ArrayList<>());
+
+                                    if (booking.getHotel() != null) {
+                                        selectComboBoxById(hotelComboBox, booking.getHotel(),
+                                                h -> h != null && h.getHotelId() == booking.getHotel().getHotelId());
+                                    }
+
+
+                                    if (booking.getGuest() != null) {
+                                        selectComboBoxById(guestComboBox, booking.getGuest(),
+                                                g -> g != null &&
+                                                        g.getName().equals(booking.getGuest().getName()) &&
+                                                        g.getLastName().equals(booking.getGuest().getLastName()));
+                                    }
+
+
+                                    if (booking.getFrontDeskClerk() != null) {
+                                        selectComboBoxById(clerkComboBox, booking.getFrontDeskClerk(),
+                                                c -> c != null &&
+                                                        c.getEmployeeId().equals(booking.getFrontDeskClerk().getEmployeeId()));
+                                    }
+
+
+                                    reservedRooms.clear();
+                                    if (booking.getReservedRooms() != null) {
+                                        reservedRooms.setAll(booking.getReservedRooms());
+                                    }
                                     reservedRoomsTableView.refresh();
 
                                     updateCalculations();
+
+
+                                    if (!isEditing) {
+                                        setFieldsEnabled(false);
+                                        editButton.setDisable(false);
+                                        deleteButton.setDisable(false);
+                                    }
+
+
                                     availableRoomsComboBox.setDisable(true);
-                                    setFieldsEnabled(false);
-                                    editButton.setDisable(false);
-                                    deleteButton.setDisable(false);
+                                    availableRoomsComboBox.getItems().clear();
+
                                     bindControls();
-                                    showSuccess("Reserva #" + booking.getBookingId() + " cargada");
+
+                                    if (!isEditing) {
+                                        showSuccess("Reserva #" + booking.getBookingId() + " cargada");
+                                    }
+
                                 } catch (Exception e) {
                                     showError("Error al cargar los detalles: " + e.getMessage());
                                     e.printStackTrace();
@@ -607,19 +685,46 @@
 
                             private void clearForm() {
                                 unbindControls();
+
+
                                 isEditing = false;
+                                currentEditingBooking = null;
+
+
                                 bookingIdTextField.clear();
                                 startDatePicker.setValue(LocalDate.now());
                                 leavingDatePicker.setValue(LocalDate.now().plusDays(1));
+
+
                                 hotelComboBox.setValue(null);
                                 guestComboBox.setValue(null);
                                 clerkComboBox.setValue(null);
                                 availableRoomsComboBox.setValue(null);
-                                availableRoomsComboBox.setDisable(true);
+
+
                                 reservedRooms.clear();
+
+
+                                availableRoomsComboBox.getItems().clear();
+                                availableRoomsComboBox.setDisable(true);
+
+
                                 updateCalculations();
+
+
                                 setFieldsEnabled(false);
+
+
+                                updateBookingButton.setDisable(true);
+                                saveButton.setDisable(false);
+
+
+                                bookingListView.getSelectionModel().clearSelection();
+
                                 bindControls();
+
+
+                                statusLabel.setText("");
                             }
 
                             @FXML
@@ -688,51 +793,87 @@
                             public void handleEditReservation(ActionEvent event) {
                                 Booking selectedBooking = (Booking) bookingListView.getSelectionModel().getSelectedItem();
                                 if (selectedBooking != null) {
+                                    currentEditingBooking = selectedBooking;
+                                    isEditing = true;
                                     loadBookingDetails(selectedBooking);
                                     setFieldsEnabled(true);
-                                    isEditing = true;
-                                    availableRoomsComboBox.setDisable(true);
+
+
+                                    updateBookingButton.setDisable(false);
+                                    saveButton.setDisable(true);
+
+                                    startDatePicker.setDisable(false);
+                                    leavingDatePicker.setDisable(false);
+
                                     showSuccess("Editando reserva #" + selectedBooking.getBookingId());
-                                    updateCalculations();
+                                } else {
+                                    showError("Seleccione una reserva para editar");
                                 }
                             }
 
+
                             @FXML
                             public void handleUpdateBooking(ActionEvent actionEvent) {
-                                if (!isEditing) {
+                                if (!isEditing || currentEditingBooking == null) {
                                     showError("No hay una reserva en modo edición.");
                                     return;
                                 }
+
                                 if (!validateBooking()) return;
+
                                 try {
-                                    int bookingId = Integer.parseInt(bookingIdTextField.getText());
-                                    Booking booking = new Booking(
+
+                                    int bookingId = currentEditingBooking.getBookingId();
+                                    Booking updatedBooking = new Booking(
                                             bookingId,
                                             startDatePicker.getValue(),
                                             leavingDatePicker.getValue(),
                                             new ArrayList<>(reservedRooms)
                                     );
-                                    booking.setGuest(guestComboBox.getValue());
-                                    booking.setFrontDeskClerk(clerkComboBox.getValue());
-                                    booking.setHotel(hotelComboBox.getValue());
-                                    String result = bookingData.update(booking);
+
+
+                                    updatedBooking.setGuest(guestComboBox.getValue());
+                                    updatedBooking.setFrontDeskClerk(clerkComboBox.getValue());
+                                    updatedBooking.setHotel(hotelComboBox.getValue());
+
+
+                                    String result = bookingData.update(updatedBooking);
                                     DataResponse response = parseDataResponse(result);
+
                                     if (response.isSuccess()) {
-                                        showSuccess("Reserva actualizada exitosamente");
+                                        showSuccess("Reserva #" + bookingId + " actualizada exitosamente");
+
+
                                         loadInitialData();
-                                        // Selecciona la reserva editada en la lista
-                                        bookings.stream()
-                                                .filter(b -> b.getBookingId() == bookingId)
-                                                .findFirst()
-                                                .ifPresent(b -> bookingListView.getSelectionModel().select(b));
-                                        loadBookingDetails(booking);
-                                        setFieldsEnabled(false);
+
+
                                         isEditing = false;
+                                        currentEditingBooking = null;
+
+
+                                        updateBookingButton.setDisable(true);
+                                        saveButton.setDisable(false);
+
+
+                                        clearForm();
+
+
+                                        bookingListView.getItems().stream()
+                                                .filter(b -> b instanceof Booking &&
+                                                        ((Booking) b).getBookingId() == bookingId)
+                                                .findFirst()
+                                                .ifPresent(b -> {
+                                                    bookingListView.getSelectionModel().select(b);
+                                                    loadBookingDetails((Booking) b);
+                                                });
+
                                     } else {
                                         showError("Error al actualizar: " + response.getMessage());
                                     }
+
                                 } catch (Exception e) {
                                     showError("Error al actualizar la reserva: " + e.getMessage());
+                                    e.printStackTrace();
                                 }
                             }
 
@@ -740,12 +881,30 @@
                                 private boolean success;
                                 private String message;
                                 private Object data;
-                                public boolean isSuccess() { return success; }
-                                public void setSuccess(boolean success) { this.success = success; }
-                                public String getMessage() { return message; }
-                                public void setMessage(String message) { this.message = message; }
-                                public Object getData() { return data; }
-                                public void setData(Object data) { this.data = data; }
+
+                                public boolean isSuccess() {
+                                    return success;
+                                }
+
+                                public void setSuccess(boolean success) {
+                                    this.success = success;
+                                }
+
+                                public String getMessage() {
+                                    return message;
+                                }
+
+                                public void setMessage(String message) {
+                                    this.message = message;
+                                }
+
+                                public Object getData() {
+                                    return data;
+                                }
+
+                                public void setData(Object data) {
+                                    this.data = data;
+                                }
                             }
 
                             private void setFieldsEnabled(boolean enabled) {
@@ -754,17 +913,32 @@
                                 hotelComboBox.setDisable(!enabled);
                                 guestComboBox.setDisable(!enabled);
                                 clerkComboBox.setDisable(!enabled);
-                                availableRoomsComboBox.setDisable(true); // Siempre desactivado hasta consultar disponibilidad
-                                addRoomButton.setDisable(!enabled);
                                 checkAvailabilityButton.setDisable(!enabled);
-                                saveButton.setDisable(!enabled);
+
+
+                                availableRoomsComboBox.setDisable(true);
+
+
+                                if (enabled) {
+
+                                    addRoomButton.setDisable(availableRoomsComboBox.getValue() == null);
+
+                                    if (isEditing) {
+                                        saveButton.setDisable(true);
+                                        updateBookingButton.setDisable(false);
+                                    } else {
+                                        saveButton.setDisable(false);
+                                        updateBookingButton.setDisable(true);
+                                    }
+                                } else {
+
+                                    addRoomButton.setDisable(true);
+                                    saveButton.setDisable(true);
+                                    updateBookingButton.setDisable(true);
+                                }
+
+
                                 Room selectedRoom = reservedRoomsTableView.getSelectionModel().getSelectedItem();
                                 deleteButton.setDisable(!enabled || selectedRoom == null);
-                                if (enabled) {
-                                    addRoomButton.setDisable(availableRoomsComboBox.getValue() == null);
-                                    saveButton.setDisable(hotelComboBox.getValue() == null ||
-                                            guestComboBox.getValue() == null ||
-                                            clerkComboBox.getValue() == null);
-                                }
                             }
                         }
