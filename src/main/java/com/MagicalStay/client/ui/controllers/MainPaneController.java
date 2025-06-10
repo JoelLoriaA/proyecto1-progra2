@@ -97,6 +97,7 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
         openWindow(ConfiguracionApp.FXML_FRONTDESK_MANAGEMENT, "Gestión de Recepcionistas");
     }
 
+    // Java
     private void openWindow(String fxmlPath, String title) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
@@ -106,12 +107,18 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
             stage.setTitle(title);
             stage.setScene(new Scene(root));
             stage.setOnHidden(event -> {
-                // Al cerrar la ventana, vuelve a sincronizar
                 new Thread(() -> {
-                    try {
-                        socketCliente.iniciarSincronizacionBidireccional();
-                    } catch (Exception e) {
-                        Platform.runLater(() -> showAlert("Error", "Error en sincronización", e.getMessage(), Alert.AlertType.ERROR));
+                    if (socketCliente.estaConectado()) {
+                        try {
+                            socketCliente.detenerEscuchaMensajes();
+                            socketCliente.iniciarSincronizacionBidireccional();
+                            Platform.runLater(() -> socketCliente.iniciarEscuchaMensajes());
+                        } catch (Exception e) {
+                            Platform.runLater(() -> showAlert("Error", "Error en sincronización", e.getMessage(), Alert.AlertType.ERROR));
+                            // No desconectes aquí, solo muestra el error
+                        }
+                    } else {
+                        Platform.runLater(() -> showAlert("Advertencia", "Desconectado", "No se puede sincronizar porque la conexión se ha perdido.", Alert.AlertType.WARNING));
                     }
                 }).start();
             });
@@ -197,7 +204,7 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
             new Thread(() -> {
                 try {
                     socketCliente.iniciarSincronizacionBidireccional();
-                    socketCliente.iniciarEscuchaMensajes();
+                    Platform.runLater(() -> socketCliente.iniciarEscuchaMensajes());
                 } catch (Exception e) {
                     Platform.runLater(() -> {
                         showAlert("Error", "Error en sincronización", e.getMessage(), Alert.AlertType.ERROR);

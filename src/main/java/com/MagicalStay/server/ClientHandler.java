@@ -46,8 +46,10 @@ public class ClientHandler implements Runnable {
 
     private void handleMessage(String comando) throws IOException {
         String respuesta = procesarComando(comando);
-        salida.writeObject(respuesta);
-        salida.flush();
+        if (respuesta != null) {
+            salida.writeObject(respuesta);
+            salida.flush();
+        }
     }
 
     private String procesarComando(String comando) {
@@ -99,7 +101,8 @@ public class ClientHandler implements Runnable {
                             }
                         }
                     }
-                    return "Lista de archivos enviada";
+
+                    return null;
 
                 case "listar_imagenes":
                     File[] imagenesList = new File(ConfiguracionApp.RUTA_IMAGENES_SERVIDOR).listFiles();

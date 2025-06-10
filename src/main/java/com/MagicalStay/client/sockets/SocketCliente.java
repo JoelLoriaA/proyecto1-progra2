@@ -13,6 +13,7 @@ public class SocketCliente {
     private ObjectInputStream entrada;
     private volatile boolean conectado;
     private final ClienteCallback callback;
+    private Thread hiloEscucha;
 
     public interface ClienteCallback {
         void onMensajeRecibido(String mensaje);
@@ -53,7 +54,16 @@ public class SocketCliente {
     }
 
     public void iniciarEscuchaMensajes() {
-        escucharMensajes();
+        if (hiloEscucha != null && hiloEscucha.isAlive()) return;
+        hiloEscucha = new Thread(this::escucharMensajes);
+        hiloEscucha.start();
+    }
+
+    public void detenerEscuchaMensajes() {
+        if (hiloEscucha != null) {
+            hiloEscucha.interrupt();
+            hiloEscucha = null;
+        }
     }
 
     public void iniciarSincronizacionBidireccional() {
@@ -67,23 +77,21 @@ public class SocketCliente {
     }
 
 
-    private void escucharMensajes() {
-        new Thread(() -> {
-            while (conectado) {
-                try {
-                    Object mensaje = entrada.readObject();
-                    if (mensaje instanceof String) {
-                        Platform.runLater(() -> callback.onMensajeRecibido((String) mensaje));
-                    }
-                } catch (Exception e) {
-                    if (conectado) {
-                        Platform.runLater(() -> callback.onError("Error: " + e.getMessage()));
-                        desconectar();
-                    }
-                    break;
+   private void escucharMensajes() {
+        while (conectado) {
+            try {
+                Object mensaje = entrada.readObject();
+                if (mensaje instanceof String) {
+                    Platform.runLater(() -> callback.onMensajeRecibido((String) mensaje));
                 }
+            } catch (Exception e) {
+                if (conectado) {
+                    Platform.runLater(() -> callback.onError("Error: " + e.getMessage()));
+                    desconectar();
+                }
+                break;
             }
-        }).start();
+        }
     }
 
     public void enviarMensaje(String mensaje) {
@@ -121,22 +129,20 @@ public class SocketCliente {
         return conectado;
     }
 
-    public void enviarObjeto(Object obj) {
+  public void enviarObjeto(Object obj) {
         if (!conectado) {
             callback.onError("No conectado al servidor");
             return;
         }
-        new Thread(() -> {
-            try {
-                salida.writeObject(obj);
-                salida.flush();
-            } catch (IOException e) {
-                Platform.runLater(() -> {
-                    callback.onError("Error enviando objeto: " + e.getMessage());
-                    desconectar();
-                });
-            }
-        }).start();
+        try {
+            salida.writeObject(obj);
+            salida.flush();
+        } catch (IOException e) {
+            Platform.runLater(() -> {
+                callback.onError("Error enviando objeto: " + e.getMessage());
+                desconectar();
+            });
+        }
     }
 
     public Object recibirObjeto() throws IOException, ClassNotFoundException {
