@@ -23,7 +23,6 @@ import java.util.Optional;
 
 public class GuestManagementController {
 
-    // FXML elements for guest search and list
     @FXML
     private ComboBox<String> searchTypeComboBox;
 
@@ -60,7 +59,7 @@ public class GuestManagementController {
     @FXML
     private Button deleteButton;
 
-    // FXML elements for guest details
+
     @FXML
     private TextField nameField;
 
@@ -94,19 +93,19 @@ public class GuestManagementController {
     @FXML
     private Button clearButton;
 
-    // Status and close buttons
+
     @FXML
     private Label statusLabel;
 
     @FXML
     private Button closeButton;
 
-    // Data
+
     private ObservableList<Guest> guestList;
     private Guest selectedGuest;
     private boolean editMode = false;
 
-    // Data access objects
+
     private GuestData guestData;
     private ObjectMapper objectMapper;
 
@@ -114,17 +113,16 @@ public class GuestManagementController {
     private void initialize() {
         try {
             setFieldsEnabled(false);
-            // Initialize data access objects
+
             guestData = DataFactory.getGuestData();
             objectMapper = new ObjectMapper();
 
-            // Setup table columns
+
             tableNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
             tableLastNameColumn.setCellValueFactory(new PropertyValueFactory<>("lastName"));
             tableDniColumn.setCellValueFactory(new PropertyValueFactory<>("dni"));
             tableEmailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
 
-            // Setup search type combo box
             searchTypeComboBox.setItems(FXCollections.observableArrayList(
                     "Por Nombre",
                     "Por Email",
@@ -133,22 +131,22 @@ public class GuestManagementController {
             ));
             searchTypeComboBox.setValue("Por Nombre");
 
-            // Setup nationality combo box
+
             setupNationalityComboBox();
 
-            // Load data from files
+
             loadGuestsFromFile();
 
-            // Set the guest table items
+
             guestTableView.setItems(guestList);
 
-            // Disable edit and delete buttons initially
+
             editButton.setDisable(true);
             deleteButton.setDisable(true);
             updateButton.setDisable(true);
 
 
-            // Set initial status
+
             statusLabel.setText("Listo");
             validationLabel.setText("Complete todos los campos requeridos");
 
@@ -162,7 +160,7 @@ public class GuestManagementController {
     private void setupNationalityComboBox() {
         ObservableList<String> countries = FXCollections.observableArrayList();
 
-        // Get all available locales and extract countries
+
         Locale[] locales = Locale.getAvailableLocales();
         for (Locale locale : locales) {
             String country = locale.getDisplayCountry();
@@ -171,18 +169,18 @@ public class GuestManagementController {
             }
         }
 
-        // Sort countries alphabetically
+
         FXCollections.sort(countries);
 
-        // Add some common countries at the top
+
         ObservableList<String> commonCountries = FXCollections.observableArrayList(
                 "Costa Rica", "Estados Unidos", "México", "España", "Colombia", "Argentina"
         );
 
-        // Remove common countries from the main list to avoid duplicates
+
         countries.removeAll(commonCountries);
 
-        // Combine lists
+
         ObservableList<String> finalList = FXCollections.observableArrayList();
         finalList.addAll(commonCountries);
         finalList.add("---");
@@ -217,7 +215,7 @@ public class GuestManagementController {
     private void handleGuestSelection(MouseEvent event) {
         selectedGuest = guestTableView.getSelectionModel().getSelectedItem();
         if (selectedGuest != null) {
-            // Fill the fields with guest data
+
             nameField.setText(selectedGuest.getName());
             lastNameField.setText(selectedGuest.getLastName());
             dniField.setText(String.valueOf(selectedGuest.getDni()));
@@ -226,11 +224,11 @@ public class GuestManagementController {
             addressField.setText(selectedGuest.getAddress());
             nationalityComboBox.setValue(selectedGuest.getNationality());
 
-            // Enable buttons
+
             editButton.setDisable(false);
             deleteButton.setDisable(false);
 
-            // Disable fields
+
             setFieldsEnabled(false);
 
             statusLabel.setText("Huésped seleccionado: " + selectedGuest.getName() + " " + selectedGuest.getLastName());
@@ -279,7 +277,7 @@ public class GuestManagementController {
                     guests = objectMapper.convertValue(response.getData(),
                             new TypeReference<List<Guest>>() {});
                 } else {
-                    // Si es búsqueda por DNI, convertimos el huésped único a una lista
+
                     Guest guest = objectMapper.convertValue(response.getData(), Guest.class);
                     guests = Collections.singletonList(guest);
                 }
@@ -304,15 +302,13 @@ public class GuestManagementController {
         setFieldsEnabled(true);
         editMode = false;
 
-        // Clear selection
         guestTableView.getSelectionModel().clearSelection();
         selectedGuest = null;
 
-        // Enable save button, disable update button
+
         saveButton.setDisable(false);
         updateButton.setDisable(true);
 
-        // Disable edit and delete buttons
         editButton.setDisable(true);
         deleteButton.setDisable(true);
 
@@ -320,17 +316,16 @@ public class GuestManagementController {
         validationLabel.setText("Complete todos los campos requeridos");
     }
 
-   @FXML
+    @FXML
     private void handleEdit(ActionEvent event) {
         if (selectedGuest != null) {
             setFieldsEnabled(true);
-            // Asegúrate de que estos campos estén habilitados
-            nameField.setDisable(false);
-            dniField.setDisable(false);
-
             editMode = true;
+
+
             saveButton.setDisable(true);
             updateButton.setDisable(false);
+
 
             statusLabel.setText("Editando huésped: " + selectedGuest.getName() + " " + selectedGuest.getLastName());
             validationLabel.setText("Modifique los campos necesarios");
@@ -353,15 +348,15 @@ public class GuestManagementController {
                     DataResponse response = parseDataResponse(jsonResponse);
 
                     if (response.isSuccess()) {
-                        // Recargar la lista
+
                         loadGuestsFromFile();
                         guestTableView.setItems(guestList);
                         clearFields();
 
-                        // Clear selection
+
                         selectedGuest = null;
 
-                        // Disable buttons
+
                         editButton.setDisable(true);
                         deleteButton.setDisable(true);
                         updateButton.setDisable(true);
@@ -407,7 +402,7 @@ public class GuestManagementController {
                     setFieldsEnabled(false);
                     saveButton.setDisable(true);
 
-                    // Select the saved guest
+
                     for (Guest g : guestList) {
                         if (g.getDni() == guest.getDni()) {
                             guestTableView.getSelectionModel().select(g);
@@ -435,47 +430,105 @@ public class GuestManagementController {
     private void handleUpdate(ActionEvent event) {
         if (selectedGuest != null && validateFields()) {
             try {
-                int id = Integer.parseInt(dniField.getText().trim());
+                int newDni = Integer.parseInt(dniField.getText().trim());
                 int phoneNumber = Integer.parseInt(phoneNumberField.getText().trim());
 
-                // Create updated guest object
+
+                if (newDni != selectedGuest.getDni()) {
+
+                    String checkResponse = guestData.retrieveById(newDni);
+                    DataResponse checkDataResponse = parseDataResponse(checkResponse);
+                    if (checkDataResponse.isSuccess()) {
+                        showAlert(Alert.AlertType.ERROR, "Error de Validación",
+                                "Ya existe un huésped con el DNI " + newDni);
+                        return;
+                    }
+                }
+
+
+                if (newDni != selectedGuest.getDni()) {
+
+                    String deleteResponse = guestData.delete(selectedGuest.getDni());
+                    DataResponse deleteDataResponse = parseDataResponse(deleteResponse);
+
+                    if (!deleteDataResponse.isSuccess()) {
+                        showAlert(Alert.AlertType.ERROR, "Error",
+                                "No se pudo actualizar el huésped: " + deleteDataResponse.getMessage());
+                        return;
+                    }
+
+
+                    Guest updatedGuest = new Guest(
+                            nameField.getText().trim(),
+                            lastNameField.getText().trim(),
+                            newDni,
+                            phoneNumber,
+                            emailField.getText().trim(),
+                            addressField.getText().trim(),
+                            nationalityComboBox.getValue()
+                    );
+
+                    String createResponse = guestData.create(updatedGuest);
+                    DataResponse createDataResponse = parseDataResponse(createResponse);
+
+                    if (!createDataResponse.isSuccess()) {
+                        showAlert(Alert.AlertType.ERROR, "Error",
+                                "No se pudo crear el huésped actualizado: " + createDataResponse.getMessage());
+                        return;
+                    }
+                } else {
+
+                    Guest updatedGuest = new Guest(
+                            nameField.getText().trim(),
+                            lastNameField.getText().trim(),
+                            newDni,
+                            phoneNumber,
+                            emailField.getText().trim(),
+                            addressField.getText().trim(),
+                            nationalityComboBox.getValue()
+                    );
+
+                    String jsonResponse = guestData.update(updatedGuest);
+                    DataResponse response = parseDataResponse(jsonResponse);
+
+                    if (!response.isSuccess()) {
+                        showAlert(Alert.AlertType.ERROR, "Error",
+                                "No se pudo actualizar el huésped: " + response.getMessage());
+                        return;
+                    }
+                }
+
+                loadGuestsFromFile();
+                guestTableView.setItems(guestList);
+
+                setFieldsEnabled(false);
+                updateButton.setDisable(true);
+                editMode = false;
+
+
                 Guest updatedGuest = new Guest(
                         nameField.getText().trim(),
                         lastNameField.getText().trim(),
-                        id,
+                        newDni,
                         phoneNumber,
                         emailField.getText().trim(),
                         addressField.getText().trim(),
                         nationalityComboBox.getValue()
                 );
 
-                String jsonResponse = guestData.update(updatedGuest);
-                DataResponse response = parseDataResponse(jsonResponse);
+                selectedGuest = updatedGuest;
 
-                if (response.isSuccess()) {
-                    loadGuestsFromFile();
-                    guestTableView.setItems(guestList);
 
-                    setFieldsEnabled(false);
-                    updateButton.setDisable(true);
-
-                    // Update selected guest reference
-                    selectedGuest = updatedGuest;
-
-                    // Select the updated guest
-                    for (Guest g : guestList) {
-                        if (g.getDni() == updatedGuest.getDni()) {
-                            guestTableView.getSelectionModel().select(g);
-                            break;
-                        }
+                for (Guest g : guestList) {
+                    if (g.getDni() == newDni) {
+                        guestTableView.getSelectionModel().select(g);
+                        break;
                     }
-
-                    statusLabel.setText("Huésped actualizado con éxito");
-                    validationLabel.setText("Huésped actualizado correctamente");
-                } else {
-                    showAlert(Alert.AlertType.ERROR, "Error",
-                            "No se pudo actualizar el huésped: " + response.getMessage());
                 }
+
+                statusLabel.setText("Huésped actualizado con éxito");
+                validationLabel.setText("Huésped actualizado correctamente");
+
             } catch (NumberFormatException e) {
                 showAlert(Alert.AlertType.ERROR, "Error de Validación",
                         "DNI y Teléfono deben ser números válidos");
@@ -485,6 +538,7 @@ public class GuestManagementController {
             }
         }
     }
+
 
     @FXML
     private void handleClear(ActionEvent event) {
@@ -520,6 +574,7 @@ public class GuestManagementController {
         nationalityComboBox.setValue("Costa Rica");
     }
 
+
     private void setFieldsEnabled(boolean enabled) {
         nameField.setDisable(!enabled);
         lastNameField.setDisable(!enabled);
@@ -529,6 +584,7 @@ public class GuestManagementController {
         addressField.setDisable(!enabled);
         nationalityComboBox.setDisable(!enabled);
         saveButton.setDisable(!enabled);
+
     }
 
     private boolean validateFields() {
@@ -607,7 +663,7 @@ public class GuestManagementController {
         private String message;
         private Object data;
 
-        // Getters y setters
+
         public boolean isSuccess() { return success; }
         public void setSuccess(boolean success) { this.success = success; }
 
@@ -619,7 +675,7 @@ public class GuestManagementController {
     }
 
     public void setSelectedHotel(Hotel selectedHotel2) {
-        // TODO Auto-generated method stub
+
         throw new UnsupportedOperationException("Unimplemented method 'setSelectedHotel'");
     }
 }

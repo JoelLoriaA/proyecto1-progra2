@@ -81,6 +81,7 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
     @FXML
     private void handleRoomManagement() {
         openWindow(ConfiguracionApp.FXML_ROOM_MANAGEMENT, "Gestión de Habitaciones");
+
     }
 
     @FXML
@@ -214,6 +215,18 @@ public class MainPaneController implements SocketCliente.ClienteCallback {
     public void onDesconexion() {
         statusLabel.setText("Desconectado del servidor");
         updateConnectionStatus(false);
+
+        new Thread(() -> {
+            try {
+                socketCliente.iniciarSincronizacionBidireccional();
+                socketCliente.iniciarEscuchaMensajes();
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    showAlert("Error", "Error en sincronización", e.getMessage(), Alert.AlertType.ERROR);
+                    updateConnectionStatus(false);
+                });
+            }
+        }).start();
 
         if (connectionStatusLabel != null) {
             connectionStatusLabel.setText("Estado: Desconectado");

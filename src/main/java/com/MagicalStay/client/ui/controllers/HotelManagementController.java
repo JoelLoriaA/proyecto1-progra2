@@ -31,72 +31,48 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class HotelManagementController {
-    // FXML elements for hotel list
     @FXML
     private TextField searchTextField;
-
     @FXML
     private ListView<Hotel> hotelListView;
-
     @FXML
     private Button addButton;
-
     @FXML
     private Button editButton;
-
     @FXML
     private Button deleteButton;
-
-    // FXML elements for hotel details
     @FXML
     private TextField hotelIdTextField;
-
     @FXML
     private TextField nameTextField;
-
     @FXML
     private TextArea addressTextArea;
-
     @FXML
     private Button saveButton;
-
     @FXML
     private Button cancelButton;
-
-    // FXML elements for room table
     @FXML
     private TableView<Room> roomsTableView;
-
     @FXML
     private TableColumn<Room, String> roomNumberColumn;
-
     @FXML
     private TableColumn<Room, String> roomTypeColumn;
-
     @FXML
     private TableColumn<Room, String> roomStatusColumn;
-
     @FXML
     private Label statusLabel;
-
     @FXML
     private Button closeButton;
-
     @FXML
     private Button searchButton;
-
-    // Data
     private ObservableList<Hotel> hotelList;
     private ObservableList<Room> roomList;
     private Hotel selectedHotel;
     private boolean editMode = false;
-
-    // Data access objects
     private HotelData hotelData;
     private RoomData roomData;
     private GuestData guestData;
     private ObjectMapper objectMapper;
-
     @FXML
     private TableView guestsTableView;
     @FXML
@@ -123,13 +99,9 @@ public class HotelManagementController {
             hotelData = DataFactory.getHotelData();
             roomData = DataFactory.getRoomData();
             guestData = DataFactory.getGuestData();
-
-            // Configurar columnas de rooms con tipos genéricos
             roomNumberColumn.setCellValueFactory(new PropertyValueFactory<Room, String>("roomNumber"));
             roomTypeColumn.setCellValueFactory(new PropertyValueFactory<Room, String>("roomType"));
             roomStatusColumn.setCellValueFactory(new PropertyValueFactory<Room, String>("roomCondition"));
-
-            // Configurar columnas de guests con tipos genéricos
             guestNameColumn.setCellValueFactory(new PropertyValueFactory<Guest, String>("name"));
             guestLastNameColumn.setCellValueFactory(new PropertyValueFactory<Guest, String>("lastName"));
             guestDniColumn.setCellValueFactory(new PropertyValueFactory<Guest, Integer>("id"));
@@ -137,23 +109,15 @@ public class HotelManagementController {
             guestEmailColumn.setCellValueFactory(new PropertyValueFactory<Guest, String>("email"));
             guestAddressColumn.setCellValueFactory(new PropertyValueFactory<Guest, String>("address"));
             guestNationalityColumn.setCellValueFactory(new PropertyValueFactory<Guest, String>("nationality"));
-
-            // Inicializar listas observables
             hotelList = FXCollections.observableArrayList();
             roomList = FXCollections.observableArrayList();
-
-            // Configurar ComboBox de búsqueda
             searchTypeComboBox.setItems(FXCollections.observableArrayList(
                     "Por Nombre",
                     "Por Dirección",
                     "Todos"
             ));
             searchTypeComboBox.setValue("Por Nombre");
-
-            // Cargar datos iniciales
             loadHotelsFromFile();
-
-            // Configurar ListView de hoteles
             hotelListView.setItems(hotelList);
             hotelListView.setCellFactory(lv -> new ListCell<Hotel>() {
                 @Override
@@ -169,13 +133,9 @@ public class HotelManagementController {
                     }
                 }
             });
-
-            // Deshabilitar campos y botones inicialmente
             setFieldsEnabled(false);
             editButton.setDisable(true);
             deleteButton.setDisable(true);
-
-            // Configurar listeners para selección
             hotelListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
                 if (newVal != null) {
                     selectedHotel = newVal;
@@ -185,9 +145,7 @@ public class HotelManagementController {
                     deleteButton.setDisable(false);
                 }
             });
-
             statusLabel.setText("Sistema inicializado correctamente");
-
         } catch (IOException e) {
             showAlert(Alert.AlertType.ERROR, "Error de Inicialización",
                     "No se pudieron cargar los datos: " + e.getMessage());
@@ -204,14 +162,7 @@ public class HotelManagementController {
                 List<Hotel> hotels = objectMapper.convertValue(response.getData(),
                         new TypeReference<List<Hotel>>() {});
                 hotelList = FXCollections.observableArrayList(hotels);
-                // Añadir esta línea:
                 hotelListView.setItems(hotelList);
-
-                // Agregar log para depuración
-                System.out.println("Hoteles cargados: " + hotels.size());
-                for (Hotel h : hotels) {
-                    System.out.println("Hotel: " + h.getName());
-                }
             } else {
                 hotelList = FXCollections.observableArrayList();
                 hotelListView.setItems(hotelList);
@@ -231,21 +182,14 @@ public class HotelManagementController {
                 roomsTableView.setItems(FXCollections.observableArrayList());
                 return;
             }
-
-            // Obtener las habitaciones del hotel usando RoomData
             List<Room> rooms = DataFactory.getRoomData().getRoomsByHotelId(hotel.getHotelId());
-
-            // Convertir a observable list y actualizar la tabla
             ObservableList<Room> observableRooms = FXCollections.observableArrayList(rooms);
             roomsTableView.setItems(observableRooms);
-
-            // Actualizar etiqueta de resultados
             if (rooms.isEmpty()) {
                 statusLabel.setText("No hay habitaciones registradas para este hotel");
             } else {
                 statusLabel.setText(String.format("Se encontraron %d habitaciones", rooms.size()));
             }
-
         } catch (Exception e) {
             statusLabel.setText("Error al cargar habitaciones: " + e.getMessage());
             e.printStackTrace();
@@ -258,8 +202,6 @@ public class HotelManagementController {
                 guestsTableView.setItems(FXCollections.observableArrayList());
                 return;
             }
-
-            // Obtener todas las reservas
             String bookingJson = DataFactory.getBookingData().retrieveAll();
             DataResponse bookingResponse = parseDataResponse(bookingJson);
 
@@ -268,15 +210,12 @@ public class HotelManagementController {
                     bookingResponse.getData(),
                     new TypeReference<List<Booking>>() {}
                 );
-
-                // Filtrar bookings por hotel y extraer huéspedes únicos
                 List<Guest> guests = bookings.stream()
                     .filter(b -> b.getHotel() != null && b.getHotel().getHotelId() == hotel.getHotelId())
                     .map(Booking::getGuest)
                     .filter(g -> g != null)
                     .distinct()
                     .collect(Collectors.toList());
-
                 guestsTableView.setItems(FXCollections.observableArrayList(guests));
             } else {
                 guestsTableView.setItems(FXCollections.observableArrayList());
@@ -292,18 +231,13 @@ public class HotelManagementController {
     private void handleHotelSelection(MouseEvent event) {
         selectedHotel = hotelListView.getSelectionModel().getSelectedItem();
         if (selectedHotel != null) {
-            // Fill the fields with hotel data
             hotelIdTextField.setText(String.valueOf(selectedHotel.getHotelId()));
             nameTextField.setText(selectedHotel.getName());
             addressTextArea.setText(selectedHotel.getAddress());
-
             loadRoomsForHotel(selectedHotel);
             loadGuestsForHotel(selectedHotel);
-
-            // Enable buttons
             editButton.setDisable(false);
             deleteButton.setDisable(false);
-
         }
     }
 
@@ -348,7 +282,6 @@ public class HotelManagementController {
                     hotels = objectMapper.convertValue(response.getData(),
                             new TypeReference<List<Hotel>>() {});
                 } else {
-                    // Si es búsqueda por ID, convertimos el hotel único a una lista
                     Hotel hotel = objectMapper.convertValue(response.getData(), Hotel.class);
                     hotels = Collections.singletonList(hotel);
                 }
@@ -370,13 +303,9 @@ public class HotelManagementController {
         clearFields();
         setFieldsEnabled(true);
         editMode = false;
-
-        // Set default values
         hotelIdTextField.setText("[Automático]");
-
         saveButton.setDisable(false);
         cancelButton.setDisable(false);
-
         statusLabel.setText("Agregando nuevo hotel...");
     }
 
@@ -385,10 +314,8 @@ public class HotelManagementController {
         if (selectedHotel != null) {
             setFieldsEnabled(true);
             editMode = true;
-
             saveButton.setDisable(false);
             cancelButton.setDisable(false);
-
             statusLabel.setText("Editando hotel: " + selectedHotel.getName());
         }
     }
@@ -408,14 +335,10 @@ public class HotelManagementController {
                     DataResponse response = parseDataResponse(jsonResponse);
 
                     if (response.isSuccess()) {
-                        // Recargar la lista
                         loadHotelsFromFile();
                         hotelListView.setItems(hotelList);
                         clearFields();
-
                         statusLabel.setText("Hotel eliminado con éxito");
-
-                        // Disable buttons
                         editButton.setDisable(true);
                         deleteButton.setDisable(true);
                     } else {
@@ -439,7 +362,6 @@ public class HotelManagementController {
 
                 if (editMode) {
                     hotel = selectedHotel;
-                    // Mantener las habitaciones existentes
                     existingRooms = selectedHotel.getRooms();
                 } else {
                     hotel = new Hotel(getNextHotelId(), nameTextField.getText(),
@@ -448,8 +370,6 @@ public class HotelManagementController {
 
                 hotel.setName(nameTextField.getText());
                 hotel.setAddress(addressTextArea.getText());
-
-                // Asegurar que las habitaciones existentes se mantengan
                 if (!existingRooms.isEmpty()) {
                     hotel.setRooms(existingRooms);
                 }
@@ -466,19 +386,15 @@ public class HotelManagementController {
                 if (response.isSuccess()) {
                     loadHotelsFromFile();
                     hotelListView.setItems(hotelList);
-
                     setFieldsEnabled(false);
                     saveButton.setDisable(true);
                     cancelButton.setDisable(true);
-
-                    // Seleccionar el hotel guardado
                     for (Hotel h : hotelList) {
                         if (h.getHotelId() == hotel.getHotelId()) {
                             hotelListView.getSelectionModel().select(h);
                             break;
                         }
                     }
-
                     statusLabel.setText("Hotel guardado con éxito");
                 } else {
                     showAlert(Alert.AlertType.ERROR, "Error",
@@ -494,23 +410,19 @@ public class HotelManagementController {
     @FXML
     private void handleCancel(ActionEvent event) {
         if (editMode && selectedHotel != null) {
-            // Reload current hotel data
             handleHotelSelection(null);
         } else {
             clearFields();
         }
-
         setFieldsEnabled(false);
         saveButton.setDisable(true);
         cancelButton.setDisable(true);
-
         statusLabel.setText("Operación cancelada");
     }
 
     @FXML
     private void handleClose(ActionEvent event) throws IOException {
         DataFactory.closeAll();
-
         Stage stage = (Stage) closeButton.getScene().getWindow();
         stage.close();
     }
@@ -525,7 +437,6 @@ public class HotelManagementController {
     private void setFieldsEnabled(boolean enabled) {
         nameTextField.setDisable(!enabled);
         addressTextArea.setDisable(!enabled);
-
     }
 
     private boolean validateFields() {
@@ -577,14 +488,10 @@ public class HotelManagementController {
         private boolean success;
         private String message;
         private Object data;
-
-        // Getters y setters
         public boolean isSuccess() { return success; }
         public void setSuccess(boolean success) { this.success = success; }
-
         public String getMessage() { return message; }
         public void setMessage(String message) { this.message = message; }
-
         public Object getData() { return data; }
         public void setData(Object data) { this.data = data; }
     }

@@ -3,13 +3,13 @@ package com.MagicalStay.shared.config;
 public class ConfiguracionApp {
 
     // Configuración del servidor
-    public static final String HOST_SERVIDOR = "192.168.100.8"; // Cambiar por la IP del servidor para conexiones remotas
+    public static final String HOST_SERVIDOR = "10.59.57.173"; // Cambiar por la IP del servidor para conexiones remotas
     public static final int PUERTO_SERVIDOR = 5000;
 
     //Manejo de archivos en el servidor
-    public static final String RUTA_ARCHIVOS_SERVIDOR = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\files\\"; // Ruta donde se almacenan los archivos en el servidor
-    public static final String RUTA_IMAGENES_SERVIDOR = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\images\\"; // Ruta donde se almacenan los archivos en el cliente
-    public static final String RUTA_COPIA_IMAGENES_SERVIDOR = "D:\\JAVA_DEV\\progra2-2025\\ULTIMA FASE\\server\\images\\copy\\"; // Ruta donde se almacenan las copias de las imagenes seleccionadas en el controller por el usuario
+    public static final String RUTA_ARCHIVOS_SERVIDOR = "server/data/files/"; // Ruta donde se almacenan los archivos en el servidor
+    public static final String RUTA_IMAGENES_SERVIDOR = "server/data/images/"; // Ruta donde se almacenan los archivos en el cliente
+    public static final String RUTA_COPIA_IMAGENES_SERVIDOR = "server/data/images/copy/"; // Ruta donde se almacenan las copias de las imagenes seleccionadas en el controller por el usuario
 
     // Configuración de la aplicación
     public static final String NOMBRE_APLICACION = "MagicalStay Hotel Management System";

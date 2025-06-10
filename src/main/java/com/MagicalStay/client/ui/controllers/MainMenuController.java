@@ -201,7 +201,6 @@ public class MainMenuController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/MagicalStay/room-management.fxml"));
             Parent root = loader.load();
 
-            // Create a new stage for the room management window
             Stage roomStage = new Stage();
             roomStage.setTitle("Gestión de Habitaciones");
             roomStage.setScene(new Scene(root));
@@ -257,7 +256,6 @@ public class MainMenuController {
                         "© 2025 - Todos los derechos reservados");
     }
 
-    // Helper method to show alerts
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
